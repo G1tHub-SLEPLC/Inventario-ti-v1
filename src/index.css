@@ -1,0 +1,133 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: 'Inter', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+}
+
+@layer base {
+  :root {
+    --slep-primary: #25306B;
+    --slep-secondary: #006BB9;
+    --slep-accent: #3ABFF0;
+    --slep-danger: #FF1D3D;
+    --slep-green: #90d039;
+    --slep-yellow: #f8d63c;
+    --slep-bg: #EDF0F5;
+  }
+  
+  html {
+    font-family: 'Inter', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  }
+  
+  body {
+    background: var(--slep-bg);
+    overflow-x: hidden;
+  }
+}
+
+@layer components {
+  .brand-grad {
+    background: linear-gradient(135deg, var(--slep-primary) 0%, var(--slep-secondary) 100%);
+  }
+
+  .table-scroll {
+    max-height: 520px;
+    overflow-y: auto;
+    overflow-x: auto;
+    width: 100%;
+  }
+  
+  .table-scroll table {
+    width: 100%;
+    min-width: max-content;
+    border-collapse: collapse;
+  }
+
+  .table-scroll thead th {
+    position: sticky;
+    top: 0;
+    background: var(--slep-primary);
+    color: #ffffff;
+    z-index: 5;
+    font-size: 12px;
+    letter-spacing: 0.025em;
+    padding: 8px 12px;
+    line-height: 1.2;
+  }
+
+  .table-scroll td {
+    padding: 8px 12px;
+    vertical-align: middle;
+    border-bottom: 1px solid #e5e7eb;
+    font-size: 12px;
+    color: #334155;
+  }
+
+  .sortable {
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.2s;
+  }
+  .sortable:hover {
+    background: var(--slep-secondary) !important;
+  }
+
+  .badge-disp {
+    background: var(--slep-green);
+    color: #ffffff;
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+    text-shadow: 0 1px 1px rgba(0,0,0,0.2);
+  }
+
+  .badge-asig {
+    background: var(--slep-secondary);
+    color: #ffffff;
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+    text-shadow: 0 1px 1px rgba(0,0,0,0.2);
+  }
+
+  /* Scrollbars autocomplete lists */
+  .sug-list::-webkit-scrollbar { width: 6px; }
+  .sug-list::-webkit-scrollbar-track { background: #f1f5f9; }
+  .sug-list::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+}
+
+@layer utilities {
+  .autocomplete-active {
+    background-color: #eff6ff !important;
+  }
+
+  @media print {
+    .no-print-interactive { display: none !important; }
+    nav { display: none !important; }
+    .table-scroll { max-height: none !important; overflow: visible !important; }
+    table { width: 100% !important; font-size: 11px !important; }
+    thead { display: table-header-group; } 
+  }
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateY(-20px) scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-slide-in {
+  animation: slideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+

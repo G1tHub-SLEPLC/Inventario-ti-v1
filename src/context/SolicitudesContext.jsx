@@ -1,0 +1,170 @@
+import { createContext, useContext, useState, useEffect } from 'react';
+import { supabase } from '../lib/supabaseClient';
+import { useAuth } from './AuthContext';
+import { useInventario } from './InventarioContext';
+import { sendPrestamoEmail } from '../utils/emailUtils';
+
+const SolicitudesContext = createContext(null);
+
+export function useSolicitudes() {
+  return useContext(SolicitudesContext);
+}
+
+export function SolicitudesProvider({ children }) {
+  const { session, isAdmin } = useAuth();
+  const { showToast } = useInventario();
+  
+  const [insumos, setInsumos] = useState([]);
+  const [solicitudes, setSolicitudes] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!session) {
+      setInsumos([]);
+      setSolicitudes([]);
+      setLoading(false);
+      return;
+    }
+
+    async function loadData() {
+      setLoading(true);
+      
+      // Load Insumos
+      const { data: insumosData, error: insumosError } = await supabase.from('insumos').select('*');
+      if (insumosError) console.error('Error cargando insumos:', insumosError);
+      else setInsumos(insumosData || []);
+
+      // Load Solicitudes
+      let query = supabase.from('solicitudes').select('*, insumo:insumos(nombre), perfil:perfiles(nombre, email)');
+      // Si no es admin, solo carga las suyas
+      if (!isAdmin) {
+        query = query.eq('usuario_id', session.user.id);
+      }
+      
+      const { data: solsData, error: solsError } = await query.order('created_at', { ascending: false });
+      
+      if (solsError) {
+        console.error('Error cargando solicitudes:', solsError);
+        return;
+      }
+      
+      // Fetch perfiles to map them manually since FK join might be missing or failing
+      const { data: perfilesData, error: perfilesError } = await supabase.from('perfiles').select('*');
+      if (perfilesError) console.error('Error cargando perfiles:', perfilesError);
+      
+      const solicitudesCompletas = (solsData || []).map(sol => {
+        // Encontrar el perfil usando el usuario_id
+        const perfil = (perfilesData || []).find(p => p.id === sol.usuario_id);
+        return {
+          ...sol,
+          perfil: perfil ? { nombre: perfil.nombre, correo: perfil.email } : sol.perfil // Fallback a lo que haya traido Supabase
+        };
+      });
+
+      setSolicitudes(solicitudesCompletas);
+      setLoading(false);
+    }
+
+    loadData();
+
+    // Listen to real-time changes in solicitudes
+    const solicitudesChannel = supabase.channel('solicitudes-channel')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'solicitudes' }, (payload) => {
+        loadData();
+        
+        // Mostrar Toast a los Admins si hay una nueva solicitud
+        if (isAdmin && payload.eventType === 'INSERT') {
+          showToast('Nueva Solicitud', `Se ha recibido una nueva solicitud de ${payload.new.tipo}.`, 'info');
+        }
+      })
+      .subscribe();
+
+    const insumosChannel = supabase.channel('insumos-channel')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'insumos' }, () => {
+        loadData();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(solicitudesChannel);
+      supabase.removeChannel(insumosChannel);
+    };
+  }, [session, isAdmin]);
+
+  const solicitarPrestamo = async (equipo_id, fecha_inicio, fecha_fin, hora_inicio, hora_fin, motivo) => {
+    const { error } = await supabase.from('solicitudes').insert({
+      usuario_id: session.user.id,
+      tipo: 'prestamo',
+      equipo_id,
+      fecha_inicio,
+      fecha_fin,
+      hora_inicio,
+      hora_fin,
+      motivo
+    });
+    if (error) {
+      console.error('Error al solicitar préstamo:', error);
+      throw error;
+    }
+    
+    // Send email notification
+    sendPrestamoEmail({
+      userEmail: session.user.email,
+      userName: session.user.user_metadata?.nombre || session.user.email,
+      equipoNombre: equipo_id, // Podríamos buscar el nombre real del equipo si es necesario
+      fechaInicio: fecha_inicio,
+      horaInicio: hora_inicio,
+      fechaFin: fecha_fin,
+      horaFin: hora_fin,
+      motivo: motivo
+    });
+
+    showToast('Éxito', 'Solicitud de préstamo enviada correctamente.', 'success');
+  };
+
+  const solicitarInsumo = async (insumo_id, cantidad) => {
+    const { error } = await supabase.from('solicitudes').insert({
+      usuario_id: session.user.id,
+      tipo: 'insumo',
+      insumo_id,
+      cantidad
+    });
+    if (error) {
+      console.error('Error al solicitar insumo:', error);
+      throw error;
+    }
+    showToast('Éxito', 'Solicitud de insumo enviada correctamente.', 'success');
+  };
+
+  const updateEstadoSolicitud = async (id, estado, observaciones_admin) => {
+    const { error } = await supabase.from('solicitudes').update({
+      estado,
+      observaciones_admin
+    }).eq('id', id);
+    
+    if (error) {
+      console.error('Error actualizando solicitud:', error);
+      throw error;
+    }
+    
+    // Update local state immediately without waiting for realtime channel reload
+    setSolicitudes(prev => prev.map(sol => 
+      sol.id === id ? { ...sol, estado, observaciones_admin } : sol
+    ));
+    
+    showToast('Éxito', `Solicitud ${estado} correctamente.`, 'success');
+  };
+
+  return (
+    <SolicitudesContext.Provider value={{
+      insumos,
+      solicitudes,
+      loading,
+      solicitarPrestamo,
+      solicitarInsumo,
+      updateEstadoSolicitud
+    }}>
+      {children}
+    </SolicitudesContext.Provider>
+  );
+}

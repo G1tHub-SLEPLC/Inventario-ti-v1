@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guía de Modelos de IA</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+    </style>
+</head>
+<body class="p-8">
+    <div class="max-w-4xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden">
+        <div class="bg-indigo-600 p-6 text-white">
+            <h1 class="text-3xl font-bold">Guía de Modelos de IA en Antigravity</h1>
+            <p class="mt-2 opacity-90">Cuándo utilizar cada modelo según la fase y complejidad de tu proyecto.</p>
+        </div>
+        
+        <div class="p-8 space-y-8 text-gray-700">
+            <!-- Gemini Flash -->
+            <section>
+                <h2 class="text-2xl font-bold text-indigo-700 border-b pb-2 mb-4">1. Familia Gemini 3.5 Flash (Rápidos)</h2>
+                <p class="mb-4">Son tus "caballitos de batalla". Extremadamente rápidos y perfectos para iterar sobre código de forma ágil, cambios visuales y tareas rutinarias.</p>
+                <div class="space-y-4">
+                    <div class="bg-slate-50 p-4 rounded-lg border border-slate-200">
+                        <h3 class="font-bold text-lg text-slate-800">Gemini 3.5 Flash (Low)</h3>
+                        <p class="text-sm mt-1"><strong>Cuándo usarlo:</strong> Tienes claro el archivo que hay que modificar y el cambio es muy puntual.</p>
+                        <p class="text-sm mt-1 text-slate-600"><em>Ejemplo:</em> "Cambia el color del botón IMPORTAR EXCEL a verde oscuro".</p>
+                    </div>
+                    <div class="bg-slate-50 p-4 rounded-lg border border-slate-200">
+                        <h3 class="font-bold text-lg text-slate-800">Gemini 3.5 Flash (Medium)</h3>
+                        <p class="text-sm mt-1"><strong>Cuándo usarlo:</strong> El punto de equilibrio. La tarea no es trivial pero tampoco rediseña el sistema. Necesita leer un par de archivos para entender el contexto.</p>
+                        <p class="text-sm mt-1 text-slate-600"><em>Ejemplo:</em> "Agrega un checkbox para borrar el Historial de Entregas y actualiza la lógica del botón".</p>
+                    </div>
+                    <div class="bg-slate-50 p-4 rounded-lg border border-slate-200">
+                        <h3 class="font-bold text-lg text-slate-800">Gemini 3.5 Flash (High)</h3>
+                        <p class="text-sm mt-1"><strong>Cuándo usarlo:</strong> Quieres un cambio rápido pero que afecta a varios archivos o necesitas que lea gran parte del proyecto.</p>
+                        <p class="text-sm mt-1 text-slate-600"><em>Ejemplo:</em> "Cambia la tipografía de toda la aplicación a 'Inter' y redondea todos los botones".</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Gemini Pro -->
+            <section>
+                <h2 class="text-2xl font-bold text-indigo-700 border-b pb-2 mb-4">2. Familia Gemini 3.1 Pro (Razonamiento Profundo)</h2>
+                <p class="mb-4">Piensan más lento que Flash, pero analizan los problemas a mucha mayor profundidad. Ideales para lógica compleja y depuración de errores difíciles.</p>
+                <div class="space-y-4">
+                    <div class="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                        <h3 class="font-bold text-lg text-blue-900">Gemini 3.1 Pro (Low)</h3>
+                        <p class="text-sm mt-1"><strong>Cuándo usarlo:</strong> Necesitas mucha inteligencia, pero el problema está aislado en un solo archivo (cálculos matemáticos, algoritmos complejos).</p>
+                        <p class="text-sm mt-1 text-blue-700"><em>Ejemplo:</em> "Crea una función con expresiones regulares para validar y formatear RUTs matemáticamente en este archivo util.js".</p>
+                    </div>
+                    <div class="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                        <h3 class="font-bold text-lg text-blue-900">Gemini 3.1 Pro (High)</h3>
+                        <p class="text-sm mt-1"><strong>Cuándo usarlo:</strong> Investigar bugs misteriosos que involucran varios componentes y la base de datos, o crear lógicas interconectadas pesadas.</p>
+                        <p class="text-sm mt-1 text-blue-700"><em>Ejemplo:</em> "La base de datos no está borrando la auditoría aunque no da error en el frontend. Investiga toda la conexión y el flujo". (El modelo deducirá problemas de seguridad RLS en Supabase).</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Claude -->
+            <section>
+                <h2 class="text-2xl font-bold text-indigo-700 border-b pb-2 mb-4">3. Familia Claude (Arquitectura y Refactorización)</h2>
+                <p class="mb-4">La etiqueta <em>(Thinking)</em> significa que tienen una fase de "pensamiento profundo" interno antes de escribir una sola línea de código.</p>
+                <div class="space-y-4">
+                    <div class="bg-orange-50 p-4 rounded-lg border border-orange-200">
+                        <h3 class="font-bold text-lg text-orange-900">Claude Sonnet 4.6 (Thinking)</h3>
+                        <p class="text-sm mt-1"><strong>Cuándo usarlo:</strong> Para refactorizar código desordenado o hacer cambios arquitectónicos grandes pero seguros, manteniendo un código limpio.</p>
+                        <p class="text-sm mt-1 text-orange-700"><em>Ejemplo:</em> "Divide el archivo InventarioContext.jsx en tres contextos diferentes sin romper la aplicación actual."</p>
+                    </div>
+                    <div class="bg-orange-50 p-4 rounded-lg border border-orange-200">
+                        <h3 class="font-bold text-lg text-orange-900">Claude Opus 4.6 (Thinking)</h3>
+                        <p class="text-sm mt-1"><strong>Cuándo usarlo:</strong> El modelo más pesado e inteligente. Para migraciones masivas, planificación de sistemas desde cero o tareas de altísima ambigüedad.</p>
+                        <p class="text-sm mt-1 text-orange-700"><em>Ejemplo:</em> "Diseña la arquitectura completa de una nueva app con roles jerárquicos (SuperAdmin, Admin, Usuario) y planifica la migración desde cero."</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Open Source -->
+            <section>
+                <h2 class="text-2xl font-bold text-indigo-700 border-b pb-2 mb-4">4. GPT-OSS 120B (Medium)</h2>
+                <div class="bg-gray-100 p-4 rounded-lg border border-gray-300">
+                    <p class="text-sm"><strong>Cuándo usarlo:</strong> Modelo Open Source gigante. Excelente para tareas estándar, redacción técnica, generar plantillas o como una "segunda opinión" cuando otros modelos se atascan.</p>
+                    <p class="text-sm mt-1 text-gray-600"><em>Ejemplo:</em> "Redacta un README.md detallado explicando cómo instalar y configurar este proyecto en un nuevo computador local."</p>
+                </div>
+            </section>
+        </div>
+    </div>
+</body>
+</html>

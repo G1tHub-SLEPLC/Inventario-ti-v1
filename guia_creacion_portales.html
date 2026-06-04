@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guía de Creación de Portales y GitHub</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+    </style>
+</head>
+<body class="p-8">
+    <div class="max-w-4xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden">
+        <div class="bg-emerald-600 p-6 text-white">
+            <h1 class="text-3xl font-bold">Cómo crear un Portal desde Cero</h1>
+            <p class="mt-2 opacity-90">Estrategia maestra de fases, creación de carpetas y buenas prácticas con GitHub.</p>
+        </div>
+        
+        <div class="p-8 space-y-8 text-gray-700">
+            <!-- La pregunta de las carpetas -->
+            <section class="bg-emerald-50 p-6 rounded-xl border border-emerald-200">
+                <h2 class="text-xl font-bold text-emerald-800 mb-3">¿Debo crear las carpetas manualmente o dejar que la IA lo haga?</h2>
+                <p class="mb-2"><strong>¡Deja que la IA y las herramientas oficiales lo hagan por ti!</strong></p>
+                <p class="text-sm">El flujo ideal con Antigravity es el siguiente:</p>
+                <ol class="list-decimal list-inside text-sm space-y-2 mt-3 ml-2 text-emerald-900">
+                    <li>Abre una carpeta totalmente en blanco.</li>
+                    <li>Pídele a un modelo avanzado (como Claude Opus): <em>"Inicia un nuevo portal con React/Vite ejecutando los comandos de terminal por mí"</em>.</li>
+                    <li>Una vez generada la base técnica, pídele: <em>"Crea la estructura de carpetas interna (/components, /pages) y archivos en blanco según las mejores prácticas"</em>.</li>
+                </ol>
+                <p class="text-sm mt-3 text-emerald-800 font-semibold">¿Por qué? Porque frameworks modernos requieren configuraciones exactas (package.json, configuraciones de compilación) que es muy fácil olvidar o configurar mal si las haces a mano.</p>
+            </section>
+
+            <!-- Las 4 Fases -->
+            <section>
+                <h2 class="text-2xl font-bold text-slate-800 border-b pb-2 mb-4">El Flujo de Trabajo Ideal (Las 4 Fases)</h2>
+                
+                <div class="space-y-6">
+                    <div>
+                        <h3 class="font-bold text-lg text-slate-700">FASE 1: Planificación y Arquitectura (Los cimientos)</h3>
+                        <p class="text-sm text-slate-500 mb-1"><strong>Modelos recomendados:</strong> Claude Opus/Sonnet 4.6 (Thinking) o Gemini 3.1 Pro (High)</p>
+                        <p class="text-sm">Pide al modelo que diseñe cómo será la base de datos (Supabase), la estructura de carpetas y las reglas de seguridad. El modelo planificará cuidadosamente antes de escribir código.</p>
+                    </div>
+                    
+                    <div>
+                        <h3 class="font-bold text-lg text-slate-700">FASE 2: Vistas Visuales (Levantar los muros)</h3>
+                        <p class="text-sm text-slate-500 mb-1"><strong>Modelos recomendados:</strong> Gemini 3.5 Flash (Medium/High)</p>
+                        <p class="text-sm">Una vez definida la estructura, usa modelos rápidos para escupir el código visual (Botones, Tablas, Formularios) usando Tailwind. Será extremadamente veloz.</p>
+                    </div>
+
+                    <div>
+                        <h3 class="font-bold text-lg text-slate-700">FASE 3: Lógica e Integración (Las tuberías)</h3>
+                        <p class="text-sm text-slate-500 mb-1"><strong>Modelos recomendados:</strong> Gemini 3.1 Pro (High) o Claude Sonnet 4.6 (Thinking)</p>
+                        <p class="text-sm">Aquí conectas el login real, el procesamiento de archivos Excel o la lectura de base de datos. Se requiere razonamiento profundo para evitar errores lógicos graves.</p>
+                    </div>
+
+                    <div>
+                        <h3 class="font-bold text-lg text-slate-700">FASE 4: Pulido y Mantenimiento (La decoración)</h3>
+                        <p class="text-sm text-slate-500 mb-1"><strong>Modelos recomendados:</strong> Gemini 3.5 Flash (Low/Medium)</p>
+                        <p class="text-sm">Ajustar colores, alinear elementos o corregir textos. Tareas rápidas de un solo archivo.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- GitHub -->
+            <section>
+                <h2 class="text-2xl font-bold text-slate-800 border-b pb-2 mb-4">GitHub: Organización de tus proyectos</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-slate-100 p-5 rounded-lg">
+                        <h3 class="font-bold text-slate-800 mb-2">¿Puedo tener varios portales en una cuenta?</h3>
+                        <p class="text-sm"><strong>Absolutamente.</strong> Tu cuenta de GitHub es como tu perfil principal. Dentro de ella puedes crear repositorios ILIMITADOS y gratuitos (públicos o privados).</p>
+                        <p class="text-sm mt-2">Lo correcto es crear <strong>1 Repositorio por cada portal</strong>. Por ejemplo:</p>
+                        <ul class="list-disc list-inside text-sm mt-2 text-slate-600">
+                            <li>github.com/tu-usuario/inventario-ti</li>
+                            <li>github.com/tu-usuario/recursos-humanos</li>
+                            <li>github.com/tu-usuario/sistema-ventas</li>
+                        </ul>
+                    </div>
+
+                    <div class="bg-slate-100 p-5 rounded-lg">
+                        <h3 class="font-bold text-slate-800 mb-2">¿Por qué enlazar este proyecto a GitHub?</h3>
+                        <p class="text-sm">Actualmente tu portal está solo en tu disco duro. Al enlazarlo (hacer "Push") obtienes:</p>
+                        <ul class="list-disc list-inside text-sm mt-2 text-slate-600 space-y-1">
+                            <li><strong>Copias de seguridad automáticas</strong> en la nube de Microsoft/GitHub.</li>
+                            <li><strong>Máquina del tiempo:</strong> Si un día rompes la página de Carga Masiva, puedes retroceder al código exacto que funcionaba ayer.</li>
+                            <li><strong>Colaboración:</strong> Permite que Vercel/Netlify publiquen tu web automáticamente cuando haces un cambio.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="mt-6 bg-yellow-50 p-4 border border-yellow-200 rounded-lg">
+                    <p class="text-sm text-yellow-800"><strong>Paso rápido para enlazar:</strong> Ve a GitHub, dale a "New Repository", ponle nombre, y dile a tu asistente de IA (Antigravity) que ejecute los comandos de terminal pasándole la URL que GitHub te entregó. ¡La IA hará toda la subida por ti!</p>
+                </div>
+            </section>
+        </div>
+    </div>
+</body>
+</html>
