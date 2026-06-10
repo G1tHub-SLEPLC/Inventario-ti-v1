@@ -27,11 +27,11 @@ const LicenciasShowcasePage = lazy(() => import('./pages/LicenciasShowcasePage')
 function ProtectedRoute({ children }) {
   const { session, loading } = useAuth();
   
-  if (loading) {
+  if (loading && !session) {
     return <div className="flex items-center justify-center h-screen bg-slate-900 text-blue-200">Verificando sesión...</div>;
   }
   
-  if (!session) {
+  if (!session && !loading) {
     return <Navigate to="/login" replace />;
   }
   
@@ -39,23 +39,23 @@ function ProtectedRoute({ children }) {
 }
 
 function AdminRoute({ children }) {
-  const { isAdmin, isSlep, loading } = useAuth();
-  if (loading) return null;
+  const { isAdmin, isSlep, perfil, loading } = useAuth();
+  if (loading && !perfil) return null;
   if (!isAdmin && !isSlep) return <Navigate to="/unauthorized" replace />;
   if (!isAdmin) return <Navigate to="/slep/dashboard" replace />;
   return children;
 }
 
 function SlepRoute({ children }) {
-  const { isSlep, isAdmin, loading } = useAuth();
-  if (loading) return null;
+  const { isSlep, isAdmin, perfil, loading } = useAuth();
+  if (loading && !perfil) return null;
   if (!isSlep && !isAdmin) return <Navigate to="/unauthorized" replace />;
   return children;
 }
 
 function HomeRoute() {
-  const { isAdmin, isSlep, loading } = useAuth();
-  if (loading) return null;
+  const { isAdmin, isSlep, perfil, loading } = useAuth();
+  if (loading && !perfil) return null;
   if (isAdmin) return <Navigate to="/dashboard" replace />;
   if (isSlep) return <Navigate to="/slep/dashboard" replace />;
   return <Navigate to="/unauthorized" replace />;
