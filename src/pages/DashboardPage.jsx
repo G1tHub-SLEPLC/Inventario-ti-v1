@@ -636,9 +636,9 @@ export default function DashboardPage() {
         <div className="flex gap-2 flex-wrap">
           <button
             onClick={() => { setStatus({ type: 'idle', message: '' }); setIsMasivaModalOpen(true); }}
-            className="flex items-center gap-2 bg-blue-100 text-[#006BB9] px-4 py-2 rounded-lg hover:bg-blue-200 transition-colors text-sm font-medium border border-blue-200 cursor-pointer shadow-sm"
+            className="flex items-center gap-2 bg-blue-100 text-[#006BB9] px-4 py-2 rounded-lg hover:bg-blue-200 transition-colors text-sm font-medium border border-blue-200"
           >
-            <Upload className="w-4 h-4" /> Carga Masiva
+            <UploadCloud size={16} /> Carga Masiva
           </button>
           <Link
             to="/nuevo-equipo"

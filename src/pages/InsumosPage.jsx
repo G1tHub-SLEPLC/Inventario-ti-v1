@@ -3,7 +3,7 @@ import { useSolicitudes } from '../context/SolicitudesContext';
 import { supabase } from '../lib/supabaseClient';
 import { useInventario } from '../context/InventarioContext';
 import { useAuth } from '../context/AuthContext';
-import { PlusCircle, Edit2, Trash2, UserPlus, History, Package, Upload, Download, Printer } from 'lucide-react';
+import { PlusCircle, Edit2, Trash2, UserPlus, History, Package, Upload, Download, Printer, UploadCloud, AlertCircle, CheckCircle, AlertTriangle } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { logAuditoria, getDiffString } from '../utils/auditoria';
 import { exportToExcelAndPDF } from '../utils/exportUtils';
@@ -34,6 +34,9 @@ export default function InsumosPage() {
 
   const [isEditHistModalOpen, setIsEditHistModalOpen] = useState(false);
   const [editHistData, setEditHistData] = useState({ id: null, insumo_id: null, insumo_nombre: '', usuario_nombre: '', cantidad_original: 0, cantidad_nueva: 0, observaciones_original: '', observaciones: '' });
+
+  const [isMasivaModalOpen, setIsMasivaModalOpen] = useState(false);
+  const [status, setStatus] = useState({ type: 'idle', message: '' });
 
   const fileInputRef = useRef(null);
 
@@ -152,6 +155,7 @@ export default function InsumosPage() {
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
+    setStatus({ type: 'processing', message: 'Procesando archivo...' });
 
     const reader = new FileReader();
     reader.onload = async (evt) => {
@@ -178,8 +182,15 @@ export default function InsumosPage() {
           if (!error) count++;
         }
         
+        setStatus({ type: 'success', message: `Se importaron ${count} insumos exitosamente.` });
         showToast('Carga completada', `Se importaron ${count} insumos exitosamente.`, 'success');
+        
+        setTimeout(() => {
+          setIsMasivaModalOpen(false);
+          setStatus({ type: 'idle', message: '' });
+        }, 2500);
       } catch (err) {
+        setStatus({ type: 'error', message: 'Hubo un problema al procesar el archivo Excel.' });
         showToast('Error', 'Hubo un problema al procesar el archivo Excel.', 'error');
       }
     };
@@ -375,39 +386,13 @@ export default function InsumosPage() {
         
         {activeTab === 'insumos' && (
           <div className="flex gap-2">
-            <input 
-              type="file" 
-              ref={fileInputRef} 
-              onChange={handleFileUpload} 
-              accept=".xlsx,.xls,.csv" 
-              className="hidden" 
-            />
-            <div className="relative group">
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="flex items-center gap-2 bg-green-800 text-green-200 px-4 py-2 rounded-lg hover:bg-green-900 shadow-sm font-medium transition-colors text-sm cursor-pointer"
-              >
-                <Upload size={16} />
-                Importar Excel
-              </button>
-              
-              {/* Tooltip de instrucciones de carga */}
-              <div className="invisible group-hover:visible absolute top-full right-0 pt-3 z-50 transition-all opacity-0 group-hover:opacity-100">
-                <div className="bg-slate-800 text-white p-4 rounded-xl shadow-2xl w-80 text-sm leading-relaxed border border-slate-700 pointer-events-none">
-                  <strong className="text-[#90d039] block mb-2 font-bold uppercase tracking-wide text-xs">Formato de Excel Requerido</strong>
-                  <p className="text-slate-300 mb-2 text-xs">El archivo debe contener las siguientes columnas (la primera fila debe ser el encabezado):</p>
-                  <ul className="list-disc pl-5 space-y-1 text-slate-300 text-xs font-mono">
-                    <li>Nombre</li>
-                    <li>Tipo <span className="text-slate-500">(Tóner, Mouse, etc)</span></li>
-                    <li>Marca</li>
-                    <li>Modelo</li>
-                    <li>Categoría <span className="text-slate-500">(Opcional)</span></li>
-                    <li>Descripción <span className="text-slate-500">(Opcional)</span></li>
-                    <li>Cantidad</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
+            <button
+              onClick={() => { setStatus({ type: 'idle', message: '' }); setIsMasivaModalOpen(true); }}
+              className="flex items-center gap-2 bg-blue-100 text-[#006BB9] px-4 py-2 rounded-lg hover:bg-blue-200 transition-colors text-sm font-medium border border-blue-200"
+            >
+              <UploadCloud size={16} />
+              Carga Masiva
+            </button>
             <div className="flex gap-2">
               <button onClick={() => exportInsumos('xlsx')} className="flex items-center gap-2 bg-green-200 text-green-800 px-3 py-1.5 rounded-lg hover:bg-green-300 shadow-sm font-medium transition-colors text-sm">
                 <Download size={14} /> Excel
@@ -714,6 +699,54 @@ export default function InsumosPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Carga Masiva */}
+      {isMasivaModalOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white p-6 rounded-xl shadow-2xl w-full max-w-lg animate-fade-in relative max-h-[90vh] flex flex-col">
+            <button 
+              onClick={() => { setIsMasivaModalOpen(false); setStatus({ type: 'idle', message: '' }); }} 
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-full p-1 transition-colors cursor-pointer"
+            >
+              &times;
+            </button>
+            <h2 className="text-xl font-bold mb-2 text-[#25306B] flex items-center gap-2">
+              <UploadCloud className="text-[#006BB9]" /> Carga Masiva de Insumos
+            </h2>
+            
+            <div className="overflow-y-auto flex-1 pr-2 mt-2 custom-scrollbar">
+              <p className="text-[13px] text-gray-600 mb-4 bg-blue-50 p-3 rounded-lg border border-blue-100">
+                Sube un archivo Excel (<strong>.xlsx, .xls</strong>) o <strong>.csv</strong> con el inventario de insumos. Las columnas reconocidas automáticamente son (la primera fila debe ser el encabezado): <br/>
+                <span className="font-mono text-blue-800 text-xs font-bold leading-relaxed">Nombre, Tipo, Marca, Modelo, Categoría, Descripción, Cantidad</span>
+              </p>
+
+              <div className="border-2 border-dashed border-blue-200 rounded-xl p-8 text-center bg-gray-50 hover:bg-blue-50 hover:border-blue-400 transition-colors relative group mt-2">
+                <label className="cursor-pointer flex flex-col items-center justify-center">
+                  <div className="w-14 h-14 bg-white rounded-full shadow-sm flex items-center justify-center mb-3 text-blue-600 group-hover:scale-110 group-hover:bg-blue-600 group-hover:text-white transition-all">
+                    <UploadCloud size={28} />
+                  </div>
+                  <span className="font-bold text-[#006BB9] text-base group-hover:underline">Haz clic para buscar el archivo</span>
+                  <span className="text-xs text-gray-500 mt-2">o arrastra el archivo aquí</span>
+                  <input type="file" accept=".csv,.xlsx,.xls" className="hidden" onChange={handleFileUpload} ref={fileInputRef} />
+                </label>
+              </div>
+
+              {status.type !== 'idle' && (
+                <div className={`mt-4 p-3 rounded-lg flex items-start gap-2 text-sm ${
+                  status.type === 'processing' ? 'bg-blue-50 text-blue-700 border border-blue-100' :
+                  status.type === 'success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' :
+                  'bg-red-50 text-red-700 border border-red-100'
+                }`}>
+                  {status.type === 'processing' && <AlertCircle className="w-4 h-4 animate-pulse shrink-0 mt-0.5" />}
+                  {status.type === 'success' && <CheckCircle className="w-4 h-4 shrink-0 mt-0.5" />}
+                  {status.type === 'error' && <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />}
+                  <span className="font-medium leading-tight">{status.message}</span>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
