@@ -317,6 +317,7 @@ export default function NuevoEquipoPage() {
                       placeholder={`Ingrese ${col.toLowerCase()}`}
                     />
                   </div>
+                ) : (
                   <input
                     type="text"
                     name={col}

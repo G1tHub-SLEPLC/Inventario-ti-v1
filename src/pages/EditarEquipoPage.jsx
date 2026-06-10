@@ -370,6 +370,7 @@ export default function EditarEquipoPage() {
                           placeholder={`Ingrese ${col.toLowerCase()}`}
                         />
                       </div>
+                    ) : (
                       <input
                         type="text"
                         name={col}
