@@ -259,8 +259,8 @@ export default function NuevoEquipoPage() {
         </div>
         <form onSubmit={handleSubmit} className="space-y-5">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {COLUMNS.map((col) => (
-              <div key={col} className="space-y-1">
+            {COLUMNS.map((col, idx) => (
+              <div key={idx} className={`space-y-1 ${col === 'SubDirección' ? 'sm:col-span-2' : ''}`}>
                 <label className="block text-xs font-semibold text-[#25306B] mb-1 uppercase tracking-wide">
                   {col}
                 </label>
@@ -316,6 +316,31 @@ export default function NuevoEquipoPage() {
                       placeholder={`Ingrese ${col.toLowerCase()}`}
                     />
                   </div>
+                ) : col === 'SubDirección' ? (
+                  formData[col] ? (
+                    <div className="flex items-center justify-between p-2.5 bg-blue-50 border border-blue-200 rounded-lg shadow-sm w-full">
+                      <span className="text-[11px] leading-tight font-bold text-[#25306B] truncate flex-1 min-w-0 pr-2">
+                        {formData[col]}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, [col]: '' })}
+                        className="text-red-500 hover:text-red-700 hover:bg-red-50 px-2 py-1 rounded-md transition-colors font-bold flex items-center justify-center shrink-0"
+                        title={`Eliminar ${col}`}
+                      >
+                        &times;
+                      </button>
+                    </div>
+                  ) : (
+                    <AutocompleteInput
+                      name={col}
+                      value={formData[col] || ''}
+                      onChange={handleChange}
+                      options={subdireccionesOptions}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#006BB9] focus:outline-none shadow-sm transition-shadow bg-white"
+                      placeholder={`Ingrese o seleccione ${col.toLowerCase()}`}
+                    />
+                  )
                 ) : (
                   <input
                     type="text"

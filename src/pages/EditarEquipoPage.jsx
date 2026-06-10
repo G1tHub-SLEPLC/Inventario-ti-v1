@@ -338,12 +338,12 @@ export default function EditarEquipoPage() {
         <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-6">
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {COLUMNS.map((col) => {
+              {COLUMNS.map((col, idx) => {
                 const isSerial = col === 'Nº de serie';
                 const hasExistingSerial = !!originalEquipo['Nº de serie'];
                 const disableSerial = isSerial && hasExistingSerial;
                 return (
-                  <div key={col} className="space-y-1">
+                  <div key={idx} className={`space-y-1 ${col === 'SubDirección' ? 'sm:col-span-2' : ''}`}>
                     <label className="block text-xs font-semibold text-[#25306B] mb-1 uppercase tracking-wide">
                       {col} {disableSerial && <span className="text-gray-400 font-normal text-[10px]">(Fijo)</span>}
                     </label>
@@ -371,14 +371,30 @@ export default function EditarEquipoPage() {
                         />
                       </div>
                     ) : col === 'SubDirección' ? (
-                      <AutocompleteInput
-                        name={col}
-                        value={formData[col] || ''}
-                        onChange={handleChange}
-                        options={subdireccionesOptions}
-                        className={`w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#006BB9] focus:outline-none shadow-sm transition-all ${disableSerial ? 'bg-gray-50 text-gray-500 cursor-not-allowed border-gray-200' : 'bg-white'}`}
-                        placeholder={`Ingrese o seleccione ${col.toLowerCase()}`}
-                      />
+                      formData[col] ? (
+                        <div className="flex items-center justify-between p-2.5 bg-blue-50 border border-blue-200 rounded-lg shadow-sm w-full">
+                          <span className="text-[11px] leading-tight font-bold text-[#25306B] truncate flex-1 min-w-0 pr-2">
+                            {formData[col]}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setFormData({ ...formData, [col]: '' })}
+                            className="text-red-500 hover:text-red-700 hover:bg-red-50 px-2 py-1 rounded-md transition-colors font-bold flex items-center justify-center shrink-0"
+                            title={`Eliminar ${col}`}
+                          >
+                            &times;
+                          </button>
+                        </div>
+                      ) : (
+                        <AutocompleteInput
+                          name={col}
+                          value={formData[col] || ''}
+                          onChange={handleChange}
+                          options={subdireccionesOptions}
+                          className={`w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#006BB9] focus:outline-none shadow-sm transition-all ${disableSerial ? 'bg-gray-50 text-gray-500 cursor-not-allowed border-gray-200' : 'bg-white'}`}
+                          placeholder={`Ingrese o seleccione ${col.toLowerCase()}`}
+                        />
+                      )
                     ) : (
                       <input
                         type="text"
