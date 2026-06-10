@@ -481,13 +481,18 @@ export default function EditarEquipoPage() {
                   </div>
                 );
               })}
+            </div>
 
+            <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-200 mb-8 relative">
+              <h2 className="text-xl font-bold mb-6 text-[#25306B] border-b pb-2 flex items-center gap-2">
+                <UserCheck className="text-[#006BB9]" /> Asignación, Subdirección y Estado
+              </h2>
 
-
-              <div className="space-y-1 relative">
-                <label className="block text-xs font-semibold text-[#25306B] uppercase tracking-wide mb-1">
-                  Usuario Asignado (SLEP)
-                </label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
+                <div className="space-y-1 relative">
+                  <label className="block text-xs font-semibold text-[#25306B] uppercase tracking-wide mb-1">
+                    Usuario Asignado (SLEP)
+                  </label>
 
                 {(() => {
                   const isLegacy = formData['Usuario'] && !['disponible', 'bodega', '—', '-', 'sin asignar'].includes(formData['Usuario'].toLowerCase().trim());

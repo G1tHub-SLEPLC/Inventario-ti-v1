@@ -398,8 +398,12 @@ export default function NuevoEquipoPage() {
                 )}
               </div>
             ))}
+          </div>
 
-
+          <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-200 mb-8 relative">
+            <h2 className="text-xl font-bold mb-6 text-[#25306B] border-b pb-2 flex items-center gap-2">
+              <UserCheck className="text-[#006BB9]" /> Asignación, Subdirección y Estado
+            </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
               <div className="space-y-1 relative">
@@ -541,6 +545,7 @@ export default function NuevoEquipoPage() {
                 <option value="BAJA">DE BAJA</option>
               </select>
             </div>
+          </div>
           </div>
 
           <div className="pt-4 border-t border-gray-100 flex justify-end gap-3">
