@@ -432,7 +432,7 @@ export default function NuevoEquipoPage() {
                             ? (usuarios.find(u => u.id === formData.usuario_asignado_id)?.nombre || usuarios.find(u => u.id === formData.usuario_asignado_id)?.email || '?').charAt(0).toUpperCase()
                             : formData['Usuario'] ? formData['Usuario'].charAt(0).toUpperCase() : '?'}
                         </div>
-                        <span className="text-sm font-semibold text-[#25306B] truncate flex-1 min-w-0">
+                        <span className="text-[11px] leading-tight font-bold text-[#25306B] truncate flex-1 min-w-0">
                           {formData.usuario_asignado_id && usuarios.length > 0
                             ? (usuarios.find(u => u.id === formData.usuario_asignado_id)?.nombre || usuarios.find(u => u.id === formData.usuario_asignado_id)?.email || 'Usuario SLEP')
                             : formData['Usuario']}
