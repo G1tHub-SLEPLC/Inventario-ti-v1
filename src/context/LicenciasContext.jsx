@@ -19,7 +19,12 @@ export const LicenciasProvider = ({ children }) => {
 
   // Fetch all licenses (for admin)
   const fetchLicencias = async () => {
-    setLoading(true);
+    setLicencias(current => {
+      if (current.length === 0) {
+        setLoading(true);
+      }
+      return current;
+    });
     const { data, error } = await supabase
       .from('licencias')
       .select('*')

@@ -115,10 +115,17 @@ export function InventarioProvider({ children }) {
       .subscribe();
       
     // Refrescar al iniciar o cerrar sesión
-    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
       if (session) {
-        setLoading(true);
-        loadData();
+        if (event === 'SIGNED_IN') {
+          setEquipos(current => {
+            if (current.length === 0) {
+              setLoading(true);
+            }
+            return current;
+          });
+          loadData();
+        }
       } else {
         setEquipos([]);
       }

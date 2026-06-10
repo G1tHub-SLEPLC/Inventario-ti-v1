@@ -22,7 +22,12 @@ export function AuthProvider({ children }) {
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session)
       if (session) {
-        setLoading(true)
+        setPerfil(current => {
+          if (!current) {
+            setLoading(true)
+          }
+          return current
+        })
         fetchPerfil(session.user.id)
       } else {
         setPerfil(null)

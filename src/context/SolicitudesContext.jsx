@@ -27,7 +27,12 @@ export function SolicitudesProvider({ children }) {
     }
 
     async function loadData() {
-      setLoading(true);
+      setSolicitudes(current => {
+        if (current.length === 0) {
+          setLoading(true);
+        }
+        return current;
+      });
       
       // Load Insumos
       const { data: insumosData, error: insumosError } = await supabase.from('insumos').select('*');
