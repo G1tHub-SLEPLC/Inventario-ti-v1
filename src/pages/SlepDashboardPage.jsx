@@ -173,7 +173,7 @@ export default function SlepDashboardPage() {
           onClick={() => setActiveTab('equipos')}
           className={`flex items-center gap-2 px-4 py-2 border-b-2 font-medium text-sm transition-colors ${activeTab === 'equipos' ? 'border-[#006BB9] text-[#006BB9]' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
         >
-          <Monitor size={16} /> Mis Equipos
+          <Monitor size={16} /> Mis Asignaciones
         </button>
         <button
           onClick={() => setActiveTab('insumos')}
@@ -417,9 +417,9 @@ export default function SlepDashboardPage() {
                               <span className="bg-gray-100 px-1.5 py-0.5 rounded text-gray-600 font-semibold">{lic?.tipo || 'SAAS'}</span>
                               <span className="text-gray-400">|</span>
                               {lic?.fecha_termino ? (
-                                <span className="text-gray-500">Expira: {formatExpDate(lic.fecha_termino)}</span>
+                                <span className="text-gray-500">Vence: {formatExpDate(lic.fecha_termino)}</span>
                               ) : (
-                                <span className="text-gray-400 italic">Sin caducidad</span>
+                                <span className="text-gray-400 italic">Sin vencimiento</span>
                               )}
                             </div>
                           </td>
