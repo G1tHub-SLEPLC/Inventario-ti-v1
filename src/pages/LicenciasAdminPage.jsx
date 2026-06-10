@@ -24,38 +24,38 @@ export default function LicenciasAdminPage() {
   const { session } = useAuth();
   const { licencias, asignaciones, loading, addLicencia, updateLicencia, deleteLicencia, asignarLicencia, asignarLicenciasMultiples, revocarLicencia, getAsignacionesCount, addLicenciasMasivo, executeMasivoLicencias, saveLicenciaDocument, setLicenciaFileStatus } = useLicencias();
   const { showToast } = useInventario();
-  
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [isMasivaModalOpen, setIsMasivaModalOpen] = useState(false);
-  
+
   const [validationErrors, setValidationErrors] = useState([]);
   const [conflicts, setConflicts] = useState([]);
   const [resolvedConflicts, setResolvedConflicts] = useState({});
   const [isConflictModalOpen, setIsConflictModalOpen] = useState(false);
   const [pendingImports, setPendingImports] = useState([]);
-  
+
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [adminPassword, setAdminPassword] = useState('');
   const [deleteError, setDeleteError] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
-  
-  const [formData, setFormData] = useState({ 
+
+  const [formData, setFormData] = useState({
     id: null, software: '', version: '', tipo: 'SAAS', descripcion: '', cantidad_total: 1,
     fecha_inicio: '', fecha_termino: '', factura: '', orden_compra: '', has_factura_file: false, has_oc_file: false
   });
-  
+
   const [facturaFile, setFacturaFile] = useState(null);
   const [ocFile, setOcFile] = useState(null);
 
   const [assignData, setAssignData] = useState({ licencia_id: '', usuario_id: '' });
   const [viewLicencia, setViewLicencia] = useState(null);
-  
+
   const [usuarios, setUsuarios] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+
   const fileInputRef = useRef(null);
   const [status, setStatus] = useState({ type: 'idle', message: '' });
   const [userSearchTerm, setUserSearchTerm] = useState('');
@@ -73,15 +73,15 @@ export default function LicenciasAdminPage() {
 
   const handleOpenModal = (lic = null) => {
     if (lic) {
-      setFormData({ 
-        id: lic.id, software: lic.software, version: lic.version || '', tipo: lic.tipo || 'SAAS', 
+      setFormData({
+        id: lic.id, software: lic.software, version: lic.version || '', tipo: lic.tipo || 'SAAS',
         descripcion: lic.descripcion || '', cantidad_total: lic.cantidad_total,
-        fecha_inicio: lic.fecha_inicio || '', fecha_termino: lic.fecha_termino || '', 
-        factura: lic.factura || '', orden_compra: lic.orden_compra || '', 
+        fecha_inicio: lic.fecha_inicio || '', fecha_termino: lic.fecha_termino || '',
+        factura: lic.factura || '', orden_compra: lic.orden_compra || '',
         has_factura_file: lic.has_factura_file || false, has_oc_file: lic.has_oc_file || false
       });
     } else {
-      setFormData({ 
+      setFormData({
         id: null, software: '', version: 'Suscripción Anual', tipo: 'SAAS', descripcion: '', cantidad_total: 1,
         fecha_inicio: '', fecha_termino: '', factura: '', orden_compra: '', has_factura_file: false, has_oc_file: false
       });
@@ -134,7 +134,7 @@ export default function LicenciasAdminPage() {
 
   const handleUserKeyDown = (e) => {
     if (filteredAvailableUsuarios.length === 0) return;
-    
+
     if (e.key === 'ArrowDown') {
       e.preventDefault();
       setFocusedUserIndex(prev => (prev < filteredAvailableUsuarios.length - 1 ? prev + 1 : prev));
@@ -195,12 +195,12 @@ export default function LicenciasAdminPage() {
       // Handle Files Upload
       if (finalId) {
         if (facturaFile && formData.factura) {
-           const storageKey = `factura_${norm(formData.factura)}_${Date.now()}`;
-           await saveLicenciaDocument(storageKey, 'factura', facturaFile, finalId);
+          const storageKey = `factura_${norm(formData.factura)}_${Date.now()}`;
+          await saveLicenciaDocument(storageKey, 'factura', facturaFile, finalId);
         }
         if (ocFile && formData.orden_compra) {
-           const storageKey = `oc_${norm(formData.orden_compra)}_${Date.now()}`;
-           await saveLicenciaDocument(storageKey, 'orden_compra', ocFile, finalId);
+          const storageKey = `oc_${norm(formData.orden_compra)}_${Date.now()}`;
+          await saveLicenciaDocument(storageKey, 'orden_compra', ocFile, finalId);
         }
       }
 
@@ -218,25 +218,25 @@ export default function LicenciasAdminPage() {
     const fieldName = type === 'factura' ? 'factura' : 'orden_compra';
     const code = targetLic[fieldName];
     if (!code) return;
-    
+
     try {
       const { data, error } = await supabase.storage.from('documentos').list();
       if (error) throw error;
-      
+
       const filePrefix = type === 'factura' ? `factura_${norm(code)}` : `oc_${norm(code)}`;
       const match = data.find(f => f.name.startsWith(filePrefix));
-      
+
       if (match) {
         const { data: urlData, error: urlError } = await supabase.storage
           .from('documentos')
           .createSignedUrl(match.name, 60);
-          
+
         if (urlError) throw urlError;
         window.open(urlData.signedUrl, '_blank');
       } else {
-         alert('El archivo no pudo ser localizado en el almacenamiento.');
-         // Auto-fix desync
-         setLicenciaFileStatus(licenciaId, type, false);
+        alert('El archivo no pudo ser localizado en el almacenamiento.');
+        // Auto-fix desync
+        setLicenciaFileStatus(licenciaId, type, false);
       }
     } catch (err) {
       console.error(err);
@@ -258,8 +258,8 @@ export default function LicenciasAdminPage() {
     try {
       const lic = licencias.find(l => l.id === assignData.licencia_id);
       await asignarLicenciasMultiples(
-        assignData.licencia_id, 
-        selectedUsuarios, 
+        assignData.licencia_id,
+        selectedUsuarios,
         lic?.software
       );
       setIsAssignModalOpen(false);
@@ -281,19 +281,19 @@ export default function LicenciasAdminPage() {
     e.preventDefault();
     setDeleteError('');
     setIsDeleting(true);
-    
+
     try {
       const { error: authError } = await supabase.auth.signInWithPassword({
         email: session.user.email,
         password: adminPassword
       });
-      
+
       if (authError) {
         setDeleteError(`Contraseña incorrecta: ${authError.message}`);
         setIsDeleting(false);
         return;
       }
-      
+
       await deleteLicencia(deleteTarget.id);
       setIsDeleteModalOpen(false);
     } catch (err) {
@@ -308,30 +308,30 @@ export default function LicenciasAdminPage() {
     }
   };
 
-  const asignacionesDeLicencia = viewLicencia 
+  const asignacionesDeLicencia = viewLicencia
     ? asignaciones
-        .filter(a => a.licencia_id === viewLicencia.id)
-        .sort((a, b) => {
-          const nameA = (a.perfiles?.nombre || a.perfiles?.email || '').toLowerCase();
-          const nameB = (b.perfiles?.nombre || b.perfiles?.email || '').toLowerCase();
-          return nameA.localeCompare(nameB);
-        })
+      .filter(a => a.licencia_id === viewLicencia.id)
+      .sort((a, b) => {
+        const nameA = (a.perfiles?.nombre || a.perfiles?.email || '').toLowerCase();
+        const nameB = (b.perfiles?.nombre || b.perfiles?.email || '').toLowerCase();
+        return nameA.localeCompare(nameB);
+      })
     : [];
 
   const handleFile = (e) => {
     const file = e.target.files[0];
-    if(!file) return;
+    if (!file) return;
     setStatus({ type: 'processing', message: 'Procesando archivo...' });
-    
+
     const ext = file.name.split('.').pop().toLowerCase();
-    
-    if(ext === 'csv') {
+
+    if (ext === 'csv') {
       Papa.parse(file, {
         header: true, skipEmptyLines: true,
         complete: res => processMasivaData(res.data),
         error: err => setStatus({ type: 'error', message: err.message })
       });
-    } else if(ext === 'xlsx' || ext === 'xls') {
+    } else if (ext === 'xlsx' || ext === 'xls') {
       const reader = new FileReader();
       reader.onload = ev => {
         try {
@@ -339,7 +339,7 @@ export default function LicenciasAdminPage() {
           const ws = wb.Sheets[wb.SheetNames[0]];
           const json = XLSX.utils.sheet_to_json(ws, { defval: '' });
           processMasivaData(json);
-        } catch(err) {
+        } catch (err) {
           setStatus({ type: 'error', message: 'Error al leer el archivo Excel' });
         }
       };
@@ -357,16 +357,16 @@ export default function LicenciasAdminPage() {
 
     const errors = [];
     const cleanedRows = [];
-    
+
     rows.forEach((r, idx) => {
       const getField = (aliases) => {
         const key = Object.keys(r).find(k => aliases.includes(k.trim().toLowerCase()));
         return key ? String(r[key]).trim() : '';
       };
-      
+
       const software = getField(['nombre', 'software', 'nombre software']);
       if (!software) return;
-      
+
       const facturaVal = getField(['factura', 'nº factura', 'num factura']);
       const ocVal = getField(['orden de compra', 'oc']);
       const version = getField(['versión', 'version']);
@@ -375,16 +375,16 @@ export default function LicenciasAdminPage() {
       const descripcion = getField(['descripción', 'descripcion', 'detalle']) || '';
       const fecha_inicio = getField(['fecha de inicio', 'fecha inicio', 'desde']) || null;
       const fecha_termino = getField(['fecha de término', 'fecha termino', 'hasta', 'vencimiento']) || null;
-      
+
       const rowNum = idx + 2;
-      
+
       if (facturaVal && !/^\d+$/.test(facturaVal)) {
         errors.push(`Fila ${rowNum} (${software}): Factura '${facturaVal}' debe ser solo números.`);
       }
       if (ocVal && !/^1456839-\d{2}-[a-zA-Z]{2}26$/i.test(ocVal)) {
         errors.push(`Fila ${rowNum} (${software}): Orden de Compra '${ocVal}' debe tener el formato 1456839-??-??26.`);
       }
-      
+
       cleanedRows.push({
         software,
         version,
@@ -397,13 +397,13 @@ export default function LicenciasAdminPage() {
         orden_compra: ocVal.toUpperCase()
       });
     });
-    
+
     if (errors.length > 0) {
       setStatus({ type: 'error', message: 'Errores de formato en el archivo.' });
       setValidationErrors(errors);
       return;
     }
-    
+
     if (cleanedRows.length === 0) {
       setStatus({ type: 'error', message: 'No se encontraron licencias válidas en el archivo.' });
       return;
@@ -418,7 +418,7 @@ export default function LicenciasAdminPage() {
 
       if (existing || duplicateOc) {
         const isSameQty = existing && existing.cantidad_total === row.cantidad_total;
-        
+
         detectedConflicts.push({
           software: row.software,
           version: row.version,
@@ -452,7 +452,7 @@ export default function LicenciasAdminPage() {
         }));
 
         const stats = await executeMasivoLicencias(operations);
-        
+
         showToast(
           'Carga Masiva Exitosa',
           `Carga finalizada con éxito. Nuevas: ${stats.inserted}, Sumadas: ${stats.updated}, Omitidas: ${stats.omitted}, Eliminadas: 0`,
@@ -472,12 +472,12 @@ export default function LicenciasAdminPage() {
     setIsSubmitting(true);
     try {
       setStatus({ type: 'processing', message: 'Guardando licencias en la base de datos...' });
-      
+
       const operations = [];
-      
+
       pendingImports.forEach(row => {
         const conf = conflicts.find(c => c.software === row.software);
-        
+
         if (conf) {
           const resolution = resolvedConflicts[row.software] || 'sumar';
           if (resolution === 'sumar') {
@@ -508,15 +508,15 @@ export default function LicenciasAdminPage() {
           });
         }
       });
-      
+
       const stats = await executeMasivoLicencias(operations);
-      
+
       showToast(
         'Carga Masiva Finalizada',
         `Carga finalizada con éxito. Nuevas: ${stats.inserted}, Sumadas: ${stats.updated}, Omitidas: ${stats.omitted}, Eliminadas: 0`,
         'success'
       );
-      
+
       setIsConflictModalOpen(false);
       setIsMasivaModalOpen(false);
       setConflicts([]);
@@ -533,7 +533,7 @@ export default function LicenciasAdminPage() {
 
   const exportData = (format) => {
     const columns = ['Software', 'Versión', 'Tipo', 'Fecha Inicio', 'Fecha Término', 'Factura', 'Orden Compra', 'Total Adquiridas', 'Asignadas', 'Disponibles', 'Usuarios Asignados', 'Descripción'];
-    
+
     const rowFormatter = (row, cols) => {
       const asignadasInfo = asignaciones.filter(a => a.licencia_id === row.id);
       const nombresUsuarios = asignadasInfo.map(a => a.perfiles?.nombre || a.perfiles?.email).join(', ');
@@ -557,11 +557,11 @@ export default function LicenciasAdminPage() {
     };
 
     exportToExcelAndPDF(
-      format, 
-      licencias, 
-      columns, 
-      'Inventario de Licencias de Software', 
-      'licencias_export', 
+      format,
+      licencias,
+      columns,
+      'Inventario de Licencias de Software',
+      'licencias_export',
       rowFormatter
     );
   };
@@ -569,7 +569,7 @@ export default function LicenciasAdminPage() {
   const getLogoUrl = (softwareName) => {
     if (!softwareName) return null;
     const name = softwareName.toLowerCase();
-    
+
     let domain = '';
     if (name.includes('office') || name.includes('microsoft 365') || name.includes('m365') || name.includes('excel') || name.includes('word') || name.includes('powerpoint') || name.includes('teams') || name.includes('outlook')) {
       domain = 'office.com';
@@ -591,7 +591,7 @@ export default function LicenciasAdminPage() {
       const firstWord = softwareName.split(' ')[0].toLowerCase().replace(/[^a-z0-9]/g, '');
       domain = `${firstWord}.com`;
     }
-    
+
     return `https://logos.hunter.io/${domain}`;
   };
 
@@ -616,7 +616,7 @@ export default function LicenciasAdminPage() {
             <Printer size={16} /> PDF
           </button>
           <button
-            onClick={() => { setStatus({type:'idle',message:''}); setIsMasivaModalOpen(true); }}
+            onClick={() => { setStatus({ type: 'idle', message: '' }); setIsMasivaModalOpen(true); }}
             className="flex items-center gap-2 bg-blue-100 text-[#006BB9] px-4 py-2 rounded-lg hover:bg-blue-200 transition-colors text-sm font-medium border border-blue-200"
           >
             <UploadCloud size={16} />
@@ -641,20 +641,20 @@ export default function LicenciasAdminPage() {
 
       {/* Global KPIs */}
       <section className="grid grid-cols-1 sm:grid-cols-3 gap-4 no-print-interactive">
-        <div className="bg-white rounded-xl shadow-sm p-5 border-l-4" style={{borderColor: 'var(--slep-primary)'}}>
+        <div className="bg-white rounded-xl shadow-sm p-5 border-l-4" style={{ borderColor: 'var(--slep-primary)' }}>
           <div className="text-xs uppercase tracking-wide text-gray-500 font-semibold">Total de Licencias</div>
           <div className="text-4xl font-bold mt-2 text-[#25306B]">{totalLicencias}</div>
           <div className="text-xs text-gray-500 mt-1">Licencias totales adquiridas</div>
         </div>
-        <div className="bg-white rounded-xl shadow-sm p-5 border-l-4" style={{borderColor: 'var(--slep-secondary)'}}>
+        <div className="bg-white rounded-xl shadow-sm p-5 border-l-4" style={{ borderColor: 'var(--slep-secondary)' }}>
           <div className="text-xs uppercase tracking-wide text-gray-500 font-semibold">Licencias Asignadas</div>
           <div className="text-4xl font-bold mt-2 text-[#006BB9]">{totalAsignadas}</div>
-          <div className="text-xs text-gray-500 mt-1">{totalLicencias ? ((totalAsignadas/totalLicencias)*100).toFixed(1) : 0}% del total</div>
+          <div className="text-xs text-gray-500 mt-1">{totalLicencias ? ((totalAsignadas / totalLicencias) * 100).toFixed(1) : 0}% del total</div>
         </div>
-        <div className="bg-white rounded-xl shadow-sm p-5 border-l-4" style={{borderColor: 'var(--slep-green)'}}>
+        <div className="bg-white rounded-xl shadow-sm p-5 border-l-4" style={{ borderColor: 'var(--slep-green)' }}>
           <div className="text-xs uppercase tracking-wide text-gray-500 font-semibold">Licencias Disponibles</div>
           <div className="text-4xl font-bold mt-2 text-[#90d039]">{totalDisponibles}</div>
-          <div className="text-xs text-gray-500 mt-1">{totalLicencias ? ((totalDisponibles/totalLicencias)*100).toFixed(1) : 0}% del total</div>
+          <div className="text-xs text-gray-500 mt-1">{totalLicencias ? ((totalDisponibles / totalLicencias) * 100).toFixed(1) : 0}% del total</div>
         </div>
       </section>
 
@@ -681,17 +681,17 @@ export default function LicenciasAdminPage() {
                 const asignadas = getAsignacionesCount(lic.id);
                 const disponibles = lic.cantidad_total - asignadas;
                 const hasStock = disponibles > 0;
-                
+
                 return (
                   <tr key={lic.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-3 py-2.5">
                       <div className="w-11 h-11 rounded shadow-sm border border-gray-100 overflow-hidden bg-white flex items-center justify-center relative group">
-                        <img 
-                          src={getLogoUrl(lic.software)} 
+                        <img
+                          src={getLogoUrl(lic.software)}
                           alt={lic.software}
                           className="w-full h-full object-contain p-1"
                           onError={(e) => {
-                            e.target.onerror = null; 
+                            e.target.onerror = null;
                             e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(lic.software)}&background=random&color=fff&rounded=true&bold=true`;
                           }}
                         />
@@ -713,12 +713,12 @@ export default function LicenciasAdminPage() {
                       <div className="flex flex-col gap-1.5">
                         <div className="flex items-center gap-2">
                           {lic.factura ? (
-                            <button 
+                            <button
                               onClick={() => lic.has_factura_file ? handlePreview(lic.id, 'factura') : null}
                               className={`flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-bold border transition-colors ${lic.has_factura_file ? 'bg-blue-50 text-[#006BB9] border-blue-200 hover:bg-blue-100 cursor-pointer' : 'bg-gray-50 text-gray-500 border-gray-200 cursor-default'}`}
                               title={lic.has_factura_file ? `Ver Factura ${lic.factura}` : `Factura: ${lic.factura} (Sin archivo)`}
                             >
-                              <FileText size={12}/> FACTURA N° {lic.factura}
+                              <FileText size={12} /> FACTURA N° {lic.factura}
                             </button>
                           ) : (
                             <span className="flex items-center gap-1 px-2 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-bold uppercase" title="Falta Factura">
@@ -728,12 +728,12 @@ export default function LicenciasAdminPage() {
                         </div>
                         <div className="flex items-center gap-2">
                           {lic.orden_compra ? (
-                            <button 
+                            <button
                               onClick={() => lic.has_oc_file ? handlePreview(lic.id, 'orden_compra') : null}
                               className={`flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-bold border transition-colors ${lic.has_oc_file ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 cursor-pointer' : 'bg-gray-50 text-gray-500 border-gray-200 cursor-default'}`}
                               title={lic.has_oc_file ? `Ver OC ${lic.orden_compra}` : `OC: ${lic.orden_compra} (Sin archivo)`}
                             >
-                              <FileText size={12}/> OC N° {lic.orden_compra}
+                              <FileText size={12} /> OC N° {lic.orden_compra}
                             </button>
                           ) : (
                             <span className="flex items-center gap-1 px-2 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-bold uppercase" title="Falta Orden de Compra">
@@ -747,12 +747,12 @@ export default function LicenciasAdminPage() {
                       <div className="font-black text-gray-800 text-lg">{disponibles} <span className="text-xs font-medium text-gray-400">/ {lic.cantidad_total}</span></div>
                     </td>
                     <td className="px-3 py-2.5 text-center">
-                       <span className="bg-blue-50 text-blue-800 border border-blue-200 px-2.5 py-1 rounded-full font-bold text-xs">{asignadas}</span>
+                      <span className="bg-blue-50 text-blue-800 border border-blue-200 px-2.5 py-1 rounded-full font-bold text-xs">{asignadas}</span>
                     </td>
                     <td className="px-3 py-2.5 text-center">
                       <div className="flex flex-col items-center gap-1.5">
                         <span className={`px-2 py-0.5 rounded text-[9px] font-semibold uppercase border w-full ${hasStock ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-rose-50 text-rose-700 border-rose-200'}`}>
-                          {hasStock ? 'SUFICIENTE' : 'AGOTADO'}
+                          {hasStock ? 'DISPONIBLE' : 'AGOTADO'}
                         </span>
                         {(() => {
                           if (!lic.fecha_termino) return null;
@@ -762,7 +762,7 @@ export default function LicenciasAdminPage() {
                           const expirationDate = new Date(year, month - 1, day, 23, 59, 59);
                           const diffTime = expirationDate - new Date();
                           const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                          
+
                           if (diffDays > 0) {
                             return <span className={`px-2 py-0.5 rounded text-[9px] font-semibold uppercase border w-full ${diffDays <= 30 ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-blue-50 text-blue-700 border-blue-200'}`}>Quedan {diffDays} días</span>;
                           } else if (diffDays === 0) {
@@ -803,49 +803,49 @@ export default function LicenciasAdminPage() {
               {formData.id ? 'Editar Software' : 'Nuevo Software'}
             </h2>
             <form onSubmit={handleSave} className="space-y-5">
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg border border-gray-200">
                 <div className="col-span-1 md:col-span-2">
                   <label className="block text-sm font-semibold text-gray-700 mb-1">Nombre del Software</label>
-                  <input 
+                  <input
                     required
-                    type="text" 
-                    value={formData.software} 
-                    onChange={e => setFormData({...formData, software: e.target.value})} 
-                    className="w-full rounded-lg border-gray-300 shadow-sm border p-2.5 focus:border-[#006BB9] focus:ring-[#006BB9]" 
+                    type="text"
+                    value={formData.software}
+                    onChange={e => setFormData({ ...formData, software: e.target.value })}
+                    className="w-full rounded-lg border-gray-300 shadow-sm border p-2.5 focus:border-[#006BB9] focus:ring-[#006BB9]"
                     placeholder="Ej: Microsoft Office"
                   />
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1">Tipo de Licencia</label>
-                  <select 
-                    value={formData.tipo} 
-                    onChange={handleTipoChange} 
-                    className="w-full rounded-lg border-gray-300 shadow-sm border p-2.5 focus:border-[#006BB9] focus:ring-[#006BB9]" 
+                  <select
+                    value={formData.tipo}
+                    onChange={handleTipoChange}
+                    className="w-full rounded-lg border-gray-300 shadow-sm border p-2.5 focus:border-[#006BB9] focus:ring-[#006BB9]"
                   >
                     {TIPOS_LICENCIA.map(t => <option key={t} value={t}>{t}</option>)}
                   </select>
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1">Versión</label>
-                  <input 
-                    type="text" 
-                    value={formData.version} 
-                    onChange={e => setFormData({...formData, version: e.target.value})} 
-                    className="w-full rounded-lg border-gray-300 shadow-sm border p-2.5 focus:border-[#006BB9] focus:ring-[#006BB9]" 
+                  <input
+                    type="text"
+                    value={formData.version}
+                    onChange={e => setFormData({ ...formData, version: e.target.value })}
+                    className="w-full rounded-lg border-gray-300 shadow-sm border p-2.5 focus:border-[#006BB9] focus:ring-[#006BB9]"
                     placeholder="Ej: 365, 2024"
                   />
                 </div>
                 <div className="col-span-1 md:col-span-2">
                   <label className="block text-sm font-semibold text-gray-700 mb-1">Cantidad Total Adquirida</label>
-                  <input 
+                  <input
                     required
                     type="number"
                     min="1"
-                    value={formData.cantidad_total} 
-                    onChange={e => setFormData({...formData, cantidad_total: parseInt(e.target.value)})} 
-                    className="w-full rounded-lg border-gray-300 shadow-sm border p-2.5 focus:border-[#006BB9] focus:ring-[#006BB9]" 
+                    value={formData.cantidad_total}
+                    onChange={e => setFormData({ ...formData, cantidad_total: parseInt(e.target.value) })}
+                    className="w-full rounded-lg border-gray-300 shadow-sm border p-2.5 focus:border-[#006BB9] focus:ring-[#006BB9]"
                   />
                 </div>
               </div>
@@ -854,22 +854,22 @@ export default function LicenciasAdminPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1">Fecha de Inicio</label>
-                  <input 
+                  <input
                     required
-                    type="date" 
-                    value={formData.fecha_inicio} 
-                    onChange={e => setFormData({...formData, fecha_inicio: e.target.value})} 
-                    className="w-full rounded-lg border-gray-300 shadow-sm border p-2.5 focus:border-[#006BB9] focus:ring-[#006BB9]" 
+                    type="date"
+                    value={formData.fecha_inicio}
+                    onChange={e => setFormData({ ...formData, fecha_inicio: e.target.value })}
+                    className="w-full rounded-lg border-gray-300 shadow-sm border p-2.5 focus:border-[#006BB9] focus:ring-[#006BB9]"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1">Fecha de Término</label>
-                  <input 
+                  <input
                     required
-                    type="date" 
-                    value={formData.fecha_termino} 
-                    onChange={e => setFormData({...formData, fecha_termino: e.target.value})} 
-                    className="w-full rounded-lg border-gray-300 shadow-sm border p-2.5 focus:border-[#006BB9] focus:ring-[#006BB9]" 
+                    type="date"
+                    value={formData.fecha_termino}
+                    onChange={e => setFormData({ ...formData, fecha_termino: e.target.value })}
+                    className="w-full rounded-lg border-gray-300 shadow-sm border p-2.5 focus:border-[#006BB9] focus:ring-[#006BB9]"
                   />
                 </div>
               </div>
@@ -883,14 +883,14 @@ export default function LicenciasAdminPage() {
                     Nombra el archivo así:
                     <span className="block mt-1 font-mono bg-blue-50 text-blue-800 px-1 py-0.5 rounded font-bold border border-blue-100 w-fit">Factura n° ??? - Producto.pdf</span>
                   </p>
-                  
+
                   {formData.has_factura_file && !facturaFile ? (
                     <div className="flex flex-col gap-2 mb-3 mt-auto">
                       <div className="flex items-center gap-2 bg-emerald-50 p-2.5 rounded-lg border border-emerald-100">
                         <CheckCircle className="text-emerald-500 w-5 h-5 shrink-0" />
                         <span className="text-sm font-medium text-emerald-800 truncate">Factura Subida</span>
                       </div>
-                      <button type="button" onClick={() => setFormData({...formData, has_factura_file: false, factura: ''})} className="text-xs text-red-600 font-bold hover:underline self-end">Quitar / Reemplazar</button>
+                      <button type="button" onClick={() => setFormData({ ...formData, has_factura_file: false, factura: '' })} className="text-xs text-red-600 font-bold hover:underline self-end">Quitar / Reemplazar</button>
                     </div>
                   ) : (
                     <label className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-blue-200 bg-gray-50 rounded-lg cursor-pointer hover:bg-blue-50 hover:border-blue-300 transition-colors mb-3 mt-auto">
@@ -898,33 +898,33 @@ export default function LicenciasAdminPage() {
                       <span className="text-xs text-gray-600 text-center font-medium px-2 truncate w-full">
                         {facturaFile ? facturaFile.name : 'Haz clic o arrastra el archivo'}
                       </span>
-                      <input 
-                        type="file" 
-                        className="hidden" 
-                        accept=".pdf,image/*" 
+                      <input
+                        type="file"
+                        className="hidden"
+                        accept=".pdf,image/*"
                         onChange={(e) => {
                           const file = e.target.files[0];
                           if (file) {
                             setFacturaFile(file);
                             const match = file.name.match(/factura\s*n[°º]?\s*(\d+)/i);
                             if (match) {
-                               setFormData(prev => ({...prev, factura: match[1]}));
+                              setFormData(prev => ({ ...prev, factura: match[1] }));
                             } else {
-                               setFormData(prev => ({...prev, factura: file.name.split('.').slice(0, -1).join('.')}));
+                              setFormData(prev => ({ ...prev, factura: file.name.split('.').slice(0, -1).join('.') }));
                             }
                           }
-                        }} 
+                        }}
                       />
                     </label>
                   )}
-                  
+
                   <div className="mt-auto">
                     <label className="block text-[11px] font-bold text-gray-500 mb-1 uppercase tracking-wide">N° Extraído Automáticamente:</label>
-                    <input 
-                      type="text" 
-                      value={formData.factura} 
-                      onChange={e => setFormData({...formData, factura: e.target.value})} 
-                      className="w-full rounded bg-white border-gray-300 shadow-sm border p-2 text-sm text-gray-800 focus:border-[#006BB9] focus:ring-[#006BB9]" 
+                    <input
+                      type="text"
+                      value={formData.factura}
+                      onChange={e => setFormData({ ...formData, factura: e.target.value })}
+                      className="w-full rounded bg-white border-gray-300 shadow-sm border p-2 text-sm text-gray-800 focus:border-[#006BB9] focus:ring-[#006BB9]"
                       placeholder="N° Factura..."
                     />
                   </div>
@@ -937,14 +937,14 @@ export default function LicenciasAdminPage() {
                     Nombra el archivo así:
                     <span className="block mt-1 font-mono bg-blue-50 text-blue-800 px-1 py-0.5 rounded font-bold border border-blue-100 w-fit">1456839-??-??26 - Producto.pdf</span>
                   </p>
-                  
+
                   {formData.has_oc_file && !ocFile ? (
                     <div className="flex flex-col gap-2 mb-3 mt-auto">
                       <div className="flex items-center gap-2 bg-emerald-50 p-2.5 rounded-lg border border-emerald-100">
                         <CheckCircle className="text-emerald-500 w-5 h-5 shrink-0" />
                         <span className="text-sm font-medium text-emerald-800 truncate">OC Subida</span>
                       </div>
-                      <button type="button" onClick={() => setFormData({...formData, has_oc_file: false, orden_compra: ''})} className="text-xs text-red-600 font-bold hover:underline self-end">Quitar / Reemplazar</button>
+                      <button type="button" onClick={() => setFormData({ ...formData, has_oc_file: false, orden_compra: '' })} className="text-xs text-red-600 font-bold hover:underline self-end">Quitar / Reemplazar</button>
                     </div>
                   ) : (
                     <label className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-blue-200 bg-gray-50 rounded-lg cursor-pointer hover:bg-blue-50 hover:border-blue-300 transition-colors mb-3 mt-auto">
@@ -952,33 +952,33 @@ export default function LicenciasAdminPage() {
                       <span className="text-xs text-gray-600 text-center font-medium px-2 truncate w-full">
                         {ocFile ? ocFile.name : 'Haz clic o arrastra el archivo'}
                       </span>
-                      <input 
-                        type="file" 
-                        className="hidden" 
-                        accept=".pdf,image/*" 
+                      <input
+                        type="file"
+                        className="hidden"
+                        accept=".pdf,image/*"
                         onChange={(e) => {
                           const file = e.target.files[0];
                           if (file) {
                             setOcFile(file);
                             const match = file.name.match(/(\d+-\d+-[a-zA-Z0-9]+)/i);
                             if (match) {
-                               setFormData(prev => ({...prev, orden_compra: match[1].toUpperCase()}));
+                              setFormData(prev => ({ ...prev, orden_compra: match[1].toUpperCase() }));
                             } else {
-                               setFormData(prev => ({...prev, orden_compra: file.name.split('.').slice(0, -1).join('.')}));
+                              setFormData(prev => ({ ...prev, orden_compra: file.name.split('.').slice(0, -1).join('.') }));
                             }
                           }
-                        }} 
+                        }}
                       />
                     </label>
                   )}
-                  
+
                   <div className="mt-auto">
                     <label className="block text-[11px] font-bold text-gray-500 mb-1 uppercase tracking-wide">N° Extraído Automáticamente:</label>
-                    <input 
-                      type="text" 
-                      value={formData.orden_compra} 
-                      onChange={e => setFormData({...formData, orden_compra: e.target.value})} 
-                      className="w-full rounded bg-white border-gray-300 shadow-sm border p-2 text-sm text-gray-800 focus:border-[#006BB9] focus:ring-[#006BB9]" 
+                    <input
+                      type="text"
+                      value={formData.orden_compra}
+                      onChange={e => setFormData({ ...formData, orden_compra: e.target.value })}
+                      className="w-full rounded bg-white border-gray-300 shadow-sm border p-2 text-sm text-gray-800 focus:border-[#006BB9] focus:ring-[#006BB9]"
                       placeholder="N° Orden Compra..."
                     />
                   </div>
@@ -987,10 +987,10 @@ export default function LicenciasAdminPage() {
 
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1">Descripción</label>
-                <textarea 
-                  value={formData.descripcion} 
-                  onChange={e => setFormData({...formData, descripcion: e.target.value})} 
-                  className="w-full rounded-lg border-gray-300 shadow-sm border p-2.5 focus:border-[#006BB9] focus:ring-[#006BB9]" 
+                <textarea
+                  value={formData.descripcion}
+                  onChange={e => setFormData({ ...formData, descripcion: e.target.value })}
+                  className="w-full rounded-lg border-gray-300 shadow-sm border p-2.5 focus:border-[#006BB9] focus:ring-[#006BB9]"
                   placeholder="Observaciones o notas"
                   rows="2"
                 />
@@ -1015,18 +1015,18 @@ export default function LicenciasAdminPage() {
               <Users className="text-[#006BB9]" /> Asignar Licencia a Funcionarios
             </h2>
             <form onSubmit={handleAssign} className="space-y-4 flex-1 flex flex-col min-h-0">
-              
+
               {/* Software Select (Full Width) */}
               <div>
                 <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">Software a Asignar *</label>
-                <select 
+                <select
                   required
-                  value={assignData.licencia_id} 
+                  value={assignData.licencia_id}
                   onChange={e => {
-                    setAssignData({...assignData, licencia_id: e.target.value});
+                    setAssignData({ ...assignData, licencia_id: e.target.value });
                     setSelectedUsuarios([]);
-                  }} 
-                  className="w-full rounded-lg border-gray-300 shadow-sm border p-2.5 focus:border-[#006BB9] focus:ring-[#006BB9] bg-white text-sm" 
+                  }}
+                  className="w-full rounded-lg border-gray-300 shadow-sm border p-2.5 focus:border-[#006BB9] focus:ring-[#006BB9] bg-white text-sm"
                 >
                   <option value="">-- Seleccionar Software --</option>
                   {licencias.map(lic => {
@@ -1042,7 +1042,7 @@ export default function LicenciasAdminPage() {
 
               {/* Split Content: Two Columns */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 flex-1 min-h-0 overflow-hidden">
-                
+
                 {/* Column 1: Available & Search */}
                 <div className="flex flex-col min-h-0 space-y-2">
                   <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider">Buscar Funcionarios</label>
@@ -1066,12 +1066,11 @@ export default function LicenciasAdminPage() {
                     {filteredAvailableUsuarios.map((u, idx) => {
                       const isFocused = idx === focusedUserIndex;
                       return (
-                        <div 
-                          key={u.id} 
+                        <div
+                          key={u.id}
                           onClick={() => handleAddUser(u)}
-                          className={`p-2.5 transition-colors cursor-pointer flex items-center justify-between ${
-                            isFocused ? 'bg-blue-50 border-l-4 border-blue-500 font-medium' : 'hover:bg-slate-50'
-                          }`}
+                          className={`p-2.5 transition-colors cursor-pointer flex items-center justify-between ${isFocused ? 'bg-blue-50 border-l-4 border-blue-500 font-medium' : 'hover:bg-slate-50'
+                            }`}
                         >
                           <div className="min-w-0 flex-1 pr-2">
                             <div className="font-semibold text-gray-800 text-xs truncate">{u.nombre || 'Sin nombre'}</div>
@@ -1103,16 +1102,16 @@ export default function LicenciasAdminPage() {
                   <div className="border border-gray-200 rounded-lg overflow-y-auto flex-1 h-[250px] bg-slate-50/50 p-2">
                     <div className="grid grid-cols-2 gap-2">
                       {selectedUsuarios.map(u => (
-                        <div 
-                          key={u.id} 
+                        <div
+                          key={u.id}
                           className="bg-white border border-blue-100 rounded-lg p-2 flex items-center justify-between shadow-sm"
                         >
                           <div className="min-w-0 flex-1 pr-1.5">
                             <div className="font-bold text-blue-900 text-[11px] leading-tight truncate" title={u.nombre}>{u.nombre || 'Sin nombre'}</div>
                             <div className="text-[9px] text-blue-600 truncate" title={u.email}>{u.email}</div>
                           </div>
-                          <button 
-                            type="button" 
+                          <button
+                            type="button"
                             onClick={() => handleRemoveUser(u)}
                             className="text-gray-400 hover:text-red-500 p-0.5 hover:bg-red-50 rounded shrink-0 transition-colors"
                             title="Quitar"
@@ -1150,13 +1149,13 @@ export default function LicenciasAdminPage() {
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white p-6 rounded-xl shadow-2xl w-full max-w-lg max-h-[80vh] flex flex-col animate-fade-in">
             <h2 className="text-xl font-bold mb-1 text-[#25306B] flex items-center gap-2">
-              <img src={getLogoUrl(viewLicencia.software)} className="w-6 h-6 object-contain" alt="" onError={e => e.target.style.display='none'} />
+              <img src={getLogoUrl(viewLicencia.software)} className="w-6 h-6 object-contain" alt="" onError={e => e.target.style.display = 'none'} />
               Asignaciones: {viewLicencia.software}
             </h2>
             <p className="text-sm text-gray-500 mb-4 border-b pb-4">
               {asignacionesDeLicencia.length} de {viewLicencia.cantidad_total} licencias en uso
             </p>
-            
+
             <div className="overflow-y-auto flex-1 pr-2">
               {asignacionesDeLicencia.length === 0 ? (
                 <div className="text-center text-gray-500 py-4 text-sm bg-gray-50 rounded-lg border border-dashed border-gray-200">Nadie tiene asignada esta licencia aún.</div>
@@ -1168,7 +1167,7 @@ export default function LicenciasAdminPage() {
                         <div className="font-bold text-sm text-gray-800">{a.perfiles?.nombre || a.perfiles?.email}</div>
                         <div className="text-[11px] text-gray-500 font-medium">Asignado el: {new Date(a.fecha_asignacion).toLocaleDateString()}</div>
                       </div>
-                      <button 
+                      <button
                         onClick={() => handleRevocar(a)}
                         className="text-[11px] font-bold bg-white border border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 px-3 py-1.5 rounded transition-colors shadow-sm"
                       >
@@ -1179,7 +1178,7 @@ export default function LicenciasAdminPage() {
                 </div>
               )}
             </div>
-            
+
             <div className="flex justify-end pt-4 mt-4 border-t">
               <button onClick={() => setIsViewModalOpen(false)} className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-bold text-gray-700">Cerrar</button>
             </div>
@@ -1214,7 +1213,7 @@ export default function LicenciasAdminPage() {
                     placeholder="Contraseña"
                     required
                   />
-                  {deleteError && <p className="text-red-600 text-[11px] mt-1.5 font-bold flex items-center gap-1"><AlertCircle size={12}/> {deleteError}</p>}
+                  {deleteError && <p className="text-red-600 text-[11px] mt-1.5 font-bold flex items-center gap-1"><AlertCircle size={12} /> {deleteError}</p>}
                 </div>
 
                 <div className="flex gap-3 pt-4">
@@ -1251,10 +1250,10 @@ export default function LicenciasAdminPage() {
             <h2 className="text-xl font-bold mb-2 text-[#25306B] flex items-center gap-2">
               <UploadCloud className="text-[#006BB9]" /> Carga Masiva de Licencias
             </h2>
-            
+
             <div className="overflow-y-auto flex-1 pr-2 mt-2 custom-scrollbar">
               <p className="text-[13px] text-gray-600 mb-4 bg-blue-50 p-3 rounded-lg border border-blue-100">
-                Sube un archivo Excel (<strong>.xlsx, .xls</strong>) o <strong>.csv</strong> con el inventario de licencias. Las columnas reconocidas automáticamente son: <br/>
+                Sube un archivo Excel (<strong>.xlsx, .xls</strong>) o <strong>.csv</strong> con el inventario de licencias. Las columnas reconocidas automáticamente son: <br />
                 <span className="font-mono text-blue-800 text-xs font-bold leading-relaxed">Nombre, Versión, Tipo, Total Licencias, Fecha de Inicio, Fecha de Término, Factura, Orden de Compra, Descripción</span>
               </p>
 
@@ -1272,7 +1271,7 @@ export default function LicenciasAdminPage() {
                   <li className="flex gap-2"><span className="font-bold text-gray-800 shrink-0 w-20">PAAS / IAAS:</span> <span>Plataforma o Infraestructura como servicio (AWS, Azure, Heroku).</span></li>
                 </ul>
               </div>
-              
+
               <div className="border-2 border-dashed border-blue-200 rounded-xl p-8 text-center bg-gray-50 hover:bg-blue-50 hover:border-blue-400 transition-colors relative group mt-2">
                 <label className="cursor-pointer flex flex-col items-center justify-center">
                   <div className="w-14 h-14 bg-white rounded-full shadow-sm flex items-center justify-center mb-3 text-blue-600 group-hover:scale-110 group-hover:bg-blue-600 group-hover:text-white transition-all">
@@ -1285,11 +1284,10 @@ export default function LicenciasAdminPage() {
               </div>
 
               {status.type !== 'idle' && (
-                <div className={`mt-4 p-3 rounded-lg flex items-start gap-2 text-sm ${
-                  status.type === 'processing' ? 'bg-blue-50 text-blue-700 border border-blue-100' :
+                <div className={`mt-4 p-3 rounded-lg flex items-start gap-2 text-sm ${status.type === 'processing' ? 'bg-blue-50 text-blue-700 border border-blue-100' :
                   status.type === 'success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' :
-                  'bg-red-50 text-red-700 border border-red-100'
-                }`}>
+                    'bg-red-50 text-red-700 border border-red-100'
+                  }`}>
                   {status.type === 'processing' && <AlertCircle className="w-4 h-4 animate-pulse shrink-0 mt-0.5" />}
                   {status.type === 'success' && <CheckCircle className="w-4 h-4 shrink-0 mt-0.5" />}
                   {status.type === 'error' && <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />}
@@ -1323,7 +1321,7 @@ export default function LicenciasAdminPage() {
                 Se detectaron licencias existentes en el sistema o con Orden de Compra duplicada.
               </p>
             </div>
-            
+
             <div className="p-6 overflow-y-auto flex-1 space-y-4 custom-scrollbar bg-slate-50">
               {conflicts.map((conf, index) => {
                 const totalFuturo = conf.existingQty + conf.uploadedQty;
@@ -1333,14 +1331,14 @@ export default function LicenciasAdminPage() {
                       <div className="min-w-0 flex-1">
                         <h3 className="font-bold text-slate-800 text-base leading-tight truncate">{conf.software}</h3>
                         <p className="text-xs text-slate-500 mt-0.5">Versión sugerida: {conf.version || 'Sin especificar'}</p>
-                        
+
                         {conf.duplicateOc && (
                           <div className="text-red-700 bg-red-50 border border-red-100 rounded-lg p-2 mt-2 text-xs font-semibold flex items-start gap-1.5 leading-tight">
                             <AlertTriangle size={14} className="shrink-0 mt-0.5" />
                             <span>OC Duplicada: La Orden de Compra <strong>"{conf.duplicateOc.code}"</strong> ya está registrada en el sistema bajo el software <strong>"{conf.duplicateOc.software}"</strong>. Por favor verifica si el dato es correcto.</span>
                           </div>
                         )}
-                        
+
                         {conf.existingId && (
                           <div className="text-[12px] font-medium text-slate-700 mt-2">
                             {conf.isSameQty ? (
@@ -1355,27 +1353,25 @@ export default function LicenciasAdminPage() {
                           </div>
                         )}
                       </div>
-                      
+
                       <div className="flex bg-slate-100 rounded-lg border border-slate-200 p-1 shrink-0 shadow-sm self-end sm:self-center">
                         <button
                           type="button"
                           onClick={() => setResolvedConflicts(prev => ({ ...prev, [conf.software]: 'sumar' }))}
-                          className={`px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                            (resolvedConflicts[conf.software] || 'sumar') === 'sumar'
-                              ? 'bg-[#006BB9] text-white shadow'
-                              : 'text-slate-600 hover:bg-slate-200'
-                          }`}
+                          className={`px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${(resolvedConflicts[conf.software] || 'sumar') === 'sumar'
+                            ? 'bg-[#006BB9] text-white shadow'
+                            : 'text-slate-600 hover:bg-slate-200'
+                            }`}
                         >
                           Sumar (+{conf.uploadedQty})
                         </button>
                         <button
                           type="button"
                           onClick={() => setResolvedConflicts(prev => ({ ...prev, [conf.software]: 'omit' }))}
-                          className={`px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                            resolvedConflicts[conf.software] === 'omit'
-                              ? 'bg-red-600 text-white shadow'
-                              : 'text-slate-600 hover:bg-slate-200'
-                          }`}
+                          className={`px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${resolvedConflicts[conf.software] === 'omit'
+                            ? 'bg-red-600 text-white shadow'
+                            : 'text-slate-600 hover:bg-slate-200'
+                            }`}
                         >
                           Omitir
                         </button>
@@ -1385,7 +1381,7 @@ export default function LicenciasAdminPage() {
                 );
               })}
             </div>
-            
+
             <div className="bg-white px-6 py-4 flex justify-end gap-3 border-t shrink-0">
               <button
                 type="button"
