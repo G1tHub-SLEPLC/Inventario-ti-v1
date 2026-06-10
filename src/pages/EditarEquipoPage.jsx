@@ -279,7 +279,7 @@ export default function EditarEquipoPage() {
        );
     }
 
-    navigate('/');
+    navigate(-1);
   };
 
   const formatFecha = (isoString) => {
@@ -304,7 +304,7 @@ export default function EditarEquipoPage() {
       {/* Header */}
       <div className="flex items-center gap-4">
         <button 
-          onClick={() => navigate('/')}
+          onClick={() => navigate(-1)}
           className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
           title="Volver"
         >
@@ -484,13 +484,39 @@ export default function EditarEquipoPage() {
               </div>
 
               <div className="space-y-1">
-                <label className="block text-xs font-semibold text-[#25306B] mb-1 uppercase tracking-wide">
-                  Usuario Asignado (SLEP)
-                </label>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="block text-xs font-semibold text-[#25306B] uppercase tracking-wide">
+                    Usuario Asignado (SLEP)
+                  </label>
+                  {(formData['Usuario'] || formData.usuario_asignado_id) && (
+                    <button 
+                      type="button" 
+                      onClick={() => setFormData({...formData, 'Usuario': '', 'SubDirección': '', usuario_asignado_id: ''})} 
+                      className="text-[10px] text-rose-600 hover:underline font-bold"
+                    >
+                      Quitar usuario
+                    </button>
+                  )}
+                </div>
+
+                {formData['Usuario'] && !formData.usuario_asignado_id && (
+                  <div className="mb-2 p-2 bg-amber-50 border border-amber-200 rounded text-amber-800 text-xs">
+                    Asignación actual: <strong>{formData['Usuario']}</strong> (Registro Antiguo).
+                    <br/>Puedes seleccionar un usuario en la lista para actualizarlo.
+                  </div>
+                )}
+
                 <select
                   name="usuario_asignado_id"
                   value={formData.usuario_asignado_id || ''}
-                  onChange={handleChange}
+                  onChange={(e) => {
+                    const u = usuarios.find(user => user.id === e.target.value);
+                    setFormData({
+                      ...formData, 
+                      usuario_asignado_id: e.target.value,
+                      'Usuario': u ? (u.nombre || u.correo) : ''
+                    });
+                  }}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#006BB9] focus:outline-none shadow-sm transition-shadow"
                 >
                   <option value="">Sin asignar / Disponible</option>
@@ -511,7 +537,7 @@ export default function EditarEquipoPage() {
             <div className="pt-4 border-t border-gray-100 flex justify-end gap-3">
               <button
                 type="button"
-                onClick={() => navigate('/')}
+                onClick={() => navigate(-1)}
                 className="px-4 py-2 text-gray-600 bg-gray-100 hover:bg-gray-200 font-medium rounded-lg text-sm transition-colors"
               >
                 Cancelar

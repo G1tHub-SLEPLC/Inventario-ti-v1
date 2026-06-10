@@ -115,19 +115,22 @@ export function InventarioProvider({ children }) {
       .subscribe();
       
     // Refrescar al iniciar o cerrar sesión
+    let hasInitialLoad = false;
     const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
       if (session) {
         if (event === 'SIGNED_IN') {
-          setEquipos(current => {
-            if (current.length === 0) {
-              setLoading(true);
-            }
-            return current;
-          });
-          loadData();
+          if (!hasInitialLoad) {
+            setEquipos(current => {
+              if (current.length === 0) setLoading(true);
+              return current;
+            });
+            loadData();
+            hasInitialLoad = true;
+          }
         }
       } else {
         setEquipos([]);
+        hasInitialLoad = false;
       }
     });
       

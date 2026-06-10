@@ -26,7 +26,10 @@ export function AuthProvider({ children }) {
       }
     })
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session)
+      setSession(prev => {
+        if (prev && session && prev.access_token === session.access_token) return prev;
+        return session;
+      });
       if (session) {
         fetchPerfil(session.user.id)
       } else {
