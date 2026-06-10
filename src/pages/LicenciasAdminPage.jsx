@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { useLicencias } from '../context/LicenciasContext';
 import { useInventario } from '../context/InventarioContext';
 import { supabase } from '../lib/supabaseClient';
