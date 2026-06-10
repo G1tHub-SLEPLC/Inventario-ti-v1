@@ -751,7 +751,7 @@ export default function LicenciasAdminPage() {
                     </td>
                     <td className="px-3 py-2.5 text-center">
                       <div className="flex flex-col items-center gap-1.5">
-                        <span className={`px-2 py-0.5 rounded text-[8px] font-normal uppercase border w-full ${hasStock ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-rose-50 text-rose-700 border-rose-200'}`}>
+                        <span className={`px-2 py-0.5 rounded text-[9px] font-normal uppercase border w-full ${hasStock ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-rose-50 text-rose-700 border-rose-200'}`}>
                           {hasStock ? 'SUFICIENTE' : 'AGOTADO'}
                         </span>
                         {(() => {
@@ -764,11 +764,11 @@ export default function LicenciasAdminPage() {
                           const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
                           
                           if (diffDays > 0) {
-                            return <span className={`px-2 py-0.5 rounded text-[8px] font-normal uppercase border w-full ${diffDays <= 30 ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-blue-50 text-blue-700 border-blue-200'}`}>Quedan {diffDays} días</span>;
+                            return <span className={`px-2 py-0.5 rounded text-[9px] font-normal uppercase border w-full ${diffDays <= 30 ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-blue-50 text-blue-700 border-blue-200'}`}>Quedan {diffDays} días</span>;
                           } else if (diffDays === 0) {
-                            return <span className="px-2 py-0.5 rounded text-[8px] font-normal uppercase border bg-rose-50 text-rose-700 border-rose-200 w-full">Vence Hoy</span>;
+                            return <span className="px-2 py-0.5 rounded text-[9px] font-normal uppercase border bg-rose-50 text-rose-700 border-rose-200 w-full">Vence Hoy</span>;
                           } else {
-                            return <span className="px-2 py-0.5 rounded text-[8px] font-normal uppercase border bg-red-100 text-red-800 border-red-300 w-full">Vencida hace {Math.abs(diffDays)} días</span>;
+                            return <span className="px-2 py-0.5 rounded text-[9px] font-normal uppercase border bg-red-100 text-red-800 border-red-300 w-full">Vencida hace {Math.abs(diffDays)} días</span>;
                           }
                         })()}
                       </div>
