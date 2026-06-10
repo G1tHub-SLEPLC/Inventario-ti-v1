@@ -623,7 +623,7 @@ export default function DashboardPage() {
   if (loading) return <div className="p-8 text-center">Cargando...</div>;
 
   return (
-    <div className="p-6 w-full max-w-[1920px] mx-auto space-y-6">
+    <div className="p-6 w-full max-w-7xl mx-auto space-y-6">
       
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-gray-200 pb-5">

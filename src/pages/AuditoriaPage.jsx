@@ -171,7 +171,7 @@ export default function AuditoriaPage() {
   };
 
   return (
-    <div className="p-6 max-w-[1920px] mx-auto space-y-6">
+    <div className="p-6 max-w-7xl mx-auto space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
           <ShieldCheck className="text-[#006BB9]" size={28} /> 

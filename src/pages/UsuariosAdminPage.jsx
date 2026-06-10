@@ -242,7 +242,7 @@ export default function UsuariosAdminPage() {
   };
 
   return (
-    <div className="p-6 max-w-[1920px] mx-auto">
+    <div className="p-6 max-w-7xl mx-auto">
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">

@@ -78,7 +78,7 @@ export default function GlobalDashboardPage() {
   }
 
   return (
-    <div className="p-6 max-w-[1920px] mx-auto space-y-8 pb-12">
+    <div className="p-6 max-w-7xl mx-auto space-y-8 pb-12">
       {/* Header Profile Section */}
       <div className="bg-gradient-to-r from-[#112A46] to-[#006BB9] rounded-2xl shadow-lg p-8 text-white relative overflow-hidden">
         <div className="absolute top-0 right-0 opacity-10 pointer-events-none transform translate-x-1/4 -translate-y-1/4">
