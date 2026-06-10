@@ -16,7 +16,7 @@ const ADMIN_NAV_ITEMS = [
 ];
 
 const SLEP_NAV_ITEMS = [
-  { to: '/slep/dashboard',  icon: Monitor,         label: 'Mis Asignaciones', desc: 'Revisar tus equipos asignados y solicitar insumos' },
+  { to: '/slep/dashboard',  icon: Monitor,         label: 'Inicio', desc: 'Revisar tus equipos asignados y solicitar insumos' },
   { to: '/slep/solicitudes',icon: AlertCircle,     label: 'Mis Solicitudes', desc: 'Estado de tus solicitudes de insumos o préstamos' },
 ];
 
