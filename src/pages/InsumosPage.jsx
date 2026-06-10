@@ -384,7 +384,7 @@ export default function InsumosPage() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h1 className="text-2xl font-bold text-gray-800">Gestión de Insumos</h1>
         
-        {activeTab === 'insumos' && (
+        {activeTab === 'insumos' ? (
           <div className="flex gap-2">
             <button
               onClick={() => { setStatus({ type: 'idle', message: '' }); setIsMasivaModalOpen(true); }}
@@ -409,6 +409,15 @@ export default function InsumosPage() {
               Nuevo Insumo
             </button>
           </div>
+        ) : (
+          <div className="flex gap-2">
+            <button onClick={() => exportHistorial('xlsx')} className="flex items-center gap-2 bg-green-200 text-green-800 px-3 py-1.5 rounded-lg hover:bg-green-300 shadow-sm font-medium transition-colors text-sm">
+              <Download size={14} /> Excel
+            </button>
+            <button onClick={() => exportHistorial('pdf')} className="flex items-center gap-2 bg-rose-200 text-rose-800 px-3 py-1.5 rounded-lg hover:bg-rose-300 shadow-sm font-medium transition-colors text-sm">
+              <Printer size={14} /> PDF
+            </button>
+          </div>
         )}
       </div>
 
@@ -429,17 +438,6 @@ export default function InsumosPage() {
             Historial de Entregas
           </button>
         </div>
-
-        {activeTab === 'historial' && (
-          <div className="bg-gray-50 p-3 border-b border-gray-200 flex justify-end gap-2">
-            <button onClick={() => exportHistorial('xlsx')} className="flex items-center gap-2 bg-green-200 text-green-800 px-3 py-1.5 rounded-lg hover:bg-green-300 shadow-sm font-medium transition-colors text-sm">
-              <Download size={14} /> Excel
-            </button>
-            <button onClick={() => exportHistorial('pdf')} className="flex items-center gap-2 bg-rose-200 text-rose-800 px-3 py-1.5 rounded-lg hover:bg-rose-300 shadow-sm font-medium transition-colors text-sm">
-              <Printer size={14} /> PDF
-            </button>
-          </div>
-        )}
 
         {activeTab === 'insumos' ? (
           <div className="overflow-x-auto table-scroll">
