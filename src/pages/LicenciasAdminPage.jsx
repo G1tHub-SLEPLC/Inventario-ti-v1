@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useMemo } from 'react';
 import { useLicencias } from '../context/LicenciasContext';
 import { useInventario } from '../context/InventarioContext';
 import { supabase } from '../lib/supabaseClient';
-import { PlusCircle, Edit2, Trash2, Key, Users, UploadCloud, Download, Printer, AlertTriangle, CheckCircle, AlertCircle, FileText, Upload, UserPlus, Plus, X } from 'lucide-react';
+import { PlusCircle, Edit2, Trash2, Key, Users, UploadCloud, Download, Printer, AlertTriangle, CheckCircle, AlertCircle, FileText, Upload, UserPlus, Plus, X, Search } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import Papa from 'papaparse';
 import { exportToExcelAndPDF } from '../utils/exportUtils';
