@@ -260,7 +260,7 @@ export default function NuevoEquipoPage() {
         <form onSubmit={handleSubmit} className="space-y-5">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {COLUMNS.map((col, idx) => (
-              <div key={idx} className={`space-y-1 ${col === 'SubDirección' ? 'sm:col-span-2' : ''}`}>
+              <div key={idx} className={`space-y-1 ${col === 'SubDirección' ? 'md:col-span-2' : ''}`}>
                 <label className="block text-xs font-semibold text-[#25306B] mb-1 uppercase tracking-wide">
                   {col}
                 </label>

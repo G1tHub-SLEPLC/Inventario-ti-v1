@@ -343,7 +343,7 @@ export default function EditarEquipoPage() {
                 const hasExistingSerial = !!originalEquipo['Nº de serie'];
                 const disableSerial = isSerial && hasExistingSerial;
                 return (
-                  <div key={idx} className={`space-y-1 ${col === 'SubDirección' ? 'sm:col-span-2' : ''}`}>
+                  <div key={idx} className={`space-y-1 ${col === 'SubDirección' ? 'md:col-span-2' : ''}`}>
                     <label className="block text-xs font-semibold text-[#25306B] mb-1 uppercase tracking-wide">
                       {col} {disableSerial && <span className="text-gray-400 font-normal text-[10px]">(Fijo)</span>}
                     </label>
