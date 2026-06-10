@@ -662,13 +662,13 @@ export default function LicenciasAdminPage() {
         <table className="min-w-full text-sm text-left whitespace-nowrap">
           <thead className="uppercase text-xs border-b border-gray-200 bg-gray-50 text-gray-600">
             <tr>
-              <th className="px-6 py-3 w-16">Logo</th>
-              <th className="px-6 py-3">Software</th>
-              <th className="px-6 py-3">Respaldo</th>
-              <th className="px-6 py-3 text-center">Disponibles</th>
-              <th className="px-6 py-3 text-center">Asignadas</th>
-              <th className="px-6 py-3 text-center">Estado</th>
-              <th className="px-6 py-3 text-center">Acciones</th>
+              <th className="px-3 py-3 w-16">Logo</th>
+              <th className="px-3 py-3">Software</th>
+              <th className="px-3 py-3">Respaldo</th>
+              <th className="px-3 py-3 text-center">Disponibles</th>
+              <th className="px-3 py-3 text-center">Asignadas</th>
+              <th className="px-3 py-3 text-center">Estado</th>
+              <th className="px-3 py-3 text-center">Acciones</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
@@ -684,7 +684,7 @@ export default function LicenciasAdminPage() {
                 
                 return (
                   <tr key={lic.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-2.5">
+                    <td className="px-3 py-2.5">
                       <div className="w-11 h-11 rounded shadow-sm border border-gray-100 overflow-hidden bg-white flex items-center justify-center relative group">
                         <img 
                           src={getLogoUrl(lic.software)} 
@@ -697,7 +697,7 @@ export default function LicenciasAdminPage() {
                         />
                       </div>
                     </td>
-                    <td className="px-6 py-2.5">
+                    <td className="px-3 py-2.5">
                       <div className="font-bold text-[#112A46] text-[15px]">{lic.software} <span className="text-xs font-medium text-gray-500 ml-1">{lic.version}</span></div>
                       <div className="text-[11px] mt-1 flex gap-2 items-center">
                         <span className="bg-gray-100 px-1.5 py-0.5 rounded text-gray-600 font-semibold">{lic.tipo || 'SAAS'}</span>
@@ -709,7 +709,7 @@ export default function LicenciasAdminPage() {
                         )}
                       </div>
                     </td>
-                    <td className="px-6 py-2.5">
+                    <td className="px-3 py-2.5">
                       <div className="flex flex-col gap-1.5">
                         <div className="flex items-center gap-2">
                           {lic.factura ? (
@@ -743,13 +743,13 @@ export default function LicenciasAdminPage() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-2.5 text-center">
+                    <td className="px-3 py-2.5 text-center">
                       <div className="font-black text-gray-800 text-lg">{disponibles} <span className="text-xs font-medium text-gray-400">/ {lic.cantidad_total}</span></div>
                     </td>
-                    <td className="px-6 py-2.5 text-center">
+                    <td className="px-3 py-2.5 text-center">
                        <span className="bg-blue-50 text-blue-800 border border-blue-200 px-2.5 py-1 rounded-full font-bold text-xs">{asignadas}</span>
                     </td>
-                    <td className="px-6 py-2.5 text-center">
+                    <td className="px-3 py-2.5 text-center">
                       <div className="flex flex-col items-center gap-1.5">
                         <span className={`px-2 py-0.5 rounded text-[8px] font-semibold uppercase border w-full ${hasStock ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-rose-50 text-rose-700 border-rose-200'}`}>
                           {hasStock ? 'SUFICIENTE' : 'AGOTADO'}
@@ -773,7 +773,7 @@ export default function LicenciasAdminPage() {
                         })()}
                       </div>
                     </td>
-                    <td className="px-6 py-2.5 text-center">
+                    <td className="px-3 py-2.5 text-center">
                       <button onClick={() => handleOpenAssignModal(lic.id)} className="text-emerald-600 hover:text-emerald-800 mr-3 bg-emerald-50 hover:bg-emerald-100 p-1.5 rounded-lg transition-colors border border-emerald-100" title="Asignar a Funcionario">
                         <UserPlus size={16} />
                       </button>

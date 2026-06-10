@@ -48,7 +48,7 @@ export default function AppShell() {
   return (
     <div className="flex flex-col h-screen bg-gray-50 font-sans overflow-hidden">
       {/* Top Navbar */}
-      <header className="bg-white border-b border-gray-200 flex-shrink-0 z-20 shadow-sm flex items-center justify-between px-6 py-2">
+      <header className="bg-white border-b border-gray-200 flex-shrink-0 z-20 shadow-sm flex items-center justify-between px-3 md:px-6 py-2">
         <div className="flex items-center justify-start">
           <img
             src="/logo.png"
@@ -68,7 +68,7 @@ export default function AppShell() {
             const active = pathname === to;
             return (
               <Link key={to} to={to} title={desc}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] uppercase tracking-wide font-bold transition-colors
+                className={`flex items-center gap-1 xl:gap-1.5 px-2 xl:px-3 py-1.5 rounded-lg text-[10px] xl:text-[11px] uppercase tracking-wide font-bold transition-colors
                   ${active ? 'bg-blue-50 text-[#006BB9]' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'}`}>
                 <Icon size={14} strokeWidth={2.5} />
                 {label}
@@ -86,7 +86,7 @@ export default function AppShell() {
                 alt="Avatar" 
                 className="w-8 h-8 rounded-full border border-gray-200"
               />
-              <span className="text-sm font-semibold text-gray-700 hidden sm:block">
+              <span className="text-sm font-semibold text-gray-700 hidden sm:block max-w-[140px] truncate" title={`${firstName} ${lastName}`}>
                 {firstName} {lastName}
               </span>
               <ChevronDown size={16} className="text-gray-500" />
