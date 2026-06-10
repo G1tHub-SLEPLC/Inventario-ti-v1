@@ -202,6 +202,26 @@ export const LicenciasProvider = ({ children }) => {
     await fetchAsignaciones();
   };
 
+  const asignarLicenciasMultiples = async (licencia_id, usuariosArray, softwareNombre = 'Desconocido') => {
+    const inserts = usuariosArray.map(u => ({ licencia_id, usuario_id: u.id }));
+    const { error } = await supabase
+      .from('asignaciones_licencias')
+      .insert(inserts);
+      
+    if (error) {
+      showToast('Error', 'No se pudieron asignar las licencias.', 'error');
+      throw error;
+    }
+    
+    for (const u of usuariosArray) {
+      const uName = u.nombre || u.email || 'Desconocido';
+      await logAuditoria('licencias', 'Asignar Licencia', `Se asignó la licencia: ${softwareNombre} (ID: ${licencia_id}) al usuario: ${uName} (ID: ${u.id})`, uName);
+    }
+    
+    showToast('Licencia Asignada', `La licencia se asignó exitosamente a ${usuariosArray.length} funcionarios.`, 'success');
+    await fetchAsignaciones();
+  };
+
   const revocarLicencia = async (asignacion_id, softwareNombre = 'Desconocido', usuarioNombre = 'Desconocido') => {
     const { error } = await supabase
       .from('asignaciones_licencias')
@@ -264,6 +284,7 @@ export const LicenciasProvider = ({ children }) => {
       updateLicencia,
       deleteLicencia,
       asignarLicencia,
+      asignarLicenciasMultiples,
       revocarLicencia,
       getAsignacionesCount,
       setLicenciaFileStatus,

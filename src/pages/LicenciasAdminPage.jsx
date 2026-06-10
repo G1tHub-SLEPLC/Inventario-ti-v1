@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useLicencias } from '../context/LicenciasContext';
 import { useInventario } from '../context/InventarioContext';
 import { supabase } from '../lib/supabaseClient';
-import { PlusCircle, Edit2, Trash2, Key, Users, UploadCloud, Download, Printer, AlertTriangle, CheckCircle, AlertCircle, FileText, Upload, UserPlus } from 'lucide-react';
+import { PlusCircle, Edit2, Trash2, Key, Users, UploadCloud, Download, Printer, AlertTriangle, CheckCircle, AlertCircle, FileText, Upload, UserPlus, Plus, X } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import Papa from 'papaparse';
 import { exportToExcelAndPDF } from '../utils/exportUtils';
@@ -22,7 +22,7 @@ const formatLocalDate = (dateStr) => {
 
 export default function LicenciasAdminPage() {
   const { session } = useAuth();
-  const { licencias, asignaciones, loading, addLicencia, updateLicencia, deleteLicencia, asignarLicencia, revocarLicencia, getAsignacionesCount, addLicenciasMasivo, executeMasivoLicencias, saveLicenciaDocument, setLicenciaFileStatus } = useLicencias();
+  const { licencias, asignaciones, loading, addLicencia, updateLicencia, deleteLicencia, asignarLicencia, asignarLicenciasMultiples, revocarLicencia, getAsignacionesCount, addLicenciasMasivo, executeMasivoLicencias, saveLicenciaDocument, setLicenciaFileStatus } = useLicencias();
   const { showToast } = useInventario();
   
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -60,6 +60,8 @@ export default function LicenciasAdminPage() {
   const [status, setStatus] = useState({ type: 'idle', message: '' });
   const [userSearchTerm, setUserSearchTerm] = useState('');
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
+  const [selectedUsuarios, setSelectedUsuarios] = useState([]);
+  const [focusedUserIndex, setFocusedUserIndex] = useState(-1);
 
   useEffect(() => {
     const fetchUsuarios = async () => {
@@ -89,11 +91,63 @@ export default function LicenciasAdminPage() {
     setIsModalOpen(true);
   };
 
-  const handleOpenAssignModal = () => {
-    setAssignData({ licencia_id: '', usuario_id: '' });
+  const handleOpenAssignModal = (licenciaId = '') => {
+    setAssignData({ licencia_id: licenciaId, usuario_id: '' });
     setUserSearchTerm('');
     setIsUserDropdownOpen(false);
+    setSelectedUsuarios([]);
+    setFocusedUserIndex(-1);
     setIsAssignModalOpen(true);
+  };
+
+  const filteredAvailableUsuarios = useMemo(() => {
+    if (!assignData.licencia_id) return [];
+    const q = userSearchTerm.toLowerCase().trim();
+    return usuarios.filter(u => {
+      const hasLicense = asignaciones.some(a => a.usuario_id === u.id && a.licencia_id === assignData.licencia_id);
+      const isAlreadySelected = selectedUsuarios.some(s => s.id === u.id);
+      const matchesSearch = (u.nombre || '').toLowerCase().includes(q) || (u.email || '').toLowerCase().includes(q);
+      return !hasLicense && !isAlreadySelected && matchesSearch;
+    });
+  }, [usuarios, asignaciones, assignData.licencia_id, selectedUsuarios, userSearchTerm]);
+
+  const handleAddUser = (user) => {
+    if (!assignData.licencia_id) {
+      showToast('Atención', 'Debe seleccionar un software de la lista primero.', 'warning');
+      return;
+    }
+    const lic = licencias.find(l => l.id === assignData.licencia_id);
+    if (!lic) return;
+    const disponibles = lic.cantidad_total - getAsignacionesCount(lic.id);
+    if (selectedUsuarios.length >= disponibles) {
+      showToast('Stock insuficiente', `No quedan más licencias disponibles de este software (${disponibles} en total).`, 'warning');
+      return;
+    }
+    setSelectedUsuarios([...selectedUsuarios, user]);
+    setUserSearchTerm('');
+    setFocusedUserIndex(-1);
+  };
+
+  const handleRemoveUser = (user) => {
+    setSelectedUsuarios(selectedUsuarios.filter(s => s.id !== user.id));
+  };
+
+  const handleUserKeyDown = (e) => {
+    if (filteredAvailableUsuarios.length === 0) return;
+    
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setFocusedUserIndex(prev => (prev < filteredAvailableUsuarios.length - 1 ? prev + 1 : prev));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setFocusedUserIndex(prev => (prev > 0 ? prev - 1 : 0));
+    } else if (e.key === 'Enter' || (e.key === ' ' && focusedUserIndex >= 0)) {
+      if (focusedUserIndex >= 0 && focusedUserIndex < filteredAvailableUsuarios.length) {
+        e.preventDefault();
+        const user = filteredAvailableUsuarios[focusedUserIndex];
+        handleAddUser(user);
+      }
+    }
   };
 
   const handleOpenViewModal = (lic) => {
@@ -192,19 +246,21 @@ export default function LicenciasAdminPage() {
 
   const handleAssign = async (e) => {
     e.preventDefault();
-    if (!assignData.usuario_id) {
-      showToast('Atención', 'Debe seleccionar un funcionario válido de la lista.', 'warning');
+    if (!assignData.licencia_id) {
+      showToast('Atención', 'Debe seleccionar un software de la lista.', 'warning');
+      return;
+    }
+    if (selectedUsuarios.length === 0) {
+      showToast('Atención', 'Debe seleccionar al menos un funcionario.', 'warning');
       return;
     }
     setIsSubmitting(true);
     try {
       const lic = licencias.find(l => l.id === assignData.licencia_id);
-      const user = usuarios.find(u => u.id === assignData.usuario_id);
-      await asignarLicencia(
+      await asignarLicenciasMultiples(
         assignData.licencia_id, 
-        assignData.usuario_id, 
-        lic?.software, 
-        user?.nombre || user?.email
+        selectedUsuarios, 
+        lic?.software
       );
       setIsAssignModalOpen(false);
     } catch (error) {
@@ -954,89 +1010,136 @@ export default function LicenciasAdminPage() {
       {/* Modal para Asignar Licencia */}
       {isAssignModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white p-6 rounded-xl shadow-2xl w-full max-w-md animate-fade-in">
-            <h2 className="text-xl font-bold mb-5 text-emerald-700">Asignar Licencia</h2>
-            <form onSubmit={handleAssign} className="space-y-4">
+          <div className="bg-white p-6 rounded-xl shadow-2xl w-full max-w-3xl animate-fade-in flex flex-col max-h-[90vh]">
+            <h2 className="text-xl font-bold mb-4 text-[#25306B] border-b pb-2 flex items-center gap-2">
+              <Users className="text-[#006BB9]" /> Asignar Licencia a Funcionarios
+            </h2>
+            <form onSubmit={handleAssign} className="space-y-4 flex-1 flex flex-col min-h-0">
+              
+              {/* Software Select (Full Width) */}
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">Software</label>
+                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">Software a Asignar *</label>
                 <select 
                   required
                   value={assignData.licencia_id} 
-                  onChange={e => setAssignData({...assignData, licencia_id: e.target.value})} 
-                  className="w-full rounded-lg border-gray-300 shadow-sm border p-2.5 focus:border-[#006BB9] focus:ring-[#006BB9]" 
+                  onChange={e => {
+                    setAssignData({...assignData, licencia_id: e.target.value});
+                    setSelectedUsuarios([]);
+                  }} 
+                  className="w-full rounded-lg border-gray-300 shadow-sm border p-2.5 focus:border-[#006BB9] focus:ring-[#006BB9] bg-white text-sm" 
                 >
                   <option value="">-- Seleccionar Software --</option>
                   {licencias.map(lic => {
                     const disponibles = lic.cantidad_total - getAsignacionesCount(lic.id);
                     return (
                       <option key={lic.id} value={lic.id} disabled={disponibles <= 0}>
-                        {lic.software} {lic.version} ({disponibles} disponibles)
+                        {lic.software} {lic.version} ({disponibles} cupos disponibles)
                       </option>
                     )
                   })}
                 </select>
               </div>
-              <div className="relative">
-                <label className="block text-sm font-semibold text-gray-700 mb-1">Funcionario</label>
-                <input
-                  type="text"
-                  placeholder="Buscar por nombre o correo..."
-                  value={userSearchTerm}
-                  onChange={(e) => {
-                    setUserSearchTerm(e.target.value);
-                    setIsUserDropdownOpen(true);
-                    setAssignData({ ...assignData, usuario_id: '' });
-                  }}
-                  onFocus={() => setIsUserDropdownOpen(true)}
-                  onBlur={() => setTimeout(() => setIsUserDropdownOpen(false), 200)}
-                  className="w-full rounded-lg border-gray-300 shadow-sm border p-2.5 focus:border-[#006BB9] focus:ring-[#006BB9]"
-                />
-                {isUserDropdownOpen && (
-                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-auto">
-                    {usuarios
-                      .filter(u => (u.nombre || '').toLowerCase().includes(userSearchTerm.toLowerCase()) || (u.email || '').toLowerCase().includes(userSearchTerm.toLowerCase()))
-                      .map(u => {
-                        const hasLicense = assignData.licencia_id && asignaciones.some(a => a.usuario_id === u.id && a.licencia_id === assignData.licencia_id);
-                        return (
+
+              {/* Split Content: Two Columns */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 flex-1 min-h-0 overflow-hidden">
+                
+                {/* Column 1: Available & Search */}
+                <div className="flex flex-col min-h-0 space-y-2">
+                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider">Buscar Funcionarios</label>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                    <input
+                      type="text"
+                      placeholder="Buscar por nombre o correo..."
+                      value={userSearchTerm}
+                      onChange={(e) => {
+                        setUserSearchTerm(e.target.value);
+                        setFocusedUserIndex(-1);
+                      }}
+                      onKeyDown={handleUserKeyDown}
+                      className="w-full rounded-lg border-gray-300 shadow-sm border p-2.5 pl-9 text-sm focus:border-[#006BB9] focus:ring-[#006BB9]"
+                    />
+                  </div>
+
+                  {/* Available List Box */}
+                  <div className="border border-gray-200 rounded-lg overflow-y-auto flex-1 h-[250px] divide-y divide-gray-100 bg-white">
+                    {filteredAvailableUsuarios.map((u, idx) => {
+                      const isFocused = idx === focusedUserIndex;
+                      return (
                         <div 
                           key={u.id} 
-                          className={`px-4 py-2 border-b last:border-b-0 border-gray-100 ${hasLicense ? 'bg-gray-100 cursor-not-allowed opacity-60' : 'hover:bg-blue-50 cursor-pointer'}`}
-                          onMouseDown={(e) => {
-                            // Using onMouseDown so it fires before the input's onBlur hides the dropdown
-                            if (hasLicense) {
-                              e.preventDefault();
-                              return;
-                            }
-                          }}
-                          onClick={() => {
-                            if (hasLicense) return;
-                            setAssignData({ ...assignData, usuario_id: u.id });
-                            setUserSearchTerm(u.nombre || u.email);
-                            setIsUserDropdownOpen(false);
-                          }}
+                          onClick={() => handleAddUser(u)}
+                          className={`p-2.5 transition-colors cursor-pointer flex items-center justify-between ${
+                            isFocused ? 'bg-blue-50 border-l-4 border-blue-500 font-medium' : 'hover:bg-slate-50'
+                          }`}
                         >
-                          <div className="flex justify-between items-center">
-                            <div>
-                              <div className="font-semibold text-gray-800 text-sm">{u.nombre || 'Sin nombre'}</div>
-                              <div className="text-xs text-gray-500">{u.email}</div>
-                            </div>
-                            {hasLicense && (
-                              <span className="text-[10px] font-bold bg-amber-100 text-amber-800 px-2 py-1 rounded">YA ASIGNADA</span>
-                            )}
+                          <div className="min-w-0 flex-1 pr-2">
+                            <div className="font-semibold text-gray-800 text-xs truncate">{u.nombre || 'Sin nombre'}</div>
+                            <div className="text-[10px] text-gray-500 truncate">{u.email}</div>
+                          </div>
+                          <div className="text-blue-600 bg-blue-50 p-1 rounded hover:bg-blue-100 shrink-0">
+                            <Plus size={14} />
                           </div>
                         </div>
-                        );
-                      })}
-                    {usuarios.filter(u => (u.nombre || '').toLowerCase().includes(userSearchTerm.toLowerCase()) || (u.email || '').toLowerCase().includes(userSearchTerm.toLowerCase())).length === 0 && (
-                      <div className="px-4 py-3 text-sm text-gray-500 text-center">No se encontraron usuarios.</div>
+                      )
+                    })}
+                    {filteredAvailableUsuarios.length === 0 && (
+                      <div className="p-8 text-center text-xs text-gray-400 italic">
+                        {userSearchTerm ? 'No se encontraron funcionarios.' : 'Escribe arriba para buscar funcionarios.'}
+                      </div>
                     )}
                   </div>
-                )}
+                </div>
+
+                {/* Column 2: Selected List (Grid of 2 items per line) */}
+                <div className="flex flex-col min-h-0 space-y-2">
+                  <div className="flex justify-between items-center">
+                    <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider">Lista por Asignar ({selectedUsuarios.length})</label>
+                    {selectedUsuarios.length > 0 && (
+                      <button type="button" onClick={() => setSelectedUsuarios([])} className="text-[10px] text-red-500 hover:underline">Limpiar todos</button>
+                    )}
+                  </div>
+
+                  <div className="border border-gray-200 rounded-lg overflow-y-auto flex-1 h-[250px] bg-slate-50/50 p-2">
+                    <div className="grid grid-cols-2 gap-2">
+                      {selectedUsuarios.map(u => (
+                        <div 
+                          key={u.id} 
+                          className="bg-white border border-blue-100 rounded-lg p-2 flex items-center justify-between shadow-sm"
+                        >
+                          <div className="min-w-0 flex-1 pr-1.5">
+                            <div className="font-bold text-blue-900 text-[11px] leading-tight truncate" title={u.nombre}>{u.nombre || 'Sin nombre'}</div>
+                            <div className="text-[9px] text-blue-600 truncate" title={u.email}>{u.email}</div>
+                          </div>
+                          <button 
+                            type="button" 
+                            onClick={() => handleRemoveUser(u)}
+                            className="text-gray-400 hover:text-red-500 p-0.5 hover:bg-red-50 rounded shrink-0 transition-colors"
+                            title="Quitar"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                    {selectedUsuarios.length === 0 && (
+                      <div className="p-8 text-center text-xs text-gray-400 italic flex items-center justify-center h-full min-h-[150px]">
+                        Haz clic en un funcionario de la izquierda para agregarlo.
+                      </div>
+                    )}
+                  </div>
+                </div>
+
               </div>
-              <div className="flex justify-end gap-3 pt-4 border-t mt-6">
-                <button type="button" disabled={isSubmitting} onClick={() => setIsAssignModalOpen(false)} className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">Cancelar</button>
-                <button type="submit" disabled={isSubmitting} className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700">Confirmar</button>
+
+              {/* Action Buttons */}
+              <div className="flex justify-end gap-3 pt-4 border-t mt-4 shrink-0">
+                <button type="button" disabled={isSubmitting} onClick={() => setIsAssignModalOpen(false)} className="px-5 py-2 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition-colors text-sm">Cancelar</button>
+                <button type="submit" disabled={isSubmitting || selectedUsuarios.length === 0} className="px-5 py-2 bg-emerald-600 text-white font-medium rounded-lg hover:bg-emerald-700 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed text-sm">
+                  Confirmar Asignación ({selectedUsuarios.length})
+                </button>
               </div>
+
             </form>
           </div>
         </div>
