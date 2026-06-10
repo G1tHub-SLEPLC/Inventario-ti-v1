@@ -25,6 +25,7 @@ export default function EditarEquipoPage() {
   const [fileTooltip, setFileTooltip] = useState({ visible: false, x: 0, y: 0, type: '' });
   const [usuarios, setUsuarios] = useState([]);
   const [userSearchTerm, setUserSearchTerm] = useState('');
+  const [subdireccionSearchTerm, setSubdireccionSearchTerm] = useState('');
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
 
   useEffect(() => {

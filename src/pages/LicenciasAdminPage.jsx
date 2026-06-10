@@ -798,104 +798,103 @@ export default function LicenciasAdminPage() {
       {/* Modal Nuevo/Editar */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white p-6 rounded-xl shadow-2xl w-full max-w-2xl animate-fade-in max-h-[95vh] overflow-y-auto custom-scrollbar">
-            <h2 className="text-xl font-bold mb-5 text-[#25306B]">
+          <div className="bg-white p-5 rounded-xl shadow-2xl w-full max-w-2xl animate-fade-in max-h-[90vh] overflow-y-auto custom-scrollbar">
+            <h2 className="text-xl font-bold mb-4 text-[#25306B]">
               {formData.id ? 'Editar Software' : 'Nuevo Software'}
             </h2>
-            <form onSubmit={handleSave} className="space-y-5">
+            <form onSubmit={handleSave} className="space-y-3">
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg border border-gray-200">
-                <div className="col-span-1 md:col-span-2">
-                  <label className="block text-sm font-semibold text-gray-700 mb-1">Nombre del Software</label>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3 bg-gray-50 p-3 rounded-lg border border-gray-200">
+                <div className="col-span-1 md:col-span-4">
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">Nombre del Software</label>
                   <input
                     required
                     type="text"
                     value={formData.software}
                     onChange={e => setFormData({ ...formData, software: e.target.value })}
-                    className="w-full rounded-lg border-gray-300 shadow-sm border p-2.5 focus:border-[#006BB9] focus:ring-[#006BB9]"
+                    className="w-full rounded-lg border-gray-300 shadow-sm border p-2 text-sm focus:border-[#006BB9] focus:ring-[#006BB9]"
                     placeholder="Ej: Microsoft Office"
                   />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1">Tipo de Licencia</label>
+                <div className="col-span-1 md:col-span-2">
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">Tipo de Licencia</label>
                   <select
                     value={formData.tipo}
                     onChange={handleTipoChange}
-                    className="w-full rounded-lg border-gray-300 shadow-sm border p-2.5 focus:border-[#006BB9] focus:ring-[#006BB9]"
+                    className="w-full rounded-lg border-gray-300 shadow-sm border p-2 text-sm focus:border-[#006BB9] focus:ring-[#006BB9]"
                   >
                     {TIPOS_LICENCIA.map(t => <option key={t} value={t}>{t}</option>)}
                   </select>
                 </div>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1">Versión</label>
+                <div className="col-span-1 md:col-span-1">
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">Versión</label>
                   <input
                     type="text"
                     value={formData.version}
                     onChange={e => setFormData({ ...formData, version: e.target.value })}
-                    className="w-full rounded-lg border-gray-300 shadow-sm border p-2.5 focus:border-[#006BB9] focus:ring-[#006BB9]"
+                    className="w-full rounded-lg border-gray-300 shadow-sm border p-2 text-sm focus:border-[#006BB9] focus:ring-[#006BB9]"
                     placeholder="Ej: 365, 2024"
                   />
                 </div>
-                <div className="col-span-1 md:col-span-2">
-                  <label className="block text-sm font-semibold text-gray-700 mb-1">Cantidad Total Adquirida</label>
+                <div className="col-span-1 md:col-span-1">
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">Cant. Total</label>
                   <input
                     required
                     type="number"
                     min="1"
                     value={formData.cantidad_total}
                     onChange={e => setFormData({ ...formData, cantidad_total: parseInt(e.target.value) })}
-                    className="w-full rounded-lg border-gray-300 shadow-sm border p-2.5 focus:border-[#006BB9] focus:ring-[#006BB9]"
+                    className="w-full rounded-lg border-gray-300 shadow-sm border p-2 text-sm focus:border-[#006BB9] focus:ring-[#006BB9]"
                   />
                 </div>
               </div>
 
               {/* Fechas */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1">Fecha de Inicio</label>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">Fecha de Inicio</label>
                   <input
                     required
                     type="date"
                     value={formData.fecha_inicio}
                     onChange={e => setFormData({ ...formData, fecha_inicio: e.target.value })}
-                    className="w-full rounded-lg border-gray-300 shadow-sm border p-2.5 focus:border-[#006BB9] focus:ring-[#006BB9]"
+                    className="w-full rounded-lg border-gray-300 shadow-sm border p-2 text-sm focus:border-[#006BB9] focus:ring-[#006BB9]"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1">Fecha de Término</label>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">Fecha de Término</label>
                   <input
                     required
                     type="date"
                     value={formData.fecha_termino}
                     onChange={e => setFormData({ ...formData, fecha_termino: e.target.value })}
-                    className="w-full rounded-lg border-gray-300 shadow-sm border p-2.5 focus:border-[#006BB9] focus:ring-[#006BB9]"
+                    className="w-full rounded-lg border-gray-300 shadow-sm border p-2 text-sm focus:border-[#006BB9] focus:ring-[#006BB9]"
                   />
                 </div>
               </div>
 
               {/* Documentos */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {/* Factura */}
-                <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm flex flex-col">
-                  <label className="block text-sm font-semibold text-gray-700 mb-1">Respaldo Factura</label>
-                  <p className="text-[11px] text-gray-500 mb-3 leading-relaxed">
-                    Nombra el archivo así:
-                    <span className="block mt-1 font-mono bg-blue-50 text-blue-800 px-1 py-0.5 rounded font-bold border border-blue-100 w-fit">Factura n° ??? - Producto.pdf</span>
-                  </p>
+                <div className="bg-white p-3 rounded-lg border border-gray-200 shadow-sm flex flex-col">
+                  <div className="flex justify-between items-center mb-2">
+                    <label className="block text-xs font-semibold text-gray-700">Respaldo Factura</label>
+                    <span className="text-[9px] font-mono bg-blue-50 text-blue-800 px-1 py-0.5 rounded border border-blue-100 hidden sm:block">Factura n° ??? - Prod.pdf</span>
+                  </div>
 
                   {formData.has_factura_file && !facturaFile ? (
-                    <div className="flex flex-col gap-2 mb-3 mt-auto">
-                      <div className="flex items-center gap-2 bg-emerald-50 p-2.5 rounded-lg border border-emerald-100">
-                        <CheckCircle className="text-emerald-500 w-5 h-5 shrink-0" />
-                        <span className="text-sm font-medium text-emerald-800 truncate">Factura Subida</span>
+                    <div className="flex flex-col gap-2 mb-2 mt-auto">
+                      <div className="flex items-center gap-2 bg-emerald-50 p-2 rounded-lg border border-emerald-100">
+                        <CheckCircle className="text-emerald-500 w-4 h-4 shrink-0" />
+                        <span className="text-xs font-medium text-emerald-800 truncate">Factura Subida</span>
                       </div>
-                      <button type="button" onClick={() => setFormData({ ...formData, has_factura_file: false, factura: '' })} className="text-xs text-red-600 font-bold hover:underline self-end">Quitar / Reemplazar</button>
+                      <button type="button" onClick={() => setFormData({ ...formData, has_factura_file: false, factura: '' })} className="text-[10px] text-red-600 font-bold hover:underline self-end">Quitar / Reemplazar</button>
                     </div>
                   ) : (
-                    <label className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-blue-200 bg-gray-50 rounded-lg cursor-pointer hover:bg-blue-50 hover:border-blue-300 transition-colors mb-3 mt-auto">
-                      <Upload className="w-6 h-6 text-[#006BB9] mb-2" />
-                      <span className="text-xs text-gray-600 text-center font-medium px-2 truncate w-full">
+                    <label className="flex flex-col items-center justify-center p-2.5 border-2 border-dashed border-blue-200 bg-gray-50 rounded-lg cursor-pointer hover:bg-blue-50 hover:border-blue-300 transition-colors mb-2 mt-auto">
+                      <Upload className="w-5 h-5 text-[#006BB9] mb-1" />
+                      <span className="text-[11px] text-gray-600 text-center font-medium px-1 truncate w-full">
                         {facturaFile ? facturaFile.name : 'Haz clic o arrastra el archivo'}
                       </span>
                       <input
@@ -919,37 +918,36 @@ export default function LicenciasAdminPage() {
                   )}
 
                   <div className="mt-auto">
-                    <label className="block text-[11px] font-bold text-gray-500 mb-1 uppercase tracking-wide">N° Extraído Automáticamente:</label>
+                    <label className="block text-[10px] font-bold text-gray-500 mb-1 uppercase tracking-wide">N° Extraído Automáticamente:</label>
                     <input
                       type="text"
                       value={formData.factura}
                       onChange={e => setFormData({ ...formData, factura: e.target.value })}
-                      className="w-full rounded bg-white border-gray-300 shadow-sm border p-2 text-sm text-gray-800 focus:border-[#006BB9] focus:ring-[#006BB9]"
+                      className="w-full rounded bg-white border-gray-300 shadow-sm border p-1.5 text-xs text-gray-800 focus:border-[#006BB9] focus:ring-[#006BB9]"
                       placeholder="N° Factura..."
                     />
                   </div>
                 </div>
 
                 {/* Orden de Compra */}
-                <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm flex flex-col">
-                  <label className="block text-sm font-semibold text-gray-700 mb-1">Respaldo Orden de Compra</label>
-                  <p className="text-[11px] text-gray-500 mb-3 leading-relaxed">
-                    Nombra el archivo así:
-                    <span className="block mt-1 font-mono bg-blue-50 text-blue-800 px-1 py-0.5 rounded font-bold border border-blue-100 w-fit">1456839-??-??26 - Producto.pdf</span>
-                  </p>
+                <div className="bg-white p-3 rounded-lg border border-gray-200 shadow-sm flex flex-col">
+                  <div className="flex justify-between items-center mb-2">
+                    <label className="block text-xs font-semibold text-gray-700">Respaldo Orden Compra</label>
+                    <span className="text-[9px] font-mono bg-blue-50 text-blue-800 px-1 py-0.5 rounded border border-blue-100 hidden sm:block">1456839-??-??26 - Prod.pdf</span>
+                  </div>
 
                   {formData.has_oc_file && !ocFile ? (
-                    <div className="flex flex-col gap-2 mb-3 mt-auto">
-                      <div className="flex items-center gap-2 bg-emerald-50 p-2.5 rounded-lg border border-emerald-100">
-                        <CheckCircle className="text-emerald-500 w-5 h-5 shrink-0" />
-                        <span className="text-sm font-medium text-emerald-800 truncate">OC Subida</span>
+                    <div className="flex flex-col gap-2 mb-2 mt-auto">
+                      <div className="flex items-center gap-2 bg-emerald-50 p-2 rounded-lg border border-emerald-100">
+                        <CheckCircle className="text-emerald-500 w-4 h-4 shrink-0" />
+                        <span className="text-xs font-medium text-emerald-800 truncate">OC Subida</span>
                       </div>
-                      <button type="button" onClick={() => setFormData({ ...formData, has_oc_file: false, orden_compra: '' })} className="text-xs text-red-600 font-bold hover:underline self-end">Quitar / Reemplazar</button>
+                      <button type="button" onClick={() => setFormData({ ...formData, has_oc_file: false, orden_compra: '' })} className="text-[10px] text-red-600 font-bold hover:underline self-end">Quitar / Reemplazar</button>
                     </div>
                   ) : (
-                    <label className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-blue-200 bg-gray-50 rounded-lg cursor-pointer hover:bg-blue-50 hover:border-blue-300 transition-colors mb-3 mt-auto">
-                      <Upload className="w-6 h-6 text-[#006BB9] mb-2" />
-                      <span className="text-xs text-gray-600 text-center font-medium px-2 truncate w-full">
+                    <label className="flex flex-col items-center justify-center p-2.5 border-2 border-dashed border-blue-200 bg-gray-50 rounded-lg cursor-pointer hover:bg-blue-50 hover:border-blue-300 transition-colors mb-2 mt-auto">
+                      <Upload className="w-5 h-5 text-[#006BB9] mb-1" />
+                      <span className="text-[11px] text-gray-600 text-center font-medium px-1 truncate w-full">
                         {ocFile ? ocFile.name : 'Haz clic o arrastra el archivo'}
                       </span>
                       <input
@@ -973,29 +971,30 @@ export default function LicenciasAdminPage() {
                   )}
 
                   <div className="mt-auto">
-                    <label className="block text-[11px] font-bold text-gray-500 mb-1 uppercase tracking-wide">N° Extraído Automáticamente:</label>
+                    <label className="block text-[10px] font-bold text-gray-500 mb-1 uppercase tracking-wide">N° Extraído Automáticamente:</label>
                     <input
                       type="text"
                       value={formData.orden_compra}
                       onChange={e => setFormData({ ...formData, orden_compra: e.target.value })}
-                      className="w-full rounded bg-white border-gray-300 shadow-sm border p-2 text-sm text-gray-800 focus:border-[#006BB9] focus:ring-[#006BB9]"
-                      placeholder="N° Orden Compra..."
+                      className="w-full rounded bg-white border-gray-300 shadow-sm border p-1.5 text-xs text-gray-800 focus:border-[#006BB9] focus:ring-[#006BB9]"
+                      placeholder="N° OC..."
                     />
                   </div>
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">Descripción</label>
+                <label className="block text-[10px] font-bold text-gray-700 uppercase mb-0.5">Descripción</label>
                 <textarea
                   value={formData.descripcion}
                   onChange={e => setFormData({ ...formData, descripcion: e.target.value })}
-                  className="w-full rounded-lg border-gray-300 shadow-sm border p-2.5 focus:border-[#006BB9] focus:ring-[#006BB9]"
+                  className="w-full rounded-lg border-gray-300 shadow-sm border p-2 text-sm focus:border-[#006BB9] focus:ring-[#006BB9] resize-none"
+                  rows="1"
                   placeholder="Observaciones o notas"
-                  rows="2"
                 />
               </div>
-              <div className="flex justify-end gap-3 pt-4 border-t mt-6">
+
+              <div className="flex justify-end gap-3 pt-3 border-t mt-4">
                 <button type="button" disabled={isSubmitting} onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">Cancelar</button>
                 <button type="submit" disabled={isSubmitting} className="px-4 py-2 bg-[#006BB9] text-white rounded-lg hover:bg-[#1A3A5F] flex items-center gap-2">
                   {isSubmitting && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>}
