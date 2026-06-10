@@ -94,7 +94,14 @@ export default function SolicitudesAdminPage() {
       // Log to Auditoria
       const userName = selectedSolicitud.perfil?.nombre || selectedSolicitud.perfil?.correo || 'Usuario';
       const actionText = accion === 'aprobar' ? 'Aprobó' : 'Rechazó';
-      const typeText = selectedSolicitud.tipo === 'insumo' ? `solicitud de insumo (${selectedSolicitud.cantidad}x)` : `préstamo de equipo (${selectedSolicitud.equipo_id})`;
+      let typeText = '';
+      if (selectedSolicitud.tipo === 'insumo') {
+         typeText = `solicitud de insumo: ${selectedSolicitud.insumo?.nombre || 'Desconocido'} (${selectedSolicitud.cantidad}x)`;
+      } else {
+         const eqObj = equipos.find(eq => eq.id === selectedSolicitud.equipo_id || eq['N° de serie'] === selectedSolicitud.equipo_id);
+         const eqName = eqObj ? `${eqObj.Marca} ${eqObj.Modelo}` : `ID: ${selectedSolicitud.equipo_id}`;
+         typeText = `préstamo de equipo: ${eqName}`;
+      }
       await logAuditoria('solicitudes', `${actionText} Solicitud`, `${actionText} ${typeText} para ${userName}. Observaciones: ${observacionFinal}`, userName);
 
       setIsModalOpen(false);

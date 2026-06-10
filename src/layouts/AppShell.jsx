@@ -1,14 +1,15 @@
+import { useState } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Database, PlusCircle, Monitor, CheckCircle, AlertCircle, AlertTriangle, LogOut, Users, ShieldCheck } from 'lucide-react';
+import { LayoutDashboard, Database, PlusCircle, Monitor, CheckCircle, AlertCircle, AlertTriangle, LogOut, Users, ShieldCheck, Key, ChevronDown } from 'lucide-react';
 import { useInventario } from '../context/InventarioContext';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabaseClient';
 
 const ADMIN_NAV_ITEMS = [
-  { to: '/dashboard',   icon: LayoutDashboard, label: 'Dashboard', desc: 'Resumen general y métricas del sistema' },
-  { to: '/carga-masiva', icon: Database,        label: 'Carga Masiva', desc: 'Importar equipos desde un archivo Excel' },
-  { to: '/nuevo-equipo', icon: PlusCircle,      label: 'Nuevo Equipo', desc: 'Registrar un equipo de forma manual' },
+  { to: '/dashboard',    icon: LayoutDashboard, label: 'Inicio', desc: 'Resumen global del sistema' },
+  { to: '/equipos',      icon: Monitor,         label: 'Equipos', desc: 'Gestión y métricas de equipos informáticos' },
   { to: '/insumos',      icon: Database,        label: 'Insumos', desc: 'Gestión y asignación de insumos' },
+  { to: '/licencias',    icon: Key,             label: 'Licencias', desc: 'Gestión y asignación de licencias de software' },
   { to: '/solicitudes',  icon: AlertCircle,     label: 'Solicitudes', desc: 'Aprobar o rechazar solicitudes de usuarios' },
   { to: '/usuarios',     icon: Users,           label: 'Usuarios', desc: 'Administrar perfiles y accesos al sistema' },
   { to: '/auditoria',    icon: ShieldCheck,     label: 'Auditoría', desc: 'Registro de todos los movimientos del sistema' },
@@ -20,6 +21,7 @@ const SLEP_NAV_ITEMS = [
 ];
 
 export default function AppShell() {
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const { pathname } = useLocation();
   const { toast, setToast } = useInventario();
   const { isAdmin, isSlep, perfil, session } = useAuth();
@@ -74,24 +76,38 @@ export default function AppShell() {
             );
           })}
           <div className="w-px h-6 bg-gray-300 mx-1"></div>
-          <div className="flex items-center gap-3 pl-1">
-            <div className="flex flex-col items-end leading-tight hidden sm:flex justify-center">
-              <span className="text-[11px] font-bold text-[#25306B]">
-                {firstName}
-              </span>
-              {lastName && (
-                <span className="text-[10px] font-medium text-gray-500">
-                  {lastName}
-                </span>
-              )}
-            </div>
+          <div className="relative ml-2">
             <button 
-              onClick={handleLogout}
-              title="Cerrar Sesión"
-              className="flex items-center justify-center p-1.5 rounded-lg text-red-500 hover:text-red-700 hover:bg-red-50 transition-colors"
+              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+              className="flex items-center gap-2.5 p-1 rounded-full hover:bg-gray-100 transition-colors focus:outline-none"
             >
-              <LogOut size={18} />
+              <img 
+                src={`https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=f1f5f9&color=334155&rounded=true&bold=true`} 
+                alt="Avatar" 
+                className="w-8 h-8 rounded-full border border-gray-200"
+              />
+              <span className="text-sm font-semibold text-gray-700 hidden sm:block">
+                {firstName} {lastName}
+              </span>
+              <ChevronDown size={16} className="text-gray-500" />
             </button>
+
+            {isDropdownOpen && (
+              <>
+                <div 
+                  className="fixed inset-0 z-40"
+                  onClick={() => setIsDropdownOpen(false)}
+                ></div>
+                <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50 animate-fade-in">
+                  <button 
+                    onClick={handleLogout}
+                    className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors font-medium"
+                  >
+                    <LogOut size={16} /> Cerrar Sesión
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </nav>
       </header>

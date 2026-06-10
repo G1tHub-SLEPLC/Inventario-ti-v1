@@ -5,7 +5,13 @@ const envFile = fs.readFileSync('.env', 'utf8');
 const env = {};
 envFile.split('\n').forEach(line => {
   const [key, ...val] = line.split('=');
-  if (key && val.length) env[key.trim()] = val.join('=').trim();
+  if (key && val.length) {
+    let cleanVal = val.join('=').trim();
+    if (cleanVal.startsWith('"') && cleanVal.endsWith('"')) {
+      cleanVal = cleanVal.slice(1, -1);
+    }
+    env[key.trim()] = cleanVal;
+  }
 });
 
 const supabase = createClient(env.VITE_SUPABASE_URL, env.VITE_SUPABASE_ANON_KEY);

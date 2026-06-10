@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { exportToExcelAndPDF } from '../utils/exportUtils';
-import { Download, Printer, Search, ShieldCheck } from 'lucide-react';
+import { Download, Printer, Search, ShieldCheck, AlertTriangle, Trash2 } from 'lucide-react';
+import { useInventario } from '../context/InventarioContext';
+import { useAuth } from '../context/AuthContext';
 
 function getInitials(name) {
   if (!name || name === '—' || name === '-') return '??';
@@ -11,10 +13,86 @@ function getInitials(name) {
 }
 
 export default function AuditoriaPage() {
+  const { session } = useAuth();
+  const { clearInventario, equipos, showToast } = useInventario();
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filtroModulo, setFiltroModulo] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  
+  const [isClearModalOpen, setIsClearModalOpen] = useState(false);
+  const [adminPassword, setAdminPassword] = useState('');
+  const [clearError, setClearError] = useState('');
+  const [isClearing, setIsClearing] = useState(false);
+  const [deleteOptions, setDeleteOptions] = useState({
+    equipos: true,
+    insumos: false,
+    solicitudes: false,
+    entregas: false,
+    auditoria: false
+  });
+  
+  const isAnyOptionSelected = Object.values(deleteOptions).some(v => v);
+
+  const handleClearDatabase = async (e) => {
+    e.preventDefault();
+    setClearError('');
+    setIsClearing(true);
+    
+    try {
+      const { error: authError } = await supabase.auth.signInWithPassword({
+        email: session.user.email,
+        password: adminPassword
+      });
+      
+      if (authError) {
+        setClearError(`Error de autenticación: ${authError.message}`);
+        setIsClearing(false);
+        return;
+      }
+      
+      const deletedItems = [];
+
+      if (deleteOptions.solicitudes) {
+        const { error } = await supabase.from('solicitudes').delete().not('created_at', 'is', null);
+        if (error) throw new Error('Error al borrar Solicitudes: ' + error.message);
+        deletedItems.push('Solicitudes y Préstamos');
+      } else if (deleteOptions.entregas) {
+        const { error } = await supabase.from('solicitudes').delete().eq('tipo', 'insumo').eq('estado', 'aprobado');
+        if (error) throw new Error('Error al borrar Entregas: ' + error.message);
+        deletedItems.push('Historial de Entregas');
+      }
+      
+      if (deleteOptions.insumos) {
+        const { error } = await supabase.from('insumos').delete().not('created_at', 'is', null);
+        if (error) throw new Error('Error al borrar Insumos: ' + error.message);
+        deletedItems.push('Insumos y Stock');
+      }
+      
+      if (deleteOptions.equipos) {
+        await clearInventario(true);
+        deletedItems.push('Equipos');
+      }
+      
+      if (deleteOptions.auditoria) {
+        const { error } = await supabase.from('auditoria').delete().not('created_at', 'is', null);
+        if (error) throw new Error('Error al borrar Auditoría: ' + error.message);
+        deletedItems.push('Historial de Auditoría');
+      }
+
+      setIsClearModalOpen(false);
+      setAdminPassword('');
+      setDeleteOptions({ equipos: true, insumos: false, solicitudes: false, entregas: false, auditoria: false });
+      
+      showToast('Borrado Exitoso', `Se eliminó correctamente: ${deletedItems.join(', ')}.`, 'success');
+      loadLogs();
+    } catch (err) {
+      console.error('Error al borrar:', err);
+      setClearError(err.message || 'Ocurrió un error al intentar borrar los datos.');
+      showToast('Error', err.message || 'Error al intentar borrar.', 'error');
+    }
+    setIsClearing(false);
+  };
 
   useEffect(() => {
     loadLogs();
@@ -101,14 +179,20 @@ export default function AuditoriaPage() {
         </h1>
         
         <div className="flex gap-2">
-          <button onClick={() => loadLogs()} className="flex items-center gap-2 bg-blue-50 text-[#006BB9] px-3 py-1.5 rounded-lg hover:bg-blue-100 shadow-sm font-medium transition-colors text-sm border border-blue-200">
+          <button onClick={() => loadLogs()} className="flex items-center gap-2 bg-blue-50 text-[#006BB9] px-3 py-1.5 rounded-lg hover:bg-blue-100 shadow-sm font-medium transition-colors text-sm border border-blue-200 cursor-pointer">
             Actualizar
           </button>
-          <button onClick={() => exportData('xlsx')} className="flex items-center gap-2 bg-green-200 text-green-800 px-3 py-1.5 rounded-lg hover:bg-green-300 shadow-sm font-medium transition-colors text-sm">
+          <button onClick={() => exportData('xlsx')} className="flex items-center gap-2 bg-green-200 text-green-800 px-3 py-1.5 rounded-lg hover:bg-green-300 shadow-sm font-medium transition-colors text-sm cursor-pointer">
             <Download size={14} /> Excel
           </button>
-          <button onClick={() => exportData('pdf')} className="flex items-center gap-2 bg-rose-200 text-rose-800 px-3 py-1.5 rounded-lg hover:bg-rose-300 shadow-sm font-medium transition-colors text-sm">
+          <button onClick={() => exportData('pdf')} className="flex items-center gap-2 bg-rose-200 text-rose-800 px-3 py-1.5 rounded-lg hover:bg-rose-300 shadow-sm font-medium transition-colors text-sm cursor-pointer">
             <Printer size={14} /> PDF
+          </button>
+          <button 
+            onClick={() => setIsClearModalOpen(true)}
+            className="flex items-center gap-2 bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 px-3 py-1.5 rounded-lg shadow-sm font-medium transition-colors text-sm cursor-pointer"
+          >
+            <Trash2 size={14} /> Limpiar Base de Datos
           </button>
         </div>
       </div>
@@ -214,6 +298,86 @@ export default function AuditoriaPage() {
           </table>
         </div>
       </div>
+
+      {isClearModalOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-fade-in">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full overflow-hidden">
+            <div className="bg-red-600 p-6 flex flex-col items-center justify-center text-white">
+              <AlertTriangle className="w-12 h-12 mb-2" strokeWidth={1.5} />
+              <h2 className="text-xl font-bold text-center">¡Peligro! Borrado Permanente</h2>
+            </div>
+            <div className="p-6">
+              <p className="text-sm text-gray-600 text-center mb-4 leading-normal">
+                Estás a punto de eliminar información de forma irreversible de la base de datos de Supabase. Esta acción no se puede deshacer.
+              </p>
+
+              <div className="bg-red-50 p-4 rounded-lg mb-4 text-left border border-red-100">
+                <p className="text-sm font-semibold text-red-800 mb-2">Selecciona qué información borrar:</p>
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={deleteOptions.equipos} onChange={(e) => setDeleteOptions({...deleteOptions, equipos: e.target.checked})} className="rounded text-red-600 focus:ring-red-500 w-4 h-4 cursor-pointer" />
+                    <span className="text-sm text-red-900">Equipos ({equipos.length} registros)</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={deleteOptions.insumos} onChange={(e) => setDeleteOptions({...deleteOptions, insumos: e.target.checked})} className="rounded text-red-600 focus:ring-red-500 w-4 h-4 cursor-pointer" />
+                    <span className="text-sm text-red-900">Insumos y Stock</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={deleteOptions.solicitudes} onChange={(e) => setDeleteOptions({...deleteOptions, solicitudes: e.target.checked})} className="rounded text-red-600 focus:ring-red-500 w-4 h-4 cursor-pointer" />
+                    <span className="text-sm text-red-900">Solicitudes y Préstamos</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={deleteOptions.entregas} onChange={(e) => setDeleteOptions({...deleteOptions, entregas: e.target.checked})} className="rounded text-red-600 focus:ring-red-500 w-4 h-4 cursor-pointer" />
+                    <span className="text-sm text-red-900">Historial de Entregas (Insumos)</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={deleteOptions.auditoria} onChange={(e) => setDeleteOptions({...deleteOptions, auditoria: e.target.checked})} className="rounded text-red-600 focus:ring-red-500 w-4 h-4 cursor-pointer" />
+                    <span className="text-sm text-red-900">Historial de Auditoría</span>
+                  </label>
+                </div>
+              </div>
+
+              <form onSubmit={handleClearDatabase} className="space-y-4 text-left">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">
+                    Para confirmar, ingresa tu contraseña de administrador:
+                  </label>
+                  <input
+                    type="password"
+                    value={adminPassword}
+                    onChange={(e) => setAdminPassword(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-red-500 focus:border-red-500 bg-white"
+                    placeholder="Contraseña"
+                    required
+                  />
+                  {clearError && <p className="text-red-600 text-xs mt-1.5 font-semibold leading-tight">{clearError}</p>}
+                </div>
+
+                <div className="flex gap-3 pt-4 border-t mt-4">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsClearModalOpen(false);
+                      setAdminPassword('');
+                      setClearError('');
+                    }}
+                    className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-lg font-bold transition-colors cursor-pointer"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isClearing || !adminPassword || !isAnyOptionSelected}
+                    className="flex-1 px-4 py-2 bg-red-600 text-white hover:bg-red-700 rounded-lg font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    {isClearing ? 'Verificando...' : 'Borrar Selección'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

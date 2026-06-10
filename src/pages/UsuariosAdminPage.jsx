@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { useInventario } from '../context/InventarioContext';
-import { PlusCircle, Edit2, Trash2, Users } from 'lucide-react';
+import { PlusCircle, Edit2, Trash2, Users, UploadCloud, XCircle, CheckCircle } from 'lucide-react';
+import * as XLSX from 'xlsx';
+import { logAuditoria } from '../utils/auditoria';
 
 const formatEmailName = (email) => {
   if (!email) return '';
@@ -26,6 +28,11 @@ export default function UsuariosAdminPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState({ id: null, email: '', nombre: '', rol: 'slep', password: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Carga Masiva States
+  const [isMasivaModalOpen, setIsMasivaModalOpen] = useState(false);
+  const [masivaStatus, setMasivaStatus] = useState({ type: 'idle', message: '' }); // idle, loading, success, error, results
+  const [masivaResults, setMasivaResults] = useState(null);
 
   useEffect(() => {
     fetchUsuarios();
@@ -141,6 +148,99 @@ export default function UsuariosAdminPage() {
     }
   };
 
+  const handleFileUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setMasivaStatus({ type: 'loading', message: 'Analizando archivo...' });
+    setMasivaResults(null);
+
+    const reader = new FileReader();
+    reader.onload = async (ev) => {
+      try {
+        const wb = XLSX.read(ev.target.result, { type: 'array' });
+        const wsName = wb.SheetNames[0];
+        const ws = wb.Sheets[wsName];
+        const data = XLSX.utils.sheet_to_json(ws);
+        
+        const duplicates = [];
+        const validUsers = [];
+        const currentEmails = usuarios.map(u => u.email.toLowerCase().trim());
+
+        for (const rawRow of data) {
+          const row = {};
+          for(const key in rawRow) {
+            const normalKey = key.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            row[normalKey] = rawRow[key];
+          }
+
+          const email = (row['correo electronico'] || row['correo'] || row['email'] || '').toString().trim();
+          const rawNombre = (row['nombre'] || '').toString().trim();
+          const rawRol = (row['rol'] || 'SLEP').toString().trim().toUpperCase();
+
+          if (!email || !rawNombre) continue;
+
+          if (currentEmails.includes(email.toLowerCase())) {
+            duplicates.push({ email, nombre: rawNombre, motivo: 'El correo ya existe en el sistema' });
+            continue;
+          }
+
+          const firstName = rawNombre.split(' ')[0].toLowerCase().replace(/[^a-z0-9]/g, '');
+          const defaultPassword = `${firstName}.2026`;
+
+          const rol = (rawRol === 'ADMIN' || rawRol === 'ADMINISTRADOR' || rawRol === 'ADMIN_TI') ? 'admin_ti' : 'slep';
+
+          validUsers.push({ email, nombre: rawNombre, rol, password: defaultPassword });
+        }
+
+        if (validUsers.length === 0) {
+          setMasivaStatus({ type: 'error', message: 'No se encontraron usuarios válidos nuevos en el archivo.' });
+          setMasivaResults({ duplicates, created: 0, errors: [] });
+          return;
+        }
+
+        setMasivaStatus({ type: 'loading', message: `Creando ${validUsers.length} usuarios...` });
+        
+        let createdCount = 0;
+        const creationErrors = [];
+
+        for (const u of validUsers) {
+          try {
+             const { data: resData, error: invokeError } = await supabase.functions.invoke('admin-users', {
+              body: {
+                action: 'CREATE_USER',
+                payload: {
+                  email: u.email,
+                  password: u.password,
+                  nombre: u.nombre,
+                  rol: u.rol
+                }
+              }
+            });
+
+            if (invokeError) throw invokeError;
+            if (resData?.error) throw new Error(resData.error);
+            createdCount++;
+          } catch (err) {
+            creationErrors.push({ email: u.email, motivo: err.message || 'Error al crear' });
+          }
+        }
+
+        await logAuditoria('usuarios', 'Carga Masiva', `Se cargaron masivamente ${createdCount} usuarios desde Excel.`);
+        fetchUsuarios();
+
+        setMasivaStatus({ type: 'results', message: 'Carga masiva finalizada' });
+        setMasivaResults({ duplicates, created: createdCount, errors: creationErrors });
+
+      } catch (error) {
+        setMasivaStatus({ type: 'error', message: 'Error procesando archivo: ' + error.message });
+      }
+    };
+    reader.onerror = () => setMasivaStatus({ type: 'error', message: 'Error de lectura de archivo' });
+    reader.readAsArrayBuffer(file);
+    e.target.value = null;
+  };
+
   return (
     <div className="p-6 max-w-[1920px] mx-auto">
       <div className="flex justify-between items-center mb-6">
@@ -150,13 +250,22 @@ export default function UsuariosAdminPage() {
           </h1>
           <p className="text-sm text-gray-500 mt-1">Crea, edita o elimina cuentas de acceso al portal.</p>
         </div>
-        <button
-          onClick={() => handleOpenModal()}
-          className="flex items-center gap-2 bg-[#112A46] text-white px-4 py-2 rounded-lg hover:bg-[#1A3A5F] transition-colors"
-        >
-          <PlusCircle size={18} />
-          Nuevo Usuario
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setIsMasivaModalOpen(true)}
+            className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition-colors shadow-sm font-medium"
+          >
+            <UploadCloud size={18} />
+            Carga Masiva
+          </button>
+          <button
+            onClick={() => handleOpenModal()}
+            className="flex items-center gap-2 bg-[#112A46] text-white px-4 py-2 rounded-lg hover:bg-[#1A3A5F] transition-colors shadow-sm font-medium"
+          >
+            <PlusCircle size={18} />
+            Nuevo Usuario
+          </button>
+        </div>
       </div>
 
       <div className="bg-white rounded-lg shadow overflow-x-auto table-scroll border border-gray-200">
@@ -294,6 +403,116 @@ export default function UsuariosAdminPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {/* Modal de Carga Masiva */}
+      {isMasivaModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white p-6 rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <h2 className="text-xl font-bold mb-4 text-[#25306B] flex items-center gap-2">
+              <UploadCloud size={24} className="text-emerald-600" /> Carga Masiva de Usuarios
+            </h2>
+            
+            <div className="bg-blue-50 text-blue-800 p-4 rounded-lg mb-6 text-sm border border-blue-100">
+              <h3 className="font-bold mb-2">Instrucciones:</h3>
+              <ul className="list-disc list-inside space-y-1">
+                <li>Sube un archivo Excel (.xlsx) con las columnas: <strong>Nombre</strong>, <strong>Correo electronico</strong>, <strong>Rol</strong>.</li>
+                <li>Los roles aceptados son <strong>SLEP</strong> (Funcionario) y <strong>ADMIN</strong> (Administrador).</li>
+                <li>Si un correo ya existe en el sistema, será omitido automáticamente.</li>
+                <li>La contraseña por defecto generada será: <strong>primer_nombre.2026</strong> (en minúsculas).</li>
+              </ul>
+            </div>
+
+            <div className="mb-6">
+              <label className="block w-full border-2 border-dashed border-emerald-300 rounded-xl p-8 text-center cursor-pointer hover:bg-emerald-50 transition-colors">
+                <UploadCloud size={48} className="mx-auto text-emerald-400 mb-4" />
+                <span className="text-emerald-700 font-semibold block">Haz clic para seleccionar el archivo Excel</span>
+                <span className="text-sm text-emerald-600 mt-1 block">Formatos soportados: .xlsx, .csv</span>
+                <input 
+                  type="file" 
+                  accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" 
+                  className="hidden" 
+                  onChange={handleFileUpload}
+                  disabled={masivaStatus.type === 'loading'}
+                />
+              </label>
+            </div>
+
+            {masivaStatus.type !== 'idle' && (
+              <div className={`p-4 rounded-lg mb-6 border ${
+                masivaStatus.type === 'loading' ? 'bg-blue-50 border-blue-200 text-blue-700' :
+                masivaStatus.type === 'error' ? 'bg-red-50 border-red-200 text-red-700' :
+                'bg-emerald-50 border-emerald-200 text-emerald-700'
+              }`}>
+                <div className="flex items-center gap-2 font-bold">
+                  {masivaStatus.type === 'loading' && <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>}
+                  {masivaStatus.type === 'error' && <XCircle size={18} />}
+                  {masivaStatus.type === 'results' && <CheckCircle size={18} />}
+                  {masivaStatus.message}
+                </div>
+              </div>
+            )}
+
+            {masivaResults && (
+              <div className="space-y-4 mb-6">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-emerald-50 p-4 rounded-lg border border-emerald-200">
+                    <span className="block text-emerald-800 font-bold">Creados Exitosamente</span>
+                    <span className="text-2xl font-black text-emerald-600">{masivaResults.created}</span>
+                  </div>
+                  <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
+                    <span className="block text-amber-800 font-bold">Duplicados (Omitidos)</span>
+                    <span className="text-2xl font-black text-amber-600">{masivaResults.duplicates.length}</span>
+                  </div>
+                </div>
+
+                {masivaResults.duplicates.length > 0 && (
+                  <div className="mt-4">
+                    <h4 className="font-bold text-amber-800 mb-2 text-sm">Usuarios omitidos (Ya existen)</h4>
+                    <div className="bg-amber-50 rounded border border-amber-100 max-h-40 overflow-y-auto">
+                      <ul className="text-xs divide-y divide-amber-100">
+                        {masivaResults.duplicates.map((dup, i) => (
+                          <li key={i} className="p-2 text-amber-700 flex justify-between">
+                            <span>{dup.nombre}</span>
+                            <span className="opacity-75">{dup.email}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                )}
+                
+                {masivaResults.errors.length > 0 && (
+                  <div className="mt-4">
+                    <h4 className="font-bold text-red-800 mb-2 text-sm">Errores de creación</h4>
+                    <div className="bg-red-50 rounded border border-red-100 max-h-40 overflow-y-auto">
+                      <ul className="text-xs divide-y divide-red-100">
+                        {masivaResults.errors.map((err, i) => (
+                          <li key={i} className="p-2 text-red-700 flex flex-col">
+                            <span className="font-bold">{err.email}</span>
+                            <span className="opacity-75">{err.motivo}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="flex justify-end border-t pt-4">
+              <button 
+                onClick={() => {
+                  setIsMasivaModalOpen(false);
+                  setMasivaStatus({ type: 'idle', message: '' });
+                  setMasivaResults(null);
+                }} 
+                className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 font-medium transition"
+              >
+                Cerrar
+              </button>
+            </div>
           </div>
         </div>
       )}

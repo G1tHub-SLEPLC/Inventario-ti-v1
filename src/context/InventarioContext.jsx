@@ -192,7 +192,7 @@ export function InventarioProvider({ children }) {
     if (error) {
       console.error('Error updateEquipo:', error);
     } else {
-      await logAuditoria('equipos', 'Actualizar Equipo', `Se actualizó el equipo ID: ${updated.id} / S/N: ${updated['Nº de serie']}. Estado: ${updated.estado}`);
+      await logAuditoria('equipos', 'Actualizar Equipo', `Se actualizó el equipo: ${updated['Descripción del Bien']} (ID: ${updated.id} / S/N: ${updated['Nº de serie']}). Estado: ${updated.estado}`);
     }
   };
 
@@ -212,7 +212,7 @@ export function InventarioProvider({ children }) {
       if (error) {
         console.error('Error updateEquipoBySerial:', error);
       } else {
-        await logAuditoria('equipos', 'Actualizar Equipo por S/N', `Se actualizó el equipo con S/N: ${serial}. Estado: ${updatedEquipo.estado}`);
+        await logAuditoria('equipos', 'Actualizar Equipo por S/N', `Se actualizó el equipo: ${updatedEquipo['Descripción del Bien']} (S/N: ${serial}). Estado: ${updatedEquipo.estado}`);
       }
     }
   };
@@ -271,7 +271,7 @@ export function InventarioProvider({ children }) {
     }
 
     if (updatedRows.length > 0) {
-      await logAuditoria('equipos', 'Archivo Subido', `Se subió documento (${type}) para el equipo ID: ${id}`);
+      await logAuditoria('equipos', 'Archivo Subido', `Se subió documento (${type}) para el equipo: ${updatedRows[0]['Descripción del Bien']} (ID: ${id})`);
     }
   };
 

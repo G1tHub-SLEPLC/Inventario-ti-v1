@@ -3,11 +3,11 @@ import { Suspense, lazy } from 'react';
 import { InventarioProvider } from './context/InventarioContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { SolicitudesProvider } from './context/SolicitudesContext';
+import { LicenciasProvider } from './context/LicenciasContext';
 
 // Lazy imports
 const AppShell        = lazy(() => import('./layouts/AppShell'));
 const DashboardPage   = lazy(() => import('./pages/DashboardPage'));
-const CargaMasivaPage = lazy(() => import('./pages/CargaMasivaPage'));
 const NuevoEquipoPage = lazy(() => import('./pages/NuevoEquipoPage'));
 const EditarEquipoPage = lazy(() => import('./pages/EditarEquipoPage'));
 const LoginPage = lazy(() => import('./pages/LoginPage'));
@@ -19,6 +19,9 @@ const MisSolicitudesPage = lazy(() => import('./pages/MisSolicitudesPage'));
 const AuditoriaPage = lazy(() => import('./pages/AuditoriaPage'));
 const UnauthorizedPage = lazy(() => import('./pages/UnauthorizedPage'));
 const BadgeShowcasePage = lazy(() => import('./pages/BadgeShowcasePage'));
+const LicenciasAdminPage = lazy(() => import('./pages/LicenciasAdminPage'));
+const GlobalDashboardPage = lazy(() => import('./pages/GlobalDashboardPage'));
+const EstadoBadgeShowcasePage = lazy(() => import('./pages/EstadoBadgeShowcasePage'));
 
 function ProtectedRoute({ children }) {
   const { session, loading } = useAuth();
@@ -62,7 +65,8 @@ export default function App() {
     <AuthProvider>
       <InventarioProvider>
         <SolicitudesProvider>
-          <BrowserRouter>
+          <LicenciasProvider>
+            <BrowserRouter>
             <Suspense fallback={<div className="flex items-center justify-center h-screen text-gray-400">Cargando…</div>}>
               <Routes>
                 <Route path="/login" element={<LoginPage />} />
@@ -72,13 +76,14 @@ export default function App() {
                   <Route index element={<HomeRoute />} />
                   
                   {/* Admin Routes */}
-                  <Route path="dashboard" element={<AdminRoute><DashboardPage /></AdminRoute>} />
-                  <Route path="carga-masiva" element={<AdminRoute><CargaMasivaPage /></AdminRoute>} />
+                  <Route path="equipos" element={<AdminRoute><DashboardPage /></AdminRoute>} />
+                  <Route path="dashboard" element={<AdminRoute><GlobalDashboardPage /></AdminRoute>} />
                   <Route path="nuevo-equipo" element={<AdminRoute><NuevoEquipoPage /></AdminRoute>} />
                   <Route path="editar-equipo" element={<AdminRoute><EditarEquipoPage /></AdminRoute>} />
                   <Route path="insumos" element={<AdminRoute><InsumosPage /></AdminRoute>} />
                   <Route path="solicitudes" element={<AdminRoute><SolicitudesAdminPage /></AdminRoute>} />
                   <Route path="usuarios" element={<AdminRoute><UsuariosAdminPage /></AdminRoute>} />
+                  <Route path="licencias" element={<AdminRoute><LicenciasAdminPage /></AdminRoute>} />
                   <Route path="auditoria" element={<AdminRoute><AuditoriaPage /></AdminRoute>} />
 
                   {/* SLEP Routes */}
@@ -90,12 +95,14 @@ export default function App() {
                   
                   {/* Hidden Showcase */}
                   <Route path="showcase" element={<BadgeShowcasePage />} />
+                  <Route path="badge" element={<EstadoBadgeShowcasePage />} />
                   
                 </Route>
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </Suspense>
-          </BrowserRouter>
+            </BrowserRouter>
+          </LicenciasProvider>
         </SolicitudesProvider>
       </InventarioProvider>
     </AuthProvider>

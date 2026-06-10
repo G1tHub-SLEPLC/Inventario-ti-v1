@@ -2,13 +2,15 @@ import { useState, useMemo } from 'react';
 import { useInventario } from '../context/InventarioContext';
 import { useSolicitudes } from '../context/SolicitudesContext';
 import { useAuth } from '../context/AuthContext';
-import { Monitor, Package, Calendar } from 'lucide-react';
+import { useLicencias } from '../context/LicenciasContext';
+import { Monitor, Package, Calendar, Key } from 'lucide-react';
 
 export default function SlepDashboardPage() {
   const { session, perfil } = useAuth();
   const { equipos, showToast } = useInventario();
   const { insumos, solicitarInsumo, solicitarPrestamo, solicitudes } = useSolicitudes();
-  const [activeTab, setActiveTab] = useState('equipos'); // 'equipos', 'insumos', 'prestamos'
+  const { asignaciones } = useLicencias();
+  const [activeTab, setActiveTab] = useState('equipos'); // 'equipos', 'insumos', 'prestamos', 'licencias'
   
   // Forms state
   const [selectedInsumo, setSelectedInsumo] = useState('');
@@ -66,6 +68,39 @@ export default function SlepDashboardPage() {
   const equiposDisponiblesParaPrestamo = useMemo(() => {
     return equipos.filter(eq => eq.estado === 'PARA PRESTAMO');
   }, [equipos]);
+
+  const misLicencias = useMemo(() => {
+    return asignaciones.filter(a => a.usuario_id === session?.user?.id);
+  }, [asignaciones, session]);
+
+  const getLogoUrl = (softwareName) => {
+    if (!softwareName) return null;
+    const name = softwareName.toLowerCase();
+    
+    let domain = '';
+    if (name.includes('office') || name.includes('microsoft 365') || name.includes('m365') || name.includes('excel') || name.includes('word') || name.includes('powerpoint') || name.includes('teams') || name.includes('outlook')) {
+      domain = 'office.com';
+    } else if (name.includes('adobe') || name.includes('photoshop') || name.includes('illustrator') || name.includes('acrobat') || name.includes('pdf')) {
+      domain = 'adobe.com';
+    } else if (name.includes('google') || name.includes('workspace') || name.includes('drive')) {
+      domain = 'google.com';
+    } else if (name.includes('autodesk') || name.includes('autocad')) {
+      domain = 'autodesk.com';
+    } else if (name.includes('slack')) {
+      domain = 'slack.com';
+    } else if (name.includes('zoom')) {
+      domain = 'zoom.us';
+    } else if (name.includes('canvas') || name.includes('canva')) {
+      domain = 'canva.com';
+    } else if (name.includes('figma')) {
+      domain = 'figma.com';
+    } else {
+      const firstWord = softwareName.split(' ')[0].toLowerCase().replace(/[^a-z0-9]/g, '');
+      domain = `${firstWord}.com`;
+    }
+    
+    return `https://logos.hunter.io/${domain}`;
+  };
 
   const handleSolicitarInsumoClick = (insumoId) => {
     // Buscar entregas previas de este insumo para este usuario
@@ -151,6 +186,12 @@ export default function SlepDashboardPage() {
           className={`flex items-center gap-2 px-4 py-2 border-b-2 font-medium text-sm transition-colors ${activeTab === 'prestamos' ? 'border-[#006BB9] text-[#006BB9]' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
         >
           <Calendar size={16} /> Solicitar Préstamo
+        </button>
+        <button
+          onClick={() => setActiveTab('licencias')}
+          className={`flex items-center gap-2 px-4 py-2 border-b-2 font-medium text-sm transition-colors ${activeTab === 'licencias' ? 'border-[#006BB9] text-[#006BB9]' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+        >
+          <Key size={16} /> Mis Licencias
         </button>
       </div>
 
@@ -297,6 +338,52 @@ export default function SlepDashboardPage() {
                 </tbody>
               </table>
             </div>
+          </div>
+        )}
+
+        {/* TAB: LICENCIAS */}
+        {activeTab === 'licencias' && (
+          <div>
+            <h2 className="text-lg font-bold mb-4 text-gray-800">Licencias de Software Asignadas</h2>
+            {misLicencias.length === 0 ? (
+              <p className="text-gray-500 italic">No tienes licencias de software asignadas actualmente.</p>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {misLicencias.map((asignacion) => {
+                  const lic = asignacion.licencias;
+                  return (
+                    <div key={asignacion.id} className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow group">
+                      <div className="flex items-start gap-4 mb-3">
+                        <div className="w-12 h-12 rounded shadow-sm border border-gray-100 overflow-hidden bg-white flex items-center justify-center shrink-0">
+                          <img 
+                            src={getLogoUrl(lic?.software)} 
+                            alt={lic?.software}
+                            className="w-full h-full object-contain p-1.5"
+                            onError={(e) => {
+                              e.target.onerror = null; 
+                              e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(lic?.software || 'SW')}&background=random&color=fff&rounded=true&bold=true`;
+                            }}
+                          />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-bold text-[#112A46] text-base leading-tight truncate" title={lic?.software}>
+                            {lic?.software} <span className="text-[11px] font-medium text-gray-500 ml-1">{lic?.version}</span>
+                          </h3>
+                          <div className="text-[10px] mt-1 mb-1.5">
+                            <span className="bg-gray-100 px-1.5 py-0.5 rounded text-gray-600 font-semibold">{lic?.tipo || 'SAAS'}</span>
+                          </div>
+                          <p className="text-xs text-gray-500 line-clamp-2" title={lic?.descripcion}>{lic?.descripcion || 'Sin descripción'}</p>
+                        </div>
+                      </div>
+                      <div className="border-t border-gray-100 pt-3 mt-3 flex justify-between items-center text-[11px] font-medium text-gray-500">
+                        <span>Asignado: {new Date(asignacion.fecha_asignacion).toLocaleDateString()}</span>
+                        <span className="bg-emerald-50 text-emerald-700 font-bold px-2 py-1 rounded border border-emerald-100">ACTIVA</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 
