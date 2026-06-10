@@ -4,6 +4,7 @@ import { Save, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { saveDocument } from '../utils/db';
 import { supabase } from '../lib/supabaseClient';
+import AutocompleteInput from '../components/AutocompleteInput';
 
 const COLUMNS = [
   'Descripción del Bien', 'Marca', 'Modelo', 'Nº de serie',
@@ -25,11 +26,16 @@ export default function NuevoEquipoPage() {
 
   useEffect(() => {
     async function loadUsers() {
-      const { data, error } = await supabase.from('perfiles').select('id, nombre, correo').eq('rol', 'slep');
+      const { data, error } = await supabase.from('perfiles').select('id, nombre, email');
       if (!error && data) setUsuarios(data);
     }
     loadUsers();
   }, []);
+
+  const subdireccionesOptions = useMemo(() => {
+    const subs = new Set(equipos.map(eq => eq['SubDirección'] ? String(eq['SubDirección']).trim() : '').filter(s => s !== '' && s !== '—'));
+    return Array.from(subs).sort();
+  }, [equipos]);
 
   const ocHasFile = useMemo(() => {
     const oc = formData['Orden de Compra'] ? String(formData['Orden de Compra']).trim().toLowerCase() : '';
@@ -48,7 +54,7 @@ export default function NuevoEquipoPage() {
     if (!q) return usuarios;
     return usuarios.filter(u => 
       (u.nombre || '').toLowerCase().includes(q) || 
-      (u.correo || '').toLowerCase().includes(q)
+      (u.email || '').toLowerCase().includes(q)
     );
   }, [usuarios, userSearchTerm]);
 
@@ -415,88 +421,79 @@ export default function NuevoEquipoPage() {
                 Usuario Asignado (SLEP)
               </label>
 
-              {formData.usuario_asignado_id ? (
-                <div className="flex items-center justify-between p-2.5 bg-blue-50 border border-blue-200 rounded-lg shadow-sm">
-                  <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-full bg-[#006BB9] text-white flex items-center justify-center text-[10px] font-bold">
-                      {usuarios.find(u => u.id === formData.usuario_asignado_id)?.nombre?.charAt(0).toUpperCase() || '?'}
+              {(() => {
+                const isLegacy = formData['Usuario'] && !['disponible', 'bodega', '—', '-', 'sin asignar'].includes(formData['Usuario'].toLowerCase().trim());
+                if (isLegacy || formData.usuario_asignado_id) {
+                  return (
+                    <div className="flex items-center justify-between p-2.5 bg-blue-50 border border-blue-200 rounded-lg shadow-sm w-full">
+                      <div className="flex items-center gap-2 overflow-hidden flex-1 min-w-0 pr-2">
+                        <div className="w-6 h-6 shrink-0 rounded-full bg-[#006BB9] text-white flex items-center justify-center text-[10px] font-bold">
+                          {formData.usuario_asignado_id && usuarios.length > 0
+                            ? (usuarios.find(u => u.id === formData.usuario_asignado_id)?.nombre || usuarios.find(u => u.id === formData.usuario_asignado_id)?.email || '?').charAt(0).toUpperCase()
+                            : formData['Usuario'] ? formData['Usuario'].charAt(0).toUpperCase() : '?'}
+                        </div>
+                        <span className="text-sm font-semibold text-[#25306B] truncate flex-1 min-w-0">
+                          {formData.usuario_asignado_id && usuarios.length > 0
+                            ? (usuarios.find(u => u.id === formData.usuario_asignado_id)?.nombre || usuarios.find(u => u.id === formData.usuario_asignado_id)?.email || 'Usuario SLEP')
+                            : formData['Usuario']}
+                        </span>
+                        {!formData.usuario_asignado_id && (
+                          <span className="text-[10px] shrink-0 bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-medium border border-amber-200">
+                            Registro Antiguo
+                          </span>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (window.confirm('¿Está seguro que desea eliminar este usuario del equipo?')) {
+                            setFormData({ ...formData, usuario_asignado_id: '', 'Usuario': '' });
+                          }
+                        }}
+                        className="text-red-500 hover:text-red-700 hover:bg-red-50 px-2 py-1 rounded-md transition-colors font-bold flex items-center justify-center shrink-0"
+                        title="Eliminar usuario"
+                      >
+                        &times;
+                      </button>
                     </div>
-                    <span className="text-sm font-semibold text-[#25306B]">
-                      {usuarios.find(u => u.id === formData.usuario_asignado_id)?.nombre || usuarios.find(u => u.id === formData.usuario_asignado_id)?.correo || 'Usuario SLEP'}
-                    </span>
+                  );
+                }
+                
+                return (
+                  <div className="relative w-full">
+                    <AutocompleteInput
+                      name="usuario_asignado_id"
+                      value={userSearchTerm}
+                      onChange={(e) => setUserSearchTerm(e.target.value)}
+                      options={filteredAvailableUsuarios.map(u => ({ label: u.nombre || 'Sin nombre', value: u.id, sublabel: u.email }))}
+                      onSelectOption={(opt) => {
+                        const currentDesc = formData['Descripción del Bien'];
+                        if (currentDesc) {
+                          const hasSameType = equipos.some(eq => 
+                            eq['Descripción del Bien'] === currentDesc &&
+                            (eq.usuario_asignado_id === opt.value || (eq['Usuario'] && eq['Usuario'].trim().toLowerCase() === opt.label.trim().toLowerCase()))
+                          );
+
+                          if (hasSameType) {
+                            if (!window.confirm(`El usuario ya tiene asignado un equipo del tipo "${currentDesc}". ¿Desea asignarlo de igual manera?`)) {
+                              return; 
+                            }
+                          }
+                        }
+
+                        setFormData({
+                          ...formData,
+                          usuario_asignado_id: opt.value,
+                          'Usuario': opt.label
+                        });
+                        setUserSearchTerm('');
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#006BB9] focus:outline-none shadow-sm transition-shadow"
+                      placeholder="Buscar por nombre o correo..."
+                    />
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (window.confirm('¿Está seguro que desea eliminar este usuario del equipo?')) {
-                        setFormData({ ...formData, usuario_asignado_id: '', 'Usuario': '' });
-                      }
-                    }}
-                    className="text-red-500 hover:text-red-700 hover:bg-red-50 px-2 py-1 rounded-md transition-colors font-bold flex items-center justify-center"
-                    title="Eliminar usuario"
-                  >
-                    &times;
-                  </button>
-                </div>
-              ) : (
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={userSearchTerm}
-                    onChange={(e) => {
-                      setUserSearchTerm(e.target.value);
-                      setIsUserDropdownOpen(true);
-                    }}
-                    onFocus={() => setIsUserDropdownOpen(true)}
-                    onBlur={() => setTimeout(() => setIsUserDropdownOpen(false), 200)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#006BB9] focus:outline-none shadow-sm transition-shadow"
-                    placeholder="Buscar por nombre o correo..."
-                  />
-                  {isUserDropdownOpen && (
-                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                      {filteredAvailableUsuarios.length === 0 ? (
-                        <div className="p-3 text-sm text-gray-500">No se encontraron usuarios</div>
-                      ) : (
-                        filteredAvailableUsuarios.map(u => (
-                          <div
-                            key={u.id}
-                            onMouseDown={(e) => {
-                              e.preventDefault();
-                              
-                              const currentDesc = formData['Descripción del Bien'];
-                              if (currentDesc) {
-                                const hasSameType = equipos.some(eq => 
-                                  eq['Descripción del Bien'] === currentDesc &&
-                                  (eq.usuario_asignado_id === u.id || (eq['Usuario'] && eq['Usuario'].trim().toLowerCase() === (u.nombre || u.correo).trim().toLowerCase()))
-                                );
-
-                                if (hasSameType) {
-                                  if (!window.confirm(`El usuario ya tiene asignado un equipo del tipo "${currentDesc}". ¿Desea asignarlo de igual manera?`)) {
-                                    setIsUserDropdownOpen(false);
-                                    return; 
-                                  }
-                                }
-                              }
-
-                              setFormData({
-                                ...formData,
-                                usuario_asignado_id: u.id,
-                                'Usuario': u.nombre || u.correo
-                              });
-                              setUserSearchTerm('');
-                              setIsUserDropdownOpen(false);
-                            }}
-                            className="px-3 py-2 text-sm hover:bg-blue-50 cursor-pointer text-gray-700 flex flex-col"
-                          >
-                            <span className="font-semibold">{u.nombre || 'Sin nombre'}</span>
-                            <span className="text-xs text-gray-400">{u.correo}</span>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
+                );
+              })()}
             </div>
           </div>
 
