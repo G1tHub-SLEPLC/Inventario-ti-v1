@@ -18,6 +18,12 @@ import { useLicencias } from '../context/LicenciasContext';
 import { useAuth } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
 
+const norm = (s) => (s == null ? '' : String(s)).trim().toLowerCase().replace(/\s+/g, ' ');
+const isAvailable = (usuario) => {
+  const v = norm(usuario);
+  return v === '' || v === 'disponible';
+};
+
 export default function GlobalDashboardPage() {
   const { equipos, loading: loadingEquipos } = useInventario();
   const { insumos, solicitudes, loading: loadingSolicitudes } = useSolicitudes();
@@ -28,8 +34,8 @@ export default function GlobalDashboardPage() {
 
   // Equipos KPI
   const totalEquipos = equipos.length;
-  const equiposAsignados = equipos.filter(e => e.usuario_asignado_id || e.estado === 'EN USO' || e.estado === 'EN PRESTAMO').length;
-  const equiposDisponibles = totalEquipos - equiposAsignados;
+  const equiposDisponibles = equipos.filter(e => isAvailable(e['Usuario'])).length;
+  const equiposAsignados = totalEquipos - equiposDisponibles;
 
   // Insumos KPI
   const totalInsumosTipos = insumos.length;
