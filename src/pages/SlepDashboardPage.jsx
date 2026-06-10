@@ -355,6 +355,7 @@ export default function SlepDashboardPage() {
                       <th className="px-3 py-3 w-16">Logo</th>
                       <th className="px-3 py-3">Software</th>
                       <th className="px-3 py-3">Fecha de Asignación</th>
+                      <th className="px-3 py-3">Vencimiento</th>
                       <th className="px-3 py-3 text-center">Estado</th>
                     </tr>
                   </thead>
@@ -415,16 +416,13 @@ export default function SlepDashboardPage() {
                             </div>
                             <div className="text-[11px] mt-1 flex gap-2 items-center">
                               <span className="bg-gray-100 px-1.5 py-0.5 rounded text-gray-600 font-semibold">{lic?.tipo || 'SAAS'}</span>
-                              <span className="text-gray-400">|</span>
-                              {lic?.fecha_termino ? (
-                                <span className="text-gray-500">Vence: {formatExpDate(lic.fecha_termino)}</span>
-                              ) : (
-                                <span className="text-gray-400 italic">Sin vencimiento</span>
-                              )}
                             </div>
                           </td>
                           <td className="px-3 py-2.5 text-gray-700">
                             {new Date(asignacion.fecha_asignacion).toLocaleDateString('es-CL')}
+                          </td>
+                          <td className="px-3 py-2.5 text-gray-700">
+                            {lic?.fecha_termino ? formatExpDate(lic.fecha_termino) : '—'}
                           </td>
                           <td className="px-3 py-2.5 text-center">
                             <span className={`px-2.5 py-1 rounded text-[9px] font-semibold uppercase border whitespace-nowrap inline-block ${estadoClass}`}>
