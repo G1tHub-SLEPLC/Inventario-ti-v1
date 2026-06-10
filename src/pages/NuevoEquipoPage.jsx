@@ -20,6 +20,8 @@ export default function NuevoEquipoPage() {
   const [ocFile, setOcFile] = useState(null);
   const [fileTooltip, setFileTooltip] = useState({ visible: false, x: 0, y: 0, type: '' });
   const [usuarios, setUsuarios] = useState([]);
+  const [userSearchTerm, setUserSearchTerm] = useState('');
+  const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
 
   useEffect(() => {
     async function loadUsers() {
@@ -40,6 +42,15 @@ export default function NuevoEquipoPage() {
     if (!fac || fac === '—') return false;
     return equipos.some(eq => eq.hasFacturaFile && eq['Factura'] && String(eq['Factura']).trim().toLowerCase() === fac);
   }, [formData['Factura'], equipos]);
+
+  const filteredAvailableUsuarios = useMemo(() => {
+    const q = userSearchTerm.toLowerCase().trim();
+    if (!q) return usuarios;
+    return usuarios.filter(u => 
+      (u.nombre || '').toLowerCase().includes(q) || 
+      (u.correo || '').toLowerCase().includes(q)
+    );
+  }, [usuarios, userSearchTerm]);
 
   const handleChange = (e) => {
     setFormData({
@@ -399,21 +410,93 @@ export default function NuevoEquipoPage() {
               </select>
             </div>
 
-            <div className="space-y-1">
-              <label className="block text-xs font-semibold text-[#25306B] mb-1 uppercase tracking-wide">
+            <div className="space-y-1 relative">
+              <label className="block text-xs font-semibold text-[#25306B] uppercase tracking-wide mb-1">
                 Usuario Asignado (SLEP)
               </label>
-              <select
-                name="usuario_asignado_id"
-                value={formData.usuario_asignado_id || ''}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#006BB9] focus:outline-none shadow-sm transition-shadow"
-              >
-                <option value="">Sin asignar / Disponible</option>
-                {usuarios.map(u => (
-                  <option key={u.id} value={u.id}>{u.nombre || u.correo}</option>
-                ))}
-              </select>
+
+              {formData.usuario_asignado_id ? (
+                <div className="flex items-center justify-between p-2.5 bg-blue-50 border border-blue-200 rounded-lg shadow-sm">
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-full bg-[#006BB9] text-white flex items-center justify-center text-[10px] font-bold">
+                      {usuarios.find(u => u.id === formData.usuario_asignado_id)?.nombre?.charAt(0).toUpperCase() || '?'}
+                    </div>
+                    <span className="text-sm font-semibold text-[#25306B]">
+                      {usuarios.find(u => u.id === formData.usuario_asignado_id)?.nombre || usuarios.find(u => u.id === formData.usuario_asignado_id)?.correo || 'Usuario SLEP'}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (window.confirm('¿Está seguro que desea eliminar este usuario del equipo?')) {
+                        setFormData({ ...formData, usuario_asignado_id: '', 'Usuario': '' });
+                      }
+                    }}
+                    className="text-red-500 hover:text-red-700 hover:bg-red-50 px-2 py-1 rounded-md transition-colors font-bold flex items-center justify-center"
+                    title="Eliminar usuario"
+                  >
+                    &times;
+                  </button>
+                </div>
+              ) : (
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={userSearchTerm}
+                    onChange={(e) => {
+                      setUserSearchTerm(e.target.value);
+                      setIsUserDropdownOpen(true);
+                    }}
+                    onFocus={() => setIsUserDropdownOpen(true)}
+                    onBlur={() => setTimeout(() => setIsUserDropdownOpen(false), 200)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#006BB9] focus:outline-none shadow-sm transition-shadow"
+                    placeholder="Buscar por nombre o correo..."
+                  />
+                  {isUserDropdownOpen && (
+                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                      {filteredAvailableUsuarios.length === 0 ? (
+                        <div className="p-3 text-sm text-gray-500">No se encontraron usuarios</div>
+                      ) : (
+                        filteredAvailableUsuarios.map(u => (
+                          <div
+                            key={u.id}
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              
+                              const currentDesc = formData['Descripción del Bien'];
+                              if (currentDesc) {
+                                const hasSameType = equipos.some(eq => 
+                                  eq['Descripción del Bien'] === currentDesc &&
+                                  (eq.usuario_asignado_id === u.id || (eq['Usuario'] && eq['Usuario'].trim().toLowerCase() === (u.nombre || u.correo).trim().toLowerCase()))
+                                );
+
+                                if (hasSameType) {
+                                  if (!window.confirm(`El usuario ya tiene asignado un equipo del tipo "${currentDesc}". ¿Desea asignarlo de igual manera?`)) {
+                                    setIsUserDropdownOpen(false);
+                                    return; 
+                                  }
+                                }
+                              }
+
+                              setFormData({
+                                ...formData,
+                                usuario_asignado_id: u.id,
+                                'Usuario': u.nombre || u.correo
+                              });
+                              setUserSearchTerm('');
+                              setIsUserDropdownOpen(false);
+                            }}
+                            className="px-3 py-2 text-sm hover:bg-blue-50 cursor-pointer text-gray-700 flex flex-col"
+                          >
+                            <span className="font-semibold">{u.nombre || 'Sin nombre'}</span>
+                            <span className="text-xs text-gray-400">{u.correo}</span>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
