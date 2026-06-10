@@ -133,7 +133,7 @@ export default function LicenciasShowcasePage() {
   };
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-8 pb-20">
+    <div className="p-6 max-w-[1920px] mx-auto space-y-8 pb-20">
       
       {/* Header */}
       <div className="border-b pb-5">

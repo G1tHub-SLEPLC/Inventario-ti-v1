@@ -164,7 +164,7 @@ export default function SlepDashboardPage() {
   };
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
+    <div className="p-6 max-w-[1920px] mx-auto">
       <h1 className="text-2xl font-bold text-gray-800 mb-6">Mi Portal SLEP</h1>
 
       {/* Tabs */}

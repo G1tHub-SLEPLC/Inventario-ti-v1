@@ -63,7 +63,8 @@ export default function AppShell() {
             }}
           />
         </div>
-        <nav className="flex items-center gap-2">
+        <nav className="flex items-center gap-2 flex-1 justify-end min-w-0 overflow-hidden">
+          <div className="flex items-center gap-1 xl:gap-1.5 overflow-x-auto hide-scrollbar py-1 px-1">
           {NAV_ITEMS.map(({ to, icon: Icon, label, desc }) => {
             const active = pathname === to;
             return (
@@ -75,8 +76,9 @@ export default function AppShell() {
               </Link>
             );
           })}
-          <div className="w-px h-6 bg-gray-300 mx-1"></div>
-          <div className="relative ml-2">
+          </div>
+          <div className="w-px h-6 bg-gray-300 mx-1 flex-shrink-0"></div>
+          <div className="relative ml-1 sm:ml-2 flex-shrink-0">
             <button 
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
               className="flex items-center gap-2.5 p-1 rounded-full hover:bg-gray-100 transition-colors focus:outline-none"

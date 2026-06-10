@@ -103,6 +103,14 @@
 }
 
 @layer utilities {
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
   .autocomplete-active {
     background-color: #eff6ff !important;
   }
