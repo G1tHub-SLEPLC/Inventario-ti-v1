@@ -348,40 +348,94 @@ export default function SlepDashboardPage() {
             {misLicencias.length === 0 ? (
               <p className="text-gray-500 italic">No tienes licencias de software asignadas actualmente.</p>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {misLicencias.map((asignacion) => {
-                  const lic = asignacion.licencias;
-                  return (
-                    <div key={asignacion.id} className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow group">
-                      <div className="flex items-start gap-4 mb-3">
-                        <div className="w-12 h-12 rounded shadow-sm border border-gray-100 overflow-hidden bg-white flex items-center justify-center shrink-0">
-                          <img 
-                            src={getLogoUrl(lic?.software)} 
-                            alt={lic?.software}
-                            className="w-full h-full object-contain p-1.5"
-                            onError={(e) => {
-                              e.target.onerror = null; 
-                              e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(lic?.software || 'SW')}&background=random&color=fff&rounded=true&bold=true`;
-                            }}
-                          />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-bold text-[#112A46] text-base leading-tight truncate" title={lic?.software}>
-                            {lic?.software} <span className="text-[11px] font-medium text-gray-500 ml-1">{lic?.version}</span>
-                          </h3>
-                          <div className="text-[10px] mt-1 mb-1.5">
-                            <span className="bg-gray-100 px-1.5 py-0.5 rounded text-gray-600 font-semibold">{lic?.tipo || 'SAAS'}</span>
-                          </div>
-                          <p className="text-xs text-gray-500 line-clamp-2" title={lic?.descripcion}>{lic?.descripcion || 'Sin descripción'}</p>
-                        </div>
-                      </div>
-                      <div className="border-t border-gray-100 pt-3 mt-3 flex justify-between items-center text-[11px] font-medium text-gray-500">
-                        <span>Asignado: {new Date(asignacion.fecha_asignacion).toLocaleDateString()}</span>
-                        <span className="bg-emerald-50 text-emerald-700 font-bold px-2 py-1 rounded border border-emerald-100">ACTIVA</span>
-                      </div>
-                    </div>
-                  );
-                })}
+              <div className="bg-white rounded-lg shadow-sm overflow-x-auto table-scroll border border-gray-200">
+                <table className="min-w-full text-sm text-left whitespace-nowrap">
+                  <thead className="uppercase text-xs border-b border-gray-200 bg-gray-50 text-gray-600">
+                    <tr>
+                      <th className="px-3 py-3 w-16">Logo</th>
+                      <th className="px-3 py-3">Software</th>
+                      <th className="px-3 py-3">Fecha de Asignación</th>
+                      <th className="px-3 py-3 text-center">Estado</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {misLicencias.map((asignacion) => {
+                      const lic = asignacion.licencias;
+                      
+                      // Calculate status
+                      let estadoLabel = 'ACTIVA';
+                      let estadoClass = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+                      
+                      if (!lic) {
+                        estadoLabel = 'ELIMINADA';
+                        estadoClass = 'bg-slate-100 text-slate-700 border-slate-200';
+                      } else if (asignacion.estado === 'suspendida' || lic.estado === 'suspendida') {
+                        estadoLabel = 'SUSPENDIDA';
+                        estadoClass = 'bg-amber-50 text-amber-700 border-amber-200';
+                      } else if (lic.fecha_termino) {
+                        const parts = lic.fecha_termino.split('T')[0].split('-');
+                        if (parts.length === 3) {
+                          const [year, month, day] = parts;
+                          const expirationDate = new Date(year, month - 1, day, 23, 59, 59);
+                          if (expirationDate < new Date()) {
+                            estadoLabel = 'CADUCADA';
+                            estadoClass = 'bg-rose-50 text-rose-700 border-rose-200';
+                          }
+                        }
+                      }
+                      
+                      // Format expiration date to prevent timezone shift
+                      const formatExpDate = (dateStr) => {
+                        if (!dateStr) return '';
+                        const parts = dateStr.split('T')[0].split('-');
+                        if (parts.length !== 3) return dateStr;
+                        const [year, month, day] = parts;
+                        return `${day}/${month}/${year}`;
+                      };
+
+                      return (
+                        <tr key={asignacion.id} className="hover:bg-gray-50 transition-colors">
+                          <td className="px-3 py-2.5">
+                            <div className="w-11 h-11 rounded shadow-sm border border-gray-100 overflow-hidden bg-white flex items-center justify-center">
+                              <img
+                                src={getLogoUrl(lic?.software)}
+                                alt={lic?.software || 'Software'}
+                                className="w-full h-full object-contain p-1"
+                                onError={(e) => {
+                                  e.target.onerror = null;
+                                  e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(lic?.software || 'SW')}&background=random&color=fff&rounded=true&bold=true`;
+                                }}
+                              />
+                            </div>
+                          </td>
+                          <td className="px-3 py-2.5">
+                            <div className="font-bold text-[#112A46] text-[15px]">
+                              {lic?.software || 'Software Eliminado'} 
+                              {lic?.version && <span className="text-xs font-medium text-gray-500 ml-1">{lic.version}</span>}
+                            </div>
+                            <div className="text-[11px] mt-1 flex gap-2 items-center">
+                              <span className="bg-gray-100 px-1.5 py-0.5 rounded text-gray-600 font-semibold">{lic?.tipo || 'SAAS'}</span>
+                              <span className="text-gray-400">|</span>
+                              {lic?.fecha_termino ? (
+                                <span className="text-gray-500">Expira: {formatExpDate(lic.fecha_termino)}</span>
+                              ) : (
+                                <span className="text-gray-400 italic">Sin caducidad</span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-3 py-2.5 text-gray-700">
+                            {new Date(asignacion.fecha_asignacion).toLocaleDateString('es-CL')}
+                          </td>
+                          <td className="px-3 py-2.5 text-center">
+                            <span className={`px-2.5 py-1 rounded text-[9px] font-semibold uppercase border whitespace-nowrap inline-block ${estadoClass}`}>
+                              {estadoLabel}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
             )}
           </div>
