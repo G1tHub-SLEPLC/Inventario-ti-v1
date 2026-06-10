@@ -66,6 +66,17 @@ export default function AutocompleteInput({
         }
         setIsOpen(false);
         setActiveIndex(-1);
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        const val = (value || '').trim();
+        if (val) {
+          if (onSelectOption) {
+            onSelectOption({ label: val, value: val });
+          } else {
+            onChange({ target: { name: name || 'auto', value: val } });
+          }
+          setIsOpen(false);
+        }
       }
     } else if (e.key === 'Escape') {
       setIsOpen(false);

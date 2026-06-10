@@ -9,7 +9,7 @@ import AutocompleteInput from '../components/AutocompleteInput';
 const COLUMNS = [
   'Descripción del Bien', 'Marca', 'Modelo', 'Nº de serie',
   'ID Publicación',
-  'Orden de Compra', 'Factura', 'Proveedor', 'SubDirección'
+  'Orden de Compra', 'Factura', 'Proveedor'
 ];
 
 export default function EditarEquipoPage() {
@@ -370,32 +370,6 @@ export default function EditarEquipoPage() {
                           placeholder={`Ingrese ${col.toLowerCase()}`}
                         />
                       </div>
-                    ) : col === 'SubDirección' ? (
-                      formData[col] ? (
-                        <div className="flex items-center justify-between p-2.5 bg-blue-50 border border-blue-200 rounded-lg shadow-sm w-full">
-                          <span className="text-[11px] leading-tight font-bold text-[#25306B] truncate flex-1 min-w-0 pr-2">
-                            {formData[col]}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => setFormData({ ...formData, [col]: '' })}
-                            className="text-red-500 hover:text-red-700 hover:bg-red-50 px-2 py-1 rounded-md transition-colors font-bold flex items-center justify-center shrink-0"
-                            title={`Eliminar ${col}`}
-                          >
-                            &times;
-                          </button>
-                        </div>
-                      ) : (
-                        <AutocompleteInput
-                          name={col}
-                          value={formData[col] || ''}
-                          onChange={handleChange}
-                          options={subdireccionesOptions}
-                          className={`w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#006BB9] focus:outline-none shadow-sm transition-all ${disableSerial ? 'bg-gray-50 text-gray-500 cursor-not-allowed border-gray-200' : 'bg-white'}`}
-                          placeholder={`Ingrese o seleccione ${col.toLowerCase()}`}
-                        />
-                      )
-                    ) : (
                       <input
                         type="text"
                         name={col}
@@ -507,23 +481,7 @@ export default function EditarEquipoPage() {
                 );
               })}
 
-              <div className="space-y-1">
-                <label className="block text-xs font-semibold text-[#25306B] mb-1 uppercase tracking-wide">
-                  Estado
-                </label>
-                <select
-                  name="estado"
-                  value={formData.estado || 'DISPONIBLE'}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#006BB9] focus:outline-none shadow-sm transition-shadow"
-                >
-                  <option value="DISPONIBLE">DISPONIBLE</option>
-                  <option value="PARA PRESTAMO">PARA PRÉSTAMO</option>
-                  <option value="EN PRESTAMO">EN PRÉSTAMO</option>
-                  <option value="ASIGNADO">ASIGNADO</option>
-                  <option value="BAJA">DE BAJA</option>
-                </select>
-              </div>
+
 
               <div className="space-y-1 relative">
                 <label className="block text-xs font-semibold text-[#25306B] uppercase tracking-wide mb-1">
@@ -594,7 +552,8 @@ export default function EditarEquipoPage() {
                           setFormData({
                             ...formData,
                             usuario_asignado_id: opt.value,
-                            'Usuario': opt.label
+                            'Usuario': opt.label,
+                            estado: 'ASIGNADO'
                           });
                           setUserSearchTerm('');
                         }}
@@ -605,7 +564,67 @@ export default function EditarEquipoPage() {
                   );
                 })()}
               </div>
+
+              <div className="space-y-1 relative">
+                <label className="block text-xs font-semibold text-[#25306B] uppercase tracking-wide mb-1">
+                  Subdirección
+                </label>
+                {formData['SubDirección'] ? (
+                  <div className="flex items-center justify-between p-2.5 bg-blue-50 border border-blue-200 rounded-lg shadow-sm w-full">
+                    <span className="text-[11px] leading-tight font-bold text-[#25306B] truncate flex-1 min-w-0 pr-2">
+                      {formData['SubDirección']}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFormData({ ...formData, 'SubDirección': '' });
+                        setSubdireccionSearchTerm('');
+                      }}
+                      className="text-red-500 hover:text-red-700 hover:bg-red-50 px-2 py-1 rounded-md transition-colors font-bold flex items-center justify-center shrink-0"
+                      title="Eliminar Subdirección"
+                    >
+                      &times;
+                    </button>
+                  </div>
+                ) : (
+                  <div className="relative w-full">
+                    <AutocompleteInput
+                      name="SubDirección"
+                      value={subdireccionSearchTerm}
+                      onChange={(e) => setSubdireccionSearchTerm(e.target.value)}
+                      options={subdireccionesOptions}
+                      onSelectOption={(opt) => {
+                        setFormData({ ...formData, 'SubDirección': opt.value });
+                        setSubdireccionSearchTerm('');
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#006BB9] focus:outline-none shadow-sm transition-shadow bg-white"
+                      placeholder="Buscar o escribir subdirección..."
+                    />
+                  </div>
+                )}
+              </div>
             </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div className="space-y-1">
+                <label className="block text-xs font-semibold text-[#25306B] mb-1 uppercase tracking-wide">
+                  Estado
+                </label>
+                <select
+                  name="estado"
+                  value={formData.estado || 'DISPONIBLE'}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#006BB9] focus:outline-none shadow-sm transition-shadow bg-white"
+                >
+                  <option value="DISPONIBLE">DISPONIBLE</option>
+                  <option value="PARA PRESTAMO">PARA PRÉSTAMO</option>
+                  <option value="EN PRESTAMO">EN PRÉSTAMO</option>
+                  <option value="ASIGNADO">ASIGNADO</option>
+                  <option value="BAJA">DE BAJA</option>
+                </select>
+              </div>
+            </div>
+          </div>
 
             <div className="bg-blue-50 text-[#25306B] text-[11px] p-3 rounded-lg flex items-start gap-2">
               <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-[#006BB9]" />
