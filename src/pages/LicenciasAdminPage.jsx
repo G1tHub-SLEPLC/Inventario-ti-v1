@@ -868,22 +868,35 @@ export default function LicenciasAdminPage() {
                             </div>
                           </td>
                           <td className="px-3 py-2.5 text-center">
-                            <div className="flex items-center justify-center font-bold">
+                            <div className="flex items-center justify-center">
                               {(() => {
                                 const total = lic.cantidad_total || 0;
                                 const ratio = total > 0 ? (disponibles / total) : 0;
-                                let badgeColorClass = '';
-                                if (ratio >= 0.5) {
-                                  badgeColorClass = 'bg-emerald-500/10 text-emerald-600 border-emerald-500/30';
-                                } else if (ratio >= 0.25) {
-                                  badgeColorClass = 'bg-orange-500/10 text-orange-600 border-orange-500/30';
-                                } else {
-                                  badgeColorClass = 'bg-red-500/10 text-red-600 border-red-500/30';
+                                let color = 'bg-emerald-500';
+                                let text = 'text-emerald-600';
+                                
+                                if (ratio < 0.25) {
+                                  color = 'bg-red-500';
+                                  text = 'text-red-600';
+                                } else if (ratio < 0.5) {
+                                  color = 'bg-amber-500';
+                                  text = 'text-amber-600';
                                 }
+                                
                                 return (
-                                  <span className={`px-3 py-1 rounded-full text-xs font-black border tracking-wide shadow-sm ${badgeColorClass}`}>
-                                    {disponibles} / {total}
-                                  </span>
+                                  <div className="flex flex-col gap-1.5 w-full max-w-[110px] mx-auto">
+                                    <div className="flex justify-between items-center text-[11px] font-mono font-bold px-0.5">
+                                      <span className={text}>{disponibles}</span>
+                                      <span className="text-gray-400 text-[9px]">/</span>
+                                      <span className="text-gray-600">{total}</span>
+                                    </div>
+                                    <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden border border-gray-200/50">
+                                      <div 
+                                        className={`h-full rounded-full transition-all duration-300 shadow-[inset_0_1px_2px_rgba(0,0,0,0.1)] ${color}`} 
+                                        style={{ width: `${Math.min(100, ratio * 100)}%` }}
+                                      />
+                                    </div>
+                                  </div>
                                 );
                               })()}
                             </div>
