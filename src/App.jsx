@@ -23,6 +23,7 @@ const LicenciasAdminPage = lazy(() => import('./pages/LicenciasAdminPage'));
 const GlobalDashboardPage = lazy(() => import('./pages/GlobalDashboardPage'));
 const EstadoBadgeShowcasePage = lazy(() => import('./pages/EstadoBadgeShowcasePage'));
 const LicenciasShowcasePage = lazy(() => import('./pages/LicenciasShowcasePage'));
+const DisponiblesShowcasePage = lazy(() => import('./pages/DisponiblesShowcasePage'));
 
 function ProtectedRoute({ children }) {
   const { session, loading } = useAuth();
@@ -98,6 +99,7 @@ export default function App() {
                   <Route path="showcase" element={<BadgeShowcasePage />} />
                   <Route path="badge" element={<EstadoBadgeShowcasePage />} />
                   <Route path="licencias-showcase" element={<LicenciasShowcasePage />} />
+                  <Route path="disponibles-showcase" element={<DisponiblesShowcasePage />} />
                   
                 </Route>
                 <Route path="*" element={<Navigate to="/" replace />} />
