@@ -735,381 +735,112 @@ export default function LicenciasAdminPage() {
         </div>
       </section>
 
-      {/* Tab Selectors */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 space-y-4 no-print-interactive">
-        <div className="flex border-b border-gray-200">
-          <button 
-            onClick={() => { setActiveTab('disp'); setLicGlobalSearch(''); }} 
-            className={`px-4 py-3 text-sm font-medium border-b-2 flex items-center gap-2 transition-colors ${activeTab === 'disp' ? 'border-[#006BB9] text-[#006BB9] font-bold' : 'border-transparent text-gray-600 hover:bg-gray-50'}`}
-          >
-            <Package size={16} /> Disponibles
-          </button>
-          <button 
-            onClick={() => { setActiveTab('func'); setLicGlobalSearch(''); setFuncSearch(''); setSelectedFunc(null); }} 
-            className={`px-4 py-3 text-sm font-medium border-b-2 flex items-center gap-2 transition-colors ${activeTab === 'func' ? 'border-[#006BB9] text-[#006BB9] font-bold' : 'border-transparent text-gray-600 hover:bg-gray-50'}`}
-          >
-            <UserCircle size={16} /> Por funcionario
-          </button>
-          <button 
-            onClick={() => { setActiveTab('lic'); setLicGlobalSearch(''); setSelectedLicId(''); }} 
-            className={`px-4 py-3 text-sm font-medium border-b-2 flex items-center gap-2 transition-colors ${activeTab === 'lic' ? 'border-[#006BB9] text-[#006BB9] font-bold' : 'border-transparent text-gray-600 hover:bg-gray-50'}`}
-          >
-            <MonitorSmartphone size={16} /> Por licencia
-          </button>
-        </div>
+      {/* Tabs & Controls */}
+      <section className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden no-print-interactive">
+        <div className="flex flex-col xl:flex-row justify-between items-stretch xl:items-center border-b border-gray-200">
+          <nav className="flex flex-wrap w-full xl:w-auto">
+            <button 
+              onClick={() => { setActiveTab('disp'); setLicGlobalSearch(''); }} 
+              className={`px-4 py-3 text-sm font-medium border-b-2 flex items-center gap-2 transition-colors whitespace-nowrap ${activeTab === 'disp' ? 'border-[#25306B] bg-[#25306B] text-white font-bold' : 'border-transparent text-gray-600 hover:bg-gray-50'}`}
+            >
+              <Package size={16} /> Disponibles
+            </button>
+            <button 
+              onClick={() => { setActiveTab('func'); setLicGlobalSearch(''); setFuncSearch(''); setSelectedFunc(null); }} 
+              className={`px-4 py-3 text-sm font-medium border-b-2 flex items-center gap-2 transition-colors whitespace-nowrap ${activeTab === 'func' ? 'border-[#25306B] bg-[#25306B] text-white font-bold' : 'border-transparent text-gray-600 hover:bg-gray-50'}`}
+            >
+              <UserCircle size={16} /> Por funcionario
+            </button>
+            <button 
+              onClick={() => { setActiveTab('lic'); setLicGlobalSearch(''); setSelectedLicId(''); }} 
+              className={`px-4 py-3 text-sm font-medium border-b-2 flex items-center gap-2 transition-colors whitespace-nowrap ${activeTab === 'lic' ? 'border-[#25306B] bg-[#25306B] text-white font-bold' : 'border-transparent text-gray-600 hover:bg-gray-50'}`}
+            >
+              <MonitorSmartphone size={16} /> Por licencia
+            </button>
+          </nav>
 
-        {/* Tab Controls & Inputs */}
-        <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between">
-          {activeTab === 'disp' && (
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
-              <input 
-                type="text"
-                value={licGlobalSearch}
-                onChange={e => setLicGlobalSearch(e.target.value)}
-                placeholder="Filtrar software disponible..."
-                className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#006BB9] focus:outline-none"
-              />
-            </div>
-          )}
-
-          {activeTab === 'func' && (
-            <div className="relative flex-1 max-w-md">
-              <div className="relative flex items-center">
-                <Search className="absolute left-3 w-4 h-4 text-gray-400" />
+          {/* Header Controls for Available Tab */}
+          <div className="flex flex-wrap gap-2 p-3 xl:p-0 xl:pr-4 bg-gray-50 xl:bg-transparent items-center">
+            {activeTab === 'disp' && (
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input 
-                  type="text" 
-                  value={funcSearch}
-                  onChange={e => {
-                    setFuncSearch(e.target.value);
-                    setShowFuncSug(true);
-                    setFocusedFuncIndex(-1);
-                    if(!e.target.value) setSelectedFunc(null);
-                  }}
-                  onKeyDown={e => {
-                    if (!showFuncSug) return;
-                    if (e.key === 'ArrowDown') {
-                      e.preventDefault();
-                      setFocusedFuncIndex(prev => (prev < funcSuggestions.length - 1 ? prev + 1 : prev));
-                    } else if (e.key === 'ArrowUp') {
-                      e.preventDefault();
-                      setFocusedFuncIndex(prev => (prev > 0 ? prev - 1 : 0));
-                    } else if (e.key === 'Enter') {
-                      e.preventDefault();
-                      if (focusedFuncIndex >= 0 && focusedFuncIndex < funcSuggestions.length) {
-                        const u = funcSuggestions[focusedFuncIndex];
-                        setSelectedFunc(u);
-                        setFuncSearch(u.nombre || u.email);
-                        setShowFuncSug(false);
-                        setFocusedFuncIndex(-1);
-                      }
-                    } else if (e.key === 'Escape') {
-                      setShowFuncSug(false);
-                      setFocusedFuncIndex(-1);
-                    }
-                  }}
-                  onFocus={() => setShowFuncSug(true)}
-                  onBlur={() => setTimeout(() => { setShowFuncSug(false); setFocusedFuncIndex(-1); }, 200)}
-                  placeholder="Buscar funcionario..." 
-                  className="w-full pl-9 pr-4 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#006BB9] focus:outline-none shadow-sm transition-all"
+                  type="text"
+                  value={licGlobalSearch}
+                  onChange={e => setLicGlobalSearch(e.target.value)}
+                  placeholder="Filtrar software disponible..."
+                  className="pl-9 pr-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#006BB9] focus:outline-none bg-white min-w-[220px]"
                 />
               </div>
-              {showFuncSug && (
-                <div className="absolute z-50 w-full bg-white border border-gray-200 rounded-lg mt-1 max-h-60 overflow-y-auto shadow-xl">
-                  <div className="py-1">
-                    {funcSuggestions.length > 0 ? funcSuggestions.map((u, idx) => (
-                      <div 
-                        key={u.id} 
-                        onMouseDown={() => { setSelectedFunc(u); setFuncSearch(u.nombre || u.email); setShowFuncSug(false); setFocusedFuncIndex(-1); }} 
-                        className={`flex items-center gap-3 px-3 py-2 cursor-pointer transition-colors ${focusedFuncIndex === idx ? 'bg-blue-100' : 'hover:bg-slate-50'}`}
-                      >
-                        <span className="w-7 h-7 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px] font-black uppercase shrink-0 shadow-sm">
-                          {getInitials(u.nombre || u.email)}
-                        </span>
-                        <div className="flex flex-col">
-                          <span className="text-sm font-semibold text-gray-800">{u.nombre || 'Sin nombre'}</span>
-                          <span className="text-xs text-gray-500">{u.email}</span>
-                        </div>
-                      </div>
-                    )) : <div className="px-4 py-3 text-slate-500 italic text-center text-sm">Sin coincidencias...</div>}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {activeTab === 'lic' && (
-            <div className="flex-1 max-w-md">
-              <select 
-                value={selectedLicId} 
-                onChange={e => setSelectedLicId(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#006BB9] focus:outline-none shadow-sm bg-white"
-              >
-                <option value="">— Seleccionar software —</option>
-                {licencias.map(l => (
-                  <option key={l.id} value={l.id}>{l.software} {l.version ? `(${l.version})` : ''}</option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {activeTab !== 'disp' && (
-            <div className="relative w-full md:w-64">
-              <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
-              <input 
-                type="text"
-                value={licGlobalSearch}
-                onChange={e => setLicGlobalSearch(e.target.value)}
-                placeholder="Filtrar resultados..."
-                className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#006BB9] focus:outline-none"
-              />
-            </div>
-          )}
+            )}
+          </div>
         </div>
-      </div>
 
-      {/* Tab Contents */}
-      {activeTab === 'disp' && (
-        <div className="bg-white rounded-lg shadow-sm overflow-x-auto table-scroll border border-gray-200">
-          <table className="min-w-full text-sm text-left whitespace-nowrap">
-            <thead>
-              <tr>
-                <th className="px-3 py-3 w-16 font-bold text-white text-left">Logo</th>
-                <th className="px-3 py-3 font-bold text-white text-left">Software</th>
-                <th className="px-3 py-3 font-bold text-white text-left">Respaldo</th>
-                <th className="px-3 py-3 text-center font-bold text-white">Disponibles</th>
-                <th className="px-3 py-3 text-center font-bold text-white">Asignadas</th>
-                <th className="px-3 py-3 text-center font-bold text-white">Estado</th>
-                <th className="px-3 py-3 text-center font-bold text-white">Acciones</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {loading ? (
-                <tr><td colSpan="7" className="px-6 py-8 text-center text-gray-500">Cargando licencias...</td></tr>
-              ) : disponiblesLicencias.length === 0 ? (
-                <tr><td colSpan="7" className="px-6 py-8 text-center text-gray-500">No hay licencias disponibles.</td></tr>
-              ) : (
-                disponiblesLicencias.map((lic) => {
-                  const asignadas = getAsignacionesCount(lic.id);
-                  const disponibles = lic.cantidad_total - asignadas;
-                  const hasStock = disponibles > 0;
-
-                  return (
-                    <tr key={lic.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-3 py-2.5">
-                        <div className="w-11 h-11 rounded shadow-sm border border-gray-100 overflow-hidden bg-white flex items-center justify-center relative group">
-                          <img
-                            src={getLogoUrl(lic.software)}
-                            alt={lic.software}
-                            className="w-full h-full object-contain p-1"
-                            onError={(e) => {
-                              e.target.onerror = null;
-                              e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(lic.software)}&background=random&color=fff&rounded=true&bold=true`;
-                            }}
-                          />
-                        </div>
-                      </td>
-                      <td className="px-3 py-2.5">
-                        <div className="font-bold text-[#112A46] text-[15px]">{lic.software} <span className="text-xs font-medium text-gray-500 ml-1">{lic.version}</span></div>
-                        <div className="text-[11px] mt-1 flex gap-2 items-center">
-                          <span className="bg-gray-100 px-1.5 py-0.5 rounded text-gray-600 font-semibold">{lic.tipo || 'SAAS'}</span>
-                          <span className="text-gray-400">|</span>
-                          {lic.fecha_termino ? (
-                            <span className="text-gray-500">Expira: {formatLocalDate(lic.fecha_termino)}</span>
-                          ) : (
-                            <span className="text-gray-400 italic">Sin caducidad</span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-3 py-2.5">
-                        <div className="flex flex-col gap-1.5">
-                          <div className="flex items-center gap-2">
-                            {lic.factura ? (
-                              <button
-                                onClick={() => lic.has_factura_file ? handlePreview(lic.id, 'factura') : null}
-                                className={`flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-bold border transition-colors ${lic.has_factura_file ? 'bg-blue-50 text-[#006BB9] border-blue-200 hover:bg-blue-100 cursor-pointer' : 'bg-gray-50 text-gray-500 border-gray-200 cursor-default'}`}
-                                title={lic.has_factura_file ? `Ver Factura ${lic.factura}` : `Factura: ${lic.factura} (Sin archivo)`}
-                              >
-                                <FileText size={12} /> FACTURA N° {lic.factura}
-                              </button>
-                            ) : (
-                              <span className="flex items-center gap-1 px-2 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-bold uppercase" title="Falta Factura">
-                                <AlertCircle size={10} /> Sin Factura
-                              </span>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-2">
-                            {lic.orden_compra ? (
-                              <button
-                                onClick={() => lic.has_oc_file ? handlePreview(lic.id, 'orden_compra') : null}
-                                className={`flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-bold border transition-colors ${lic.has_oc_file ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 cursor-pointer' : 'bg-gray-50 text-gray-500 border-gray-200 cursor-default'}`}
-                                title={lic.has_oc_file ? `Ver OC ${lic.orden_compra}` : `OC: ${lic.orden_compra} (Sin archivo)`}
-                              >
-                                <FileText size={12} /> OC N° {lic.orden_compra}
-                              </button>
-                            ) : (
-                              <span className="flex items-center gap-1 px-2 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-bold uppercase" title="Falta Orden de Compra">
-                                <AlertCircle size={10} /> Sin OC
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-3 py-2.5 text-center">
-                        <div className="flex items-center justify-center font-bold">
-                          {(() => {
-                            const total = lic.cantidad_total || 0;
-                            const ratio = total > 0 ? (disponibles / total) : 0;
-                            let badgeColorClass = '';
-                            if (ratio >= 0.5) {
-                              badgeColorClass = 'bg-emerald-600 text-white border-emerald-700';
-                            } else if (ratio >= 0.25) {
-                              badgeColorClass = 'bg-orange-500 text-white border-orange-600';
-                            } else {
-                              badgeColorClass = 'bg-red-600 text-white border-red-700';
-                            }
-                            return (
-                              <span className={`px-3 py-1 rounded-full text-xs font-black border tracking-wide shadow-sm ${badgeColorClass}`}>
-                                {disponibles} / {total}
-                              </span>
-                            );
-                          })()}
-                        </div>
-                      </td>
-                      <td className="px-3 py-2.5 text-center">
-                        <span className="bg-blue-50 text-blue-800 border border-blue-200 px-2.5 py-1 rounded-full font-bold text-xs">{asignadas}</span>
-                      </td>
-                      <td className="px-3 py-2.5 text-center">
-                        <div className="flex flex-col items-center gap-1.5">
-                          <span className={`px-2 py-0.5 rounded text-[9px] font-semibold uppercase border w-full ${hasStock ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-rose-50 text-rose-700 border-rose-200'}`}>
-                            {hasStock ? 'DISPONIBLE' : 'AGOTADO'}
-                          </span>
-                          {(() => {
-                            if (!lic.fecha_termino) return null;
-                            const parts = lic.fecha_termino.split('T')[0].split('-');
-                            if (parts.length !== 3) return null;
-                            const [year, month, day] = parts;
-                            const expirationDate = new Date(year, month - 1, day, 23, 59, 59);
-                            const diffTime = expirationDate - new Date();
-                            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-                            if (diffDays > 0) {
-                              return <span className={`px-2 py-0.5 rounded text-[9px] font-semibold uppercase border w-full ${diffDays <= 30 ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-blue-50 text-blue-700 border-blue-200'}`}>Quedan {diffDays} días</span>;
-                            } else if (diffDays === 0) {
-                              return <span className="px-2 py-0.5 rounded text-[9px] font-semibold uppercase border bg-rose-50 text-rose-700 border-rose-200 w-full">Vence Hoy</span>;
-                            } else {
-                              return <span className="px-2 py-0.5 rounded text-[9px] font-semibold uppercase border bg-red-100 text-red-800 border-red-300 w-full">Vencida hace {Math.abs(diffDays)} días</span>;
-                            }
-                          })()}
-                        </div>
-                      </td>
-                      <td className="px-3 py-2.5 text-center font-semibold">
-                        <button onClick={() => handleOpenAssignModal(lic.id)} className="text-emerald-600 hover:text-emerald-800 mr-3 bg-emerald-50 hover:bg-emerald-100 p-1.5 rounded-lg transition-colors border border-emerald-100 inline-flex items-center justify-center shrink-0" title="Asignar a Funcionario">
-                          <UserPlus size={16} />
-                        </button>
-                        <button onClick={() => handleOpenViewModal(lic)} className="text-[#006BB9] hover:text-[#25306B] mr-3 bg-blue-50 hover:bg-blue-100 p-1.5 rounded-lg transition-colors border border-blue-100 inline-flex items-center justify-center shrink-0" title="Ver Asignaciones">
-                          <Users size={16} />
-                        </button>
-                        <button onClick={() => handleOpenModal(lic)} className="text-amber-600 hover:text-amber-800 mr-3 bg-amber-50 hover:bg-amber-100 p-1.5 rounded-lg transition-colors border border-amber-100 inline-flex items-center justify-center shrink-0" title="Editar Licencia">
-                          <Edit2 size={16} />
-                        </button>
-                        <button onClick={() => openDeleteModal(lic)} className="text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100 p-1.5 rounded-lg transition-colors border border-red-100 inline-flex items-center justify-center shrink-0" title="Eliminar Licencia">
-                          <Trash2 size={16} />
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {activeTab === 'func' && (
-        <div className="space-y-4">
-          {!selectedFunc ? (
-            <div className="bg-white rounded-lg border border-gray-200 p-8 text-center text-gray-500 text-sm">
-              Seleccione un funcionario para ver sus licencias asignadas.
-            </div>
-          ) : (
-            <div className="bg-white rounded-lg shadow-sm overflow-x-auto table-scroll border border-gray-200">
+        {/* Card Body with Padding */}
+        <div className="p-5">
+          {/* Tab Contents */}
+          {activeTab === 'disp' && (
+            <div className="table-scroll rounded-lg border border-gray-200 overflow-x-auto">
               <table className="min-w-full text-sm text-left whitespace-nowrap">
                 <thead>
                   <tr>
                     <th className="px-3 py-3 w-16 font-bold text-white text-left">Logo</th>
                     <th className="px-3 py-3 font-bold text-white text-left">Software</th>
-                    <th className="px-3 py-3 font-bold text-white text-left">Tipo</th>
-                    <th className="px-3 py-3 font-bold text-white text-left">Fecha Asignación</th>
                     <th className="px-3 py-3 font-bold text-white text-left">Respaldo</th>
+                    <th className="px-3 py-3 text-center font-bold text-white">Disponibles</th>
+                    <th className="px-3 py-3 text-center font-bold text-white">Asignadas</th>
+                    <th className="px-3 py-3 text-center font-bold text-white">Estado</th>
                     <th className="px-3 py-3 text-center font-bold text-white">Acciones</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {funcionarioAsignaciones.length === 0 ? (
-                    <tr>
-                      <td colSpan="6" className="px-6 py-8 text-center text-gray-500">
-                        No hay licencias asignadas a este funcionario.
-                      </td>
-                    </tr>
+                  {loading ? (
+                    <tr><td colSpan="7" className="px-6 py-8 text-center text-gray-500">Cargando licencias...</td></tr>
+                  ) : disponiblesLicencias.length === 0 ? (
+                    <tr><td colSpan="7" className="px-6 py-8 text-center text-gray-500">No hay licencias disponibles.</td></tr>
                   ) : (
-                    funcionarioAsignaciones.map((asig) => {
-                      const licDetail = licencias.find(l => l.id === asig.licencia_id) || {};
-                      
-                      const handleRevocarClick = async () => {
-                        const softwareName = asig.licencias?.software || 'Software';
-                        const uName = selectedFunc.nombre || selectedFunc.email || 'Funcionario';
-                        if (window.confirm(`¿Está seguro que desea revocar la licencia de "${softwareName}" para ${uName}?`)) {
-                          try {
-                            await revocarLicencia(asig.id, softwareName, uName);
-                          } catch (err) {
-                            console.error(err);
-                          }
-                        }
-                      };
+                    disponiblesLicencias.map((lic) => {
+                      const asignadas = getAsignacionesCount(lic.id);
+                      const disponibles = lic.cantidad_total - asignadas;
+                      const hasStock = disponibles > 0;
 
                       return (
-                        <tr key={asig.id} className="hover:bg-gray-50 transition-colors">
+                        <tr key={lic.id} className="hover:bg-gray-50 transition-colors">
                           <td className="px-3 py-2.5">
                             <div className="w-11 h-11 rounded shadow-sm border border-gray-100 overflow-hidden bg-white flex items-center justify-center relative group">
                               <img
-                                src={getLogoUrl(asig.licencias?.software)}
-                                alt={asig.licencias?.software}
+                                src={getLogoUrl(lic.software)}
+                                alt={lic.software}
                                 className="w-full h-full object-contain p-1"
                                 onError={(e) => {
                                   e.target.onerror = null;
-                                  e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(asig.licencias?.software || 'SW')}&background=random&color=fff&rounded=true&bold=true`;
+                                  e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(lic.software)}&background=random&color=fff&rounded=true&bold=true`;
                                 }}
                               />
                             </div>
                           </td>
                           <td className="px-3 py-2.5">
-                            <div className="font-bold text-[#112A46] text-[15px]">
-                              {asig.licencias?.software} 
-                              <span className="text-xs font-medium text-gray-500 ml-1">{asig.licencias?.version}</span>
+                            <div className="font-bold text-[#112A46] text-[15px]">{lic.software} <span className="text-xs font-medium text-gray-500 ml-1">{lic.version}</span></div>
+                            <div className="text-[11px] mt-1 flex gap-2 items-center">
+                              <span className="bg-gray-100 px-1.5 py-0.5 rounded text-gray-600 font-semibold">{lic.tipo || 'SAAS'}</span>
+                              <span className="text-gray-400">|</span>
+                              {lic.fecha_termino ? (
+                                <span className="text-gray-500">Expira: {formatLocalDate(lic.fecha_termino)}</span>
+                              ) : (
+                                <span className="text-gray-400 italic">Sin caducidad</span>
+                              )}
                             </div>
-                            <div className="text-[11px] text-gray-400 mt-0.5">
-                              {asig.licencias?.descripcion || 'Sin descripción'}
-                            </div>
-                          </td>
-                          <td className="px-3 py-2.5">
-                            <span className="bg-gray-100 px-1.5 py-0.5 rounded text-gray-600 font-semibold text-xs">
-                              {asig.licencias?.tipo || 'SAAS'}
-                            </span>
-                          </td>
-                          <td className="px-3 py-2.5 text-gray-600 text-xs">
-                            {formatLocalDate(asig.fecha_asignacion)}
                           </td>
                           <td className="px-3 py-2.5">
                             <div className="flex flex-col gap-1.5">
                               <div className="flex items-center gap-2">
-                                {licDetail.factura ? (
+                                {lic.factura ? (
                                   <button
-                                    onClick={() => licDetail.has_factura_file ? handlePreview(licDetail.id, 'factura') : null}
-                                    className={`flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-bold border transition-colors ${licDetail.has_factura_file ? 'bg-blue-50 text-[#006BB9] border-blue-200 hover:bg-blue-100 cursor-pointer' : 'bg-gray-50 text-gray-500 border-gray-200 cursor-default'}`}
-                                    title={licDetail.has_factura_file ? `Ver Factura ${licDetail.factura}` : `Factura: ${licDetail.factura} (Sin archivo)`}
+                                    onClick={() => lic.has_factura_file ? handlePreview(lic.id, 'factura') : null}
+                                    className={`flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-bold border transition-colors ${lic.has_factura_file ? 'bg-blue-50 text-[#006BB9] border-blue-200 hover:bg-blue-100 cursor-pointer' : 'bg-gray-50 text-gray-500 border-gray-200 cursor-default'}`}
+                                    title={lic.has_factura_file ? `Ver Factura ${lic.factura}` : `Factura: ${lic.factura} (Sin archivo)`}
                                   >
-                                    <FileText size={12} /> FACTURA N° {licDetail.factura}
+                                    <FileText size={12} /> FACTURA N° {lic.factura}
                                   </button>
                                 ) : (
                                   <span className="flex items-center gap-1 px-2 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-bold uppercase" title="Falta Factura">
@@ -1118,13 +849,13 @@ export default function LicenciasAdminPage() {
                                 )}
                               </div>
                               <div className="flex items-center gap-2">
-                                {licDetail.orden_compra ? (
+                                {lic.orden_compra ? (
                                   <button
-                                    onClick={() => licDetail.has_oc_file ? handlePreview(licDetail.id, 'orden_compra') : null}
-                                    className={`flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-bold border transition-colors ${licDetail.has_oc_file ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 cursor-pointer' : 'bg-gray-50 text-gray-500 border-gray-200 cursor-default'}`}
-                                    title={licDetail.has_oc_file ? `Ver OC ${licDetail.orden_compra}` : `OC: ${licDetail.orden_compra} (Sin archivo)`}
+                                    onClick={() => lic.has_oc_file ? handlePreview(lic.id, 'orden_compra') : null}
+                                    className={`flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-bold border transition-colors ${lic.has_oc_file ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 cursor-pointer' : 'bg-gray-50 text-gray-500 border-gray-200 cursor-default'}`}
+                                    title={lic.has_oc_file ? `Ver OC ${lic.orden_compra}` : `OC: ${lic.orden_compra} (Sin archivo)`}
                                   >
-                                    <FileText size={12} /> OC N° {licDetail.orden_compra}
+                                    <FileText size={12} /> OC N° {lic.orden_compra}
                                   </button>
                                 ) : (
                                   <span className="flex items-center gap-1 px-2 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-bold uppercase" title="Falta Orden de Compra">
@@ -1135,11 +866,65 @@ export default function LicenciasAdminPage() {
                             </div>
                           </td>
                           <td className="px-3 py-2.5 text-center">
-                            <button 
-                              onClick={handleRevocarClick}
-                              className="text-[11px] font-bold bg-white border border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 px-3 py-1.5 rounded transition-colors shadow-sm"
-                            >
-                              Revocar
+                            <div className="flex items-center justify-center font-bold">
+                              {(() => {
+                                const total = lic.cantidad_total || 0;
+                                const ratio = total > 0 ? (disponibles / total) : 0;
+                                let badgeColorClass = '';
+                                if (ratio >= 0.5) {
+                                  badgeColorClass = 'bg-emerald-600 text-white border-emerald-700';
+                                } else if (ratio >= 0.25) {
+                                  badgeColorClass = 'bg-orange-500 text-white border-orange-600';
+                                } else {
+                                  badgeColorClass = 'bg-red-600 text-white border-red-700';
+                                }
+                                return (
+                                  <span className={`px-3 py-1 rounded-full text-xs font-black border tracking-wide shadow-sm ${badgeColorClass}`}>
+                                    {disponibles} / {total}
+                                  </span>
+                                );
+                              })()}
+                            </div>
+                          </td>
+                          <td className="px-3 py-2.5 text-center">
+                            <span className="bg-blue-50 text-blue-800 border border-blue-200 px-2.5 py-1 rounded-full font-bold text-xs">{asignadas}</span>
+                          </td>
+                          <td className="px-3 py-2.5 text-center">
+                            <div className="flex flex-col items-center gap-1.5">
+                              <span className={`px-2 py-0.5 rounded text-[9px] font-semibold uppercase border w-full ${hasStock ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-rose-50 text-rose-700 border-rose-200'}`}>
+                                {hasStock ? 'DISPONIBLE' : 'AGOTADO'}
+                              </span>
+                              {(() => {
+                                if (!lic.fecha_termino) return null;
+                                const parts = lic.fecha_termino.split('T')[0].split('-');
+                                if (parts.length !== 3) return null;
+                                const [year, month, day] = parts;
+                                const expirationDate = new Date(year, month - 1, day, 23, 59, 59);
+                                const diffTime = expirationDate - new Date();
+                                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                                if (diffDays > 0) {
+                                  return <span className={`px-2 py-0.5 rounded text-[9px] font-semibold uppercase border w-full ${diffDays <= 30 ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-blue-50 text-blue-700 border-blue-200'}`}>Quedan {diffDays} días</span>;
+                                } else if (diffDays === 0) {
+                                  return <span className="px-2 py-0.5 rounded text-[9px] font-semibold uppercase border bg-rose-50 text-rose-700 border-rose-200 w-full">Vence Hoy</span>;
+                                } else {
+                                  return <span className="px-2 py-0.5 rounded text-[9px] font-semibold uppercase border bg-red-100 text-red-800 border-red-300 w-full">Vencida hace {Math.abs(diffDays)} días</span>;
+                                }
+                              })()}
+                            </div>
+                          </td>
+                          <td className="px-3 py-2.5 text-center font-semibold">
+                            <button onClick={() => handleOpenAssignModal(lic.id)} className="text-emerald-600 hover:text-emerald-800 mr-3 bg-emerald-50 hover:bg-emerald-100 p-1.5 rounded-lg transition-colors border border-emerald-100 inline-flex items-center justify-center shrink-0" title="Asignar a Funcionario">
+                              <UserPlus size={16} />
+                            </button>
+                            <button onClick={() => handleOpenViewModal(lic)} className="text-[#006BB9] hover:text-[#25306B] mr-3 bg-blue-50 hover:bg-blue-100 p-1.5 rounded-lg transition-colors border border-blue-100 inline-flex items-center justify-center shrink-0" title="Ver Asignaciones">
+                              <Users size={16} />
+                            </button>
+                            <button onClick={() => handleOpenModal(lic)} className="text-amber-600 hover:text-amber-800 mr-3 bg-amber-50 hover:bg-amber-100 p-1.5 rounded-lg transition-colors border border-amber-100 inline-flex items-center justify-center shrink-0" title="Editar Licencia">
+                              <Edit2 size={16} />
+                            </button>
+                            <button onClick={() => openDeleteModal(lic)} className="text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100 p-1.5 rounded-lg transition-colors border border-red-100 inline-flex items-center justify-center shrink-0" title="Eliminar Licencia">
+                              <Trash2 size={16} />
                             </button>
                           </td>
                         </tr>
@@ -1150,100 +935,321 @@ export default function LicenciasAdminPage() {
               </table>
             </div>
           )}
-        </div>
-      )}
 
-      {activeTab === 'lic' && (
-        <div className="space-y-4">
-          {!selectedLicId ? (
-            <div className="bg-white rounded-lg border border-gray-200 p-8 text-center text-gray-500 text-sm">
-              Seleccione una licencia para ver sus asignaciones y estadísticas.
-            </div>
-          ) : (
-            <>
-              {selectedLic && (
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
-                  <div className="bg-white rounded-lg p-4 border-l-4 shadow-sm" style={{borderColor:'var(--slep-primary)'}}>
-                    <div className="text-xs text-gray-500 uppercase font-semibold">Total del software</div>
-                    <div className="text-2xl font-bold text-[#25306B]">{selectedLic.cantidad_total}</div>
+          {activeTab === 'func' && (
+            <div className="space-y-4">
+              <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-center justify-between no-print-interactive">
+                <div className="relative flex-1 sm:max-w-md">
+                  <div className="relative flex items-center">
+                    <Search className="absolute left-3 w-4 h-4 text-gray-400 animate-none" style={{ top: '50%', transform: 'translateY(-50%)' }} />
+                    <input 
+                      type="text" 
+                      value={funcSearch}
+                      onChange={e => {
+                        setFuncSearch(e.target.value);
+                        setShowFuncSug(true);
+                        setFocusedFuncIndex(-1);
+                        if(!e.target.value) setSelectedFunc(null);
+                      }}
+                      onKeyDown={e => {
+                        if (!showFuncSug) return;
+                        if (e.key === 'ArrowDown') {
+                          e.preventDefault();
+                          setFocusedFuncIndex(prev => (prev < funcSuggestions.length - 1 ? prev + 1 : prev));
+                        } else if (e.key === 'ArrowUp') {
+                          e.preventDefault();
+                          setFocusedFuncIndex(prev => (prev > 0 ? prev - 1 : 0));
+                        } else if (e.key === 'Enter') {
+                          e.preventDefault();
+                          if (focusedFuncIndex >= 0 && focusedFuncIndex < funcSuggestions.length) {
+                            const u = funcSuggestions[focusedFuncIndex];
+                            setSelectedFunc(u);
+                            setFuncSearch(u.nombre || u.email);
+                            setShowFuncSug(false);
+                            setFocusedFuncIndex(-1);
+                          }
+                        } else if (e.key === 'Escape') {
+                          setShowFuncSug(false);
+                          setFocusedFuncIndex(-1);
+                        }
+                      }}
+                      onFocus={() => setShowFuncSug(true)}
+                      onBlur={() => setTimeout(() => { setShowFuncSug(false); setFocusedFuncIndex(-1); }, 200)}
+                      placeholder="Buscar funcionario..." 
+                      className="w-full pl-9 pr-4 py-1.5 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#006BB9] focus:outline-none shadow-sm transition-all"
+                    />
                   </div>
-                  <div className="bg-white rounded-lg p-4 border-l-4 shadow-sm" style={{borderColor:'var(--slep-secondary)'}}>
-                    <div className="text-xs text-gray-500 uppercase font-semibold">Asignadas</div>
-                    <div className="text-2xl font-bold text-[#006BB9]">{getAsignacionesCount(selectedLicId)}</div>
-                  </div>
-                  <div className="bg-white rounded-lg p-4 border-l-4 shadow-sm" style={{borderColor:'var(--slep-green)'}}>
-                    <div className="text-xs text-gray-500 uppercase font-semibold">Disponibles</div>
-                    <div className="text-2xl font-bold text-[#90d039]">{Math.max(0, selectedLic.cantidad_total - getAsignacionesCount(selectedLicId))}</div>
-                  </div>
+                  {showFuncSug && (
+                    <div className="absolute z-50 w-full bg-white border border-gray-200 rounded-lg mt-1 max-h-60 overflow-y-auto shadow-xl">
+                      <div className="py-1">
+                        {funcSuggestions.length > 0 ? funcSuggestions.map((u, idx) => (
+                          <div 
+                            key={u.id} 
+                            onMouseDown={() => { setSelectedFunc(u); setFuncSearch(u.nombre || u.email); setShowFuncSug(false); setFocusedFuncIndex(-1); }} 
+                            className={`flex items-center gap-3 px-3 py-2 cursor-pointer transition-colors ${focusedFuncIndex === idx ? 'bg-blue-100' : 'hover:bg-slate-50'}`}
+                          >
+                            <span className="w-7 h-7 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px] font-black uppercase shrink-0 shadow-sm">
+                              {getInitials(u.nombre || u.email)}
+                            </span>
+                            <div className="flex flex-col">
+                              <span className="text-sm font-semibold text-gray-800">{u.nombre || 'Sin nombre'}</span>
+                              <span className="text-xs text-gray-500">{u.email}</span>
+                            </div>
+                          </div>
+                        )) : <div className="px-4 py-3 text-slate-500 italic text-center text-sm">Sin coincidencias...</div>}
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <div className="text-sm font-medium text-[#25306B] flex items-center gap-2">
+                  {selectedFunc ? <><CheckCircle size={16} className="text-green-600" /> Mostrando licencias de {selectedFunc.nombre || selectedFunc.email}</> : 'Seleccione un funcionario'}
+                </div>
+              </div>
+
+              {!selectedFunc ? (
+                <div className="border border-gray-200 rounded-lg p-8 text-center text-gray-500 text-sm bg-slate-50">
+                  Seleccione un funcionario para ver sus licencias asignadas.
+                </div>
+              ) : (
+                <div className="table-scroll rounded-lg border border-gray-200 overflow-x-auto">
+                  <table className="min-w-full text-sm text-left whitespace-nowrap">
+                    <thead>
+                      <tr>
+                        <th className="px-3 py-3 w-16 font-bold text-white text-left">Logo</th>
+                        <th className="px-3 py-3 font-bold text-white text-left">Software</th>
+                        <th className="px-3 py-3 font-bold text-white text-left">Tipo</th>
+                        <th className="px-3 py-3 font-bold text-white text-left">Fecha Asignación</th>
+                        <th className="px-3 py-3 font-bold text-white text-left">Respaldo</th>
+                        <th className="px-3 py-3 text-center font-bold text-white">Acciones</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {funcionarioAsignaciones.length === 0 ? (
+                        <tr>
+                          <td colSpan="6" className="px-6 py-8 text-center text-gray-500">
+                            No hay licencias asignadas a este funcionario.
+                          </td>
+                        </tr>
+                      ) : (
+                        funcionarioAsignaciones.map((asig) => {
+                          const licDetail = licencias.find(l => l.id === asig.licencia_id) || {};
+                          
+                          const handleRevocarClick = async () => {
+                            const softwareName = asig.licencias?.software || 'Software';
+                            const uName = selectedFunc.nombre || selectedFunc.email || 'Funcionario';
+                            if (window.confirm(`¿Está seguro que desea revocar la licencia de "${softwareName}" para ${uName}?`)) {
+                              try {
+                                await revocarLicencia(asig.id, softwareName, uName);
+                              } catch (err) {
+                                console.error(err);
+                              }
+                            }
+                          };
+
+                          return (
+                            <tr key={asig.id} className="hover:bg-gray-50 transition-colors">
+                              <td className="px-3 py-2.5">
+                                <div className="w-11 h-11 rounded shadow-sm border border-gray-100 overflow-hidden bg-white flex items-center justify-center relative group">
+                                  <img
+                                    src={getLogoUrl(asig.licencias?.software)}
+                                    alt={asig.licencias?.software}
+                                    className="w-full h-full object-contain p-1"
+                                    onError={(e) => {
+                                      e.target.onerror = null;
+                                      e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(asig.licencias?.software || 'SW')}&background=random&color=fff&rounded=true&bold=true`;
+                                    }}
+                                  />
+                                </div>
+                              </td>
+                              <td className="px-3 py-2.5">
+                                <div className="font-bold text-[#112A46] text-[15px]">
+                                  {asig.licencias?.software} 
+                                  <span className="text-xs font-medium text-gray-500 ml-1">{asig.licencias?.version}</span>
+                                </div>
+                                <div className="text-[11px] text-gray-400 mt-0.5">
+                                  {asig.licencias?.descripcion || 'Sin descripción'}
+                                </div>
+                              </td>
+                              <td className="px-3 py-2.5">
+                                <span className="bg-gray-100 px-1.5 py-0.5 rounded text-gray-600 font-semibold text-xs">
+                                  {asig.licencias?.tipo || 'SAAS'}
+                                </span>
+                              </td>
+                              <td className="px-3 py-2.5 text-gray-600 text-xs">
+                                {formatLocalDate(asig.fecha_asignacion)}
+                              </td>
+                              <td className="px-3 py-2.5">
+                                <div className="flex flex-col gap-1.5">
+                                  <div className="flex items-center gap-2">
+                                    {licDetail.factura ? (
+                                      <button
+                                        onClick={() => licDetail.has_factura_file ? handlePreview(licDetail.id, 'factura') : null}
+                                        className={`flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-bold border transition-colors ${licDetail.has_factura_file ? 'bg-blue-50 text-[#006BB9] border-blue-200 hover:bg-blue-100 cursor-pointer' : 'bg-gray-50 text-gray-500 border-gray-200 cursor-default'}`}
+                                        title={licDetail.has_factura_file ? `Ver Factura ${licDetail.factura}` : `Factura: ${licDetail.factura} (Sin archivo)`}
+                                      >
+                                        <FileText size={12} /> FACTURA N° {licDetail.factura}
+                                      </button>
+                                    ) : (
+                                      <span className="flex items-center gap-1 px-2 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-bold uppercase" title="Falta Factura">
+                                        <AlertCircle size={10} /> Sin Factura
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    {licDetail.orden_compra ? (
+                                      <button
+                                        onClick={() => licDetail.has_oc_file ? handlePreview(licDetail.id, 'orden_compra') : null}
+                                        className={`flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-bold border transition-colors ${licDetail.has_oc_file ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 cursor-pointer' : 'bg-gray-50 text-gray-500 border-gray-200 cursor-default'}`}
+                                        title={licDetail.has_oc_file ? `Ver OC ${licDetail.orden_compra}` : `OC: ${licDetail.orden_compra} (Sin archivo)`}
+                                      >
+                                        <FileText size={12} /> OC N° {licDetail.orden_compra}
+                                      </button>
+                                    ) : (
+                                      <span className="flex items-center gap-1 px-2 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-bold uppercase" title="Falta Orden de Compra">
+                                        <AlertCircle size={10} /> Sin OC
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="px-3 py-2.5 text-center">
+                                <button 
+                                  onClick={handleRevocarClick}
+                                  className="text-[11px] font-bold bg-white border border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 px-3 py-1.5 rounded transition-colors shadow-sm"
+                                >
+                                  Revocar
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
                 </div>
               )}
+            </div>
+          )}
 
-              <div className="bg-white rounded-lg shadow-sm overflow-x-auto table-scroll border border-gray-200">
-                <table className="min-w-full text-sm text-left whitespace-nowrap">
-                  <thead>
-                    <tr>
-                      <th className="px-3 py-3 font-bold text-white text-left">Funcionario</th>
-                      <th className="px-3 py-3 font-bold text-white text-left">Correo Electrónico</th>
-                      <th className="px-3 py-3 font-bold text-white text-left">Fecha Asignación</th>
-                      <th className="px-3 py-3 text-center font-bold text-white">Acciones</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {licenciaAsignaciones.length === 0 ? (
-                      <tr>
-                        <td colSpan="4" className="px-6 py-8 text-center text-gray-500">
-                          Nadie tiene asignada esta licencia aún.
-                        </td>
-                      </tr>
-                    ) : (
-                      licenciaAsignaciones.map((asig) => {
-                        const handleRevocarClick = async () => {
-                          const softwareName = selectedLic?.software || 'Software';
-                          const uName = asig.perfiles?.nombre || asig.perfiles?.email || 'Funcionario';
-                          if (window.confirm(`¿Está seguro que desea revocar la licencia de "${softwareName}" para ${uName}?`)) {
-                            try {
-                              await revocarLicencia(asig.id, softwareName, uName);
-                            } catch (err) {
-                              console.error(err);
-                            }
-                          }
-                        };
+          {activeTab === 'lic' && (
+            <div className="space-y-4">
+              <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-center justify-between no-print-interactive">
+                <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                  <select 
+                    value={selectedLicId} 
+                    onChange={e => setSelectedLicId(e.target.value)}
+                    className="w-full sm:w-56 px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#006BB9] focus:outline-none shadow-sm bg-white"
+                  >
+                    <option value="">— Seleccionar software —</option>
+                    {licencias.map(l => (
+                      <option key={l.id} value={l.id}>{l.software} {l.version ? `(${l.version})` : ''}</option>
+                    ))}
+                  </select>
 
-                        return (
-                          <tr key={asig.id} className="hover:bg-gray-50 transition-colors">
-                            <td className="px-3 py-2.5">
-                              <div className="flex items-center gap-3">
-                                <span className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px] font-black uppercase shrink-0 shadow-sm">
-                                  {getInitials(asig.perfiles?.nombre || asig.perfiles?.email)}
-                                </span>
-                                <span className="font-semibold text-gray-800">{asig.perfiles?.nombre || 'Sin nombre'}</span>
-                              </div>
-                            </td>
-                            <td className="px-3 py-2.5 text-gray-700">
-                              {asig.perfiles?.email || '—'}
-                            </td>
-                            <td className="px-3 py-2.5 text-gray-600 text-xs">
-                              {formatLocalDate(asig.fecha_asignacion)}
-                            </td>
-                            <td className="px-3 py-2.5 text-center">
-                              <button 
-                                onClick={handleRevocarClick}
-                                className="text-[11px] font-bold bg-white border border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 px-3 py-1.5 rounded transition-colors shadow-sm"
-                              >
-                                Revocar
-                              </button>
+                  <div className="relative w-full sm:w-48">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <input 
+                      type="text"
+                      value={licGlobalSearch}
+                      onChange={e => setLicGlobalSearch(e.target.value)}
+                      placeholder="Filtrar resultados..."
+                      className="w-full pl-9 pr-4 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#006BB9] focus:outline-none bg-white"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {!selectedLicId ? (
+                <div className="border border-gray-200 rounded-lg p-8 text-center text-gray-500 text-sm bg-slate-50">
+                  Seleccione una licencia para ver sus asignaciones y estadísticas.
+                </div>
+              ) : (
+                <>
+                  {selectedLic && (
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+                      <div className="bg-white rounded-lg p-4 border border-gray-200 border-l-4 shadow-sm" style={{borderColor:'var(--slep-primary)'}}>
+                        <div className="text-xs text-gray-500 uppercase font-semibold">Total del software</div>
+                        <div className="text-2xl font-bold text-[#25306B]">{selectedLic.cantidad_total}</div>
+                      </div>
+                      <div className="bg-white rounded-lg p-4 border border-gray-200 border-l-4 shadow-sm" style={{borderColor:'var(--slep-secondary)'}}>
+                        <div className="text-xs text-gray-500 uppercase font-semibold">Asignadas</div>
+                        <div className="text-2xl font-bold text-[#006BB9]">{getAsignacionesCount(selectedLicId)}</div>
+                      </div>
+                      <div className="bg-white rounded-lg p-4 border border-gray-200 border-l-4 shadow-sm" style={{borderColor:'var(--slep-green)'}}>
+                        <div className="text-xs text-gray-500 uppercase font-semibold">Disponibles</div>
+                        <div className="text-2xl font-bold text-[#90d039]">{Math.max(0, selectedLic.cantidad_total - getAsignacionesCount(selectedLicId))}</div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="table-scroll rounded-lg border border-gray-200 overflow-x-auto">
+                    <table className="min-w-full text-sm text-left whitespace-nowrap">
+                      <thead>
+                        <tr>
+                          <th className="px-3 py-3 font-bold text-white text-left">Funcionario</th>
+                          <th className="px-3 py-3 font-bold text-white text-left">Correo Electrónico</th>
+                          <th className="px-3 py-3 font-bold text-white text-left">Fecha Asignación</th>
+                          <th className="px-3 py-3 text-center font-bold text-white">Acciones</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200">
+                        {licenciaAsignaciones.length === 0 ? (
+                          <tr>
+                            <td colSpan="4" className="px-6 py-8 text-center text-gray-500">
+                              Nadie tiene asignada esta licencia aún.
                             </td>
                           </tr>
-                        );
-                      })
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </>
+                        ) : (
+                          licenciaAsignaciones.map((asig) => {
+                            const handleRevocarClick = async () => {
+                              const softwareName = selectedLic?.software || 'Software';
+                              const uName = asig.perfiles?.nombre || asig.perfiles?.email || 'Funcionario';
+                              if (window.confirm(`¿Está seguro que desea revocar la licencia de "${softwareName}" para ${uName}?`)) {
+                                try {
+                                  await revocarLicencia(asig.id, softwareName, uName);
+                                } catch (err) {
+                                  console.error(err);
+                                }
+                              }
+                            };
+
+                            return (
+                              <tr key={asig.id} className="hover:bg-gray-50 transition-colors">
+                                <td className="px-3 py-2.5">
+                                  <div className="flex items-center gap-3">
+                                    <span className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px] font-black uppercase shrink-0 shadow-sm">
+                                      {getInitials(asig.perfiles?.nombre || asig.perfiles?.email)}
+                                    </span>
+                                    <span className="font-semibold text-gray-800">{asig.perfiles?.nombre || 'Sin nombre'}</span>
+                                  </div>
+                                </td>
+                                <td className="px-3 py-2.5 text-gray-700">
+                                  {asig.perfiles?.email || '—'}
+                                </td>
+                                <td className="px-3 py-2.5 text-gray-600 text-xs">
+                                  {formatLocalDate(asig.fecha_asignacion)}
+                                </td>
+                                <td className="px-3 py-2.5 text-center">
+                                  <button 
+                                    onClick={handleRevocarClick}
+                                    className="text-[11px] font-bold bg-white border border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 px-3 py-1.5 rounded transition-colors shadow-sm"
+                                  >
+                                    Revocar
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          })
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              )}
+            </div>
           )}
         </div>
-      )}
+      </section>
 
       {/* Modal Nuevo/Editar */}
       {isModalOpen && (
