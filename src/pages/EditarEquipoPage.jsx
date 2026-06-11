@@ -66,7 +66,15 @@ export default function EditarEquipoPage() {
 
   useEffect(() => {
     if (originalEquipo) {
-      setFormData({ ...originalEquipo });
+      const isAssigned = originalEquipo.usuario_asignado_id || 
+        (originalEquipo['Usuario'] && 
+         originalEquipo['Usuario'].trim().toLowerCase() !== 'disponible' && 
+         originalEquipo['Usuario'].trim() !== '');
+      const initialEstado = originalEquipo.estado || (isAssigned ? 'ASIGNADO' : 'DISPONIBLE');
+      setFormData({ 
+        ...originalEquipo,
+        estado: initialEstado
+      });
     }
   }, [originalEquipo]);
 
@@ -521,7 +529,7 @@ export default function EditarEquipoPage() {
                           type="button"
                           onClick={() => {
                             if (window.confirm('¿Está seguro que desea eliminar este usuario del equipo?')) {
-                              setFormData({ ...formData, 'Usuario': '', 'SubDirección': '', usuario_asignado_id: '' });
+                              setFormData({ ...formData, 'Usuario': '', 'SubDirección': '', usuario_asignado_id: '', estado: 'DISPONIBLE' });
                             }
                           }}
                           className="text-red-500 hover:text-red-700 hover:bg-red-50 px-2 py-1 rounded-md transition-colors font-bold flex items-center justify-center shrink-0"

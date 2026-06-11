@@ -3,7 +3,7 @@ import { useInventario } from '../context/InventarioContext';
 import * as XLSX from 'xlsx';
 import Papa from 'papaparse';
 import { Download, Search, Package, UserCircle, MonitorSmartphone, Printer, Eye, Upload, Pencil, CheckCircle, UploadCloud, AlertCircle, FileWarning, AlertTriangle, PlusCircle } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { saveDocument, getDocument } from '../utils/db';
 
 const COLUMNS = [
@@ -76,7 +76,11 @@ function getInitials(name) {
 
 export default function DashboardPage() {
   const { equipos, loading, setFileStatus, addMasivo } = useInventario();
-  const [activeTab, setActiveTab] = useState('disp'); // disp, func, equip
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get('tab') || 'disp';
+  const setActiveTab = (tab) => {
+    setSearchParams({ tab });
+  };
   const [globalSearch, setGlobalSearch] = useState('');
   const [sortConfig, setSortConfig] = useState({ col: null, dir: 1 });
   
