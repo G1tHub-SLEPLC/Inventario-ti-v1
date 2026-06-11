@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   CheckCircle, 
   Clock, 
@@ -12,7 +12,9 @@ import {
   Package,
   Plus,
   Trash2,
-  Sparkles
+  Sparkles,
+  Search,
+  BookOpen
 } from 'lucide-react';
 
 const ICONS_MAP = {
@@ -51,7 +53,7 @@ const INITIAL_PALETTES = {
     { name: 'Amber (Amarillo)', classes: 'bg-amber-500 text-white border-amber-600 shadow-xs', iconKey: 'Clock' },
     { name: 'Rose (Rojo/Coral)', classes: 'bg-rose-600 text-white border-rose-700 shadow-xs', iconKey: 'AlertTriangle' },
     { name: 'Blue (Azul)', classes: 'bg-blue-600 text-white border-blue-700 shadow-xs', iconKey: 'Info' },
-    { name: 'Orange (Naranja)', classes: 'bg-orange-50 text-white border-orange-600 shadow-xs', iconKey: 'Clock' },
+    { name: 'Orange (Naranja)', classes: 'bg-orange-500 text-white border-orange-600 shadow-xs', iconKey: 'Clock' },
     { name: 'Purple (Púrpura)', classes: 'bg-purple-600 text-white border-purple-700 shadow-xs', iconKey: 'Info' },
     { name: 'Indigo (Índigo)', classes: 'bg-indigo-600 text-white border-indigo-700 shadow-xs', iconKey: 'Info' },
     { name: 'Cyan (Cian)', classes: 'bg-cyan-600 text-white border-cyan-700 shadow-xs', iconKey: 'Info' },
@@ -74,10 +76,39 @@ const PALETTE_DESCS = {
   }
 };
 
+// Complete Tailwind Color Reference Dictionary
+const TAILWIND_COLORS_DICTIONARY = [
+  { name: 'Red (Rojo)', key: 'red' },
+  { name: 'Orange (Naranja)', key: 'orange' },
+  { name: 'Amber (Ámbar)', key: 'amber' },
+  { name: 'Yellow (Amarillo)', key: 'yellow' },
+  { name: 'Lime (Lima)', key: 'lime' },
+  { name: 'Green (Verde)', key: 'green' },
+  { name: 'Emerald (Esmeralda)', key: 'emerald' },
+  { name: 'Teal (Teal / Cerceta)', key: 'teal' },
+  { name: 'Cyan (Cian)', key: 'cyan' },
+  { name: 'Sky (Sky / Cielo)', key: 'sky' },
+  { name: 'Blue (Azul)', key: 'blue' },
+  { name: 'Indigo (Índigo)', key: 'indigo' },
+  { name: 'Violet (Violeta)', key: 'violet' },
+  { name: 'Purple (Púrpura)', key: 'purple' },
+  { name: 'Fuchsia (Fucsia)', key: 'fuchsia' },
+  { name: 'Pink (Rosa)', key: 'pink' },
+  { name: 'Rose (Rosa Coral)', key: 'rose' },
+  { name: 'Slate (Pizarra)', key: 'slate' },
+  { name: 'Gray (Gris)', key: 'gray' },
+  { name: 'Zinc (Zinc)', key: 'zinc' },
+  { name: 'Neutral (Neutral)', key: 'neutral' },
+  { name: 'Stone (Piedra)', key: 'stone' }
+];
+
 export default function EstadoBadgeShowcasePage() {
   const [badgeText, setBadgeText] = useState('5 de 10 disp.');
   const [showIcons, setShowIcons] = useState(true);
   const [copiedIndex, setCopiedIndex] = useState(null);
+  
+  // Search query state for the color dictionary
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Palettes State
   const [palettes, setPalettes] = useState(INITIAL_PALETTES);
@@ -131,6 +162,15 @@ export default function EstadoBadgeShowcasePage() {
       return { ...prev, [paletteKey]: updatedList };
     });
   };
+
+  // Filter dictionary based on search query
+  const filteredDictionary = useMemo(() => {
+    if (!searchQuery) return TAILWIND_COLORS_DICTIONARY;
+    const q = searchQuery.toLowerCase();
+    return TAILWIND_COLORS_DICTIONARY.filter(
+      color => color.name.toLowerCase().includes(q) || color.key.toLowerCase().includes(q)
+    );
+  }, [searchQuery]);
 
   return (
     <div className="p-6 max-w-[1280px] mx-auto space-y-8 pb-20 bg-slate-50 min-h-screen">
@@ -306,6 +346,101 @@ export default function EstadoBadgeShowcasePage() {
             </div>
           );
         })}
+      </div>
+
+      {/* NEW: Dictionary & Search Engine for Tailwind Colors */}
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 space-y-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-gray-100 pb-4 gap-4">
+          <div className="space-y-1">
+            <h3 className="font-black text-gray-800 text-sm uppercase tracking-wider flex items-center gap-2">
+              <BookOpen size={18} className="text-blue-600" />
+              📚 Buscador y Referencia de Colores Tailwind
+            </h3>
+            <p className="text-xs text-gray-400">
+              Encuentra los nombres exactos y combinaciones para probar nuevos colores. Haz clic en las etiquetas para copiar sus clases.
+            </p>
+          </div>
+
+          {/* Search box */}
+          <div className="relative flex items-center w-full md:w-80 shrink-0">
+            <Search className="absolute left-3 w-4 h-4 text-gray-400" />
+            <input 
+              type="text" 
+              placeholder="Buscar color (ej: lime, blue, rose)..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm font-medium"
+            />
+          </div>
+        </div>
+
+        {/* Dictionary Swatches Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+          {filteredDictionary.map((colorRef) => {
+            const key = colorRef.key;
+            // Class string presets
+            const softClasses = `bg-${key}-50 text-${key}-800 border-${key}-200`;
+            const neonClasses = `bg-${key}-500/10 text-${key}-600 border-${key}-500/30`;
+            const solidClasses = `bg-${key}-600 text-white border-${key}-700 shadow-sm`;
+
+            return (
+              <div key={key} className="border border-slate-100 rounded-xl p-4 bg-slate-50/50 hover:bg-slate-50 hover:border-slate-200 transition-all space-y-3">
+                <div className="flex justify-between items-center border-b border-slate-200/50 pb-2">
+                  <span className="font-extrabold text-xs text-slate-700">{colorRef.name}</span>
+                  <span className="text-[10px] font-mono text-slate-400 font-bold bg-slate-200/60 px-1.5 py-0.5 rounded">
+                    {key}
+                  </span>
+                </div>
+
+                <div className="space-y-2.5">
+                  {/* Soft Presets */}
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[10px] text-slate-400 font-semibold uppercase">CRM Soft</span>
+                    <button 
+                      onClick={() => handleCopy(softClasses, `dict-${key}-soft`)}
+                      className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold border transition-all cursor-pointer ${softClasses} hover:scale-105 active:scale-95`}
+                      title="Haz clic para copiar clases"
+                    >
+                      {copiedIndex === `dict-${key}-soft` ? <Check size={9} /> : <Copy size={9} />}
+                      {key}-soft
+                    </button>
+                  </div>
+
+                  {/* Neon Presets */}
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[10px] text-slate-400 font-semibold uppercase">Neón Accent</span>
+                    <button 
+                      onClick={() => handleCopy(neonClasses, `dict-${key}-neon`)}
+                      className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold border transition-all cursor-pointer ${neonClasses} hover:scale-105 active:scale-95`}
+                      title="Haz clic para copiar clases"
+                    >
+                      {copiedIndex === `dict-${key}-neon` ? <Check size={9} /> : <Copy size={9} />}
+                      {key}-neon
+                    </button>
+                  </div>
+
+                  {/* Solid Presets */}
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[10px] text-slate-400 font-semibold uppercase">Sólida</span>
+                    <button 
+                      onClick={() => handleCopy(solidClasses, `dict-${key}-solid`)}
+                      className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold border transition-all cursor-pointer ${solidClasses} hover:scale-105 active:scale-95`}
+                      title="Haz clic para copiar clases"
+                    >
+                      {copiedIndex === `dict-${key}-solid` ? <Check size={9} /> : <Copy size={9} />}
+                      {key}-solid
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+          {filteredDictionary.length === 0 && (
+            <div className="col-span-full py-8 text-center text-xs text-gray-500 font-medium bg-slate-100/50 rounded-xl border border-dashed border-gray-200">
+              No se encontraron colores que coincidan con "{searchQuery}"
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Footer Info */}
