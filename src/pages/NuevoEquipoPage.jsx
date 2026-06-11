@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { saveDocument } from '../utils/db';
 import { supabase } from '../lib/supabaseClient';
 import AutocompleteInput from '../components/AutocompleteInput';
+import { isSameUser } from '../utils/userUtils';
 
 const COLUMNS = [
   'Descripción del Bien', 'Marca', 'Modelo', 'Nº de serie',
@@ -60,9 +61,20 @@ export default function NuevoEquipoPage() {
   }, [usuarios, userSearchTerm]);
 
   const handleChange = (e) => {
+    const { name, value } = e.target;
+    if (name === 'estado' && value === 'EN PRESTAMO') {
+      const hasUser = formData.usuario_asignado_id || (formData['Usuario'] && !['disponible', 'bodega', '—', '-', 'sin asignar'].includes(formData['Usuario'].toLowerCase().trim()));
+      if (!hasUser) {
+        showToast(
+          'Usuario Requerido', 
+          'Debe asignar un usuario al equipo para poder registrarlo en estado EN PRÉSTAMO.', 
+          'error'
+        );
+      }
+    }
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [name]: value
     });
   };
 
@@ -120,6 +132,19 @@ export default function NuevoEquipoPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // VALIDACIÓN: Si el estado es "EN PRESTAMO", verificar si hay usuario asignado
+    if (formData.estado === 'EN PRESTAMO') {
+      const hasUser = formData.usuario_asignado_id || (formData['Usuario'] && !['disponible', 'bodega', '—', '-', 'sin asignar'].includes(formData['Usuario'].toLowerCase().trim()));
+      if (!hasUser) {
+        showToast(
+          'Usuario Requerido', 
+          'Debe asignar un usuario al equipo para poder registrarlo en estado EN PRÉSTAMO.', 
+          'error'
+        );
+        return;
+      }
+    }
 
     if (isMultiMode) {
        const rawSerials = formData['Nº de serie'] || '';
@@ -461,7 +486,7 @@ export default function NuevoEquipoPage() {
                         if (currentDesc) {
                           const hasSameType = equipos.some(eq => 
                             eq['Descripción del Bien'] === currentDesc &&
-                            (eq.usuario_asignado_id === opt.value || (eq['Usuario'] && eq['Usuario'].trim().toLowerCase() === opt.label.trim().toLowerCase()))
+                            (eq.usuario_asignado_id === opt.value || (eq['Usuario'] && isSameUser(eq['Usuario'], opt.label)))
                           );
 
                           if (hasSameType) {

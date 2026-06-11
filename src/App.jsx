@@ -9,7 +9,6 @@ import { LicenciasProvider } from './context/LicenciasContext';
 const AppShell        = lazy(() => import('./layouts/AppShell'));
 const DashboardPage   = lazy(() => import('./pages/DashboardPage'));
 const NuevoEquipoPage = lazy(() => import('./pages/NuevoEquipoPage'));
-const EditarEquipoPage = lazy(() => import('./pages/EditarEquipoPage'));
 const LoginPage = lazy(() => import('./pages/LoginPage'));
 const InsumosPage = lazy(() => import('./pages/InsumosPage'));
 const SolicitudesAdminPage = lazy(() => import('./pages/SolicitudesAdminPage'));
@@ -24,6 +23,7 @@ const GlobalDashboardPage = lazy(() => import('./pages/GlobalDashboardPage'));
 const EstadoBadgeShowcasePage = lazy(() => import('./pages/EstadoBadgeShowcasePage'));
 const LicenciasShowcasePage = lazy(() => import('./pages/LicenciasShowcasePage'));
 const DisponiblesShowcasePage = lazy(() => import('./pages/DisponiblesShowcasePage'));
+const LicenciasBadgeShowcasePage = lazy(() => import('./pages/LicenciasBadgeShowcasePage'));
 
 function ProtectedRoute({ children }) {
   const { session, loading } = useAuth();
@@ -81,7 +81,7 @@ export default function App() {
                   <Route path="equipos" element={<AdminRoute><DashboardPage /></AdminRoute>} />
                   <Route path="dashboard" element={<AdminRoute><GlobalDashboardPage /></AdminRoute>} />
                   <Route path="nuevo-equipo" element={<AdminRoute><NuevoEquipoPage /></AdminRoute>} />
-                  <Route path="editar-equipo" element={<AdminRoute><EditarEquipoPage /></AdminRoute>} />
+                  <Route path="editar-equipo" element={<Navigate to="/equipos" replace />} />
                   <Route path="insumos" element={<AdminRoute><InsumosPage /></AdminRoute>} />
                   <Route path="solicitudes" element={<AdminRoute><SolicitudesAdminPage /></AdminRoute>} />
                   <Route path="usuarios" element={<AdminRoute><UsuariosAdminPage /></AdminRoute>} />
@@ -100,6 +100,7 @@ export default function App() {
                   <Route path="badge" element={<EstadoBadgeShowcasePage />} />
                   <Route path="licencias-showcase" element={<LicenciasShowcasePage />} />
                   <Route path="disponibles-showcase" element={<DisponiblesShowcasePage />} />
+                  <Route path="licencias-badge" element={<LicenciasBadgeShowcasePage />} />
                   
                 </Route>
                 <Route path="*" element={<Navigate to="/" replace />} />

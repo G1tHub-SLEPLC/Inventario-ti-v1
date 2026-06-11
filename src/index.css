@@ -1,5 +1,12 @@
 @import "tailwindcss";
 
+/* Safelist color classes dynamically in Tailwind CSS v4 */
+@source inline("bg-{red,orange,amber,yellow,lime,green,emerald,teal,cyan,sky,blue,indigo,violet,purple,fuchsia,pink,rose,slate,gray,zinc,neutral,stone}-{50,100,200,300,400,500,600,700,800,900,950}");
+@source inline("text-{red,orange,amber,yellow,lime,green,emerald,teal,cyan,sky,blue,indigo,violet,purple,fuchsia,pink,rose,slate,gray,zinc,neutral,stone}-{50,100,200,300,400,500,600,700,800,900,950}");
+@source inline("border-{red,orange,amber,yellow,lime,green,emerald,teal,cyan,sky,blue,indigo,violet,purple,fuchsia,pink,rose,slate,gray,zinc,neutral,stone}-{50,100,200,300,400,500,600,700,800,900,950}");
+@source inline("bg-{red,orange,amber,yellow,lime,green,emerald,teal,cyan,sky,blue,indigo,violet,purple,fuchsia,pink,rose,slate,gray,zinc,neutral,stone}-500/{10,20,30,40,50}");
+@source inline("border-{red,orange,amber,yellow,lime,green,emerald,teal,cyan,sky,blue,indigo,violet,purple,fuchsia,pink,rose,slate,gray,zinc,neutral,stone}-500/{10,20,30,40,50}");
+
 @theme {
   --font-sans: 'Inter', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
 }
@@ -49,17 +56,17 @@
     background: var(--slep-primary);
     color: #ffffff;
     z-index: 5;
-    font-size: 12px;
-    letter-spacing: 0.025em;
-    padding: 8px 12px;
+    font-size: 11px;
+    letter-spacing: 0.02em;
+    padding: 6px 8px;
     line-height: 1.2;
   }
 
   .table-scroll td {
-    padding: 8px 12px;
+    padding: 6px 8px;
     vertical-align: middle;
     border-bottom: 1px solid #e5e7eb;
-    font-size: 12px;
+    font-size: 11.5px;
     color: #334155;
   }
 

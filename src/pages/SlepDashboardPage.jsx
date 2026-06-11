@@ -226,7 +226,7 @@ export default function SlepDashboardPage() {
                         <td className="px-4 py-3 font-mono text-[12px] whitespace-nowrap">{eq['Nº de serie'] || '—'}</td>
                         <td className="px-4 py-3 whitespace-nowrap">{eq['SubDirección'] || '—'}</td>
                         <td className="px-4 py-3 text-center">
-                          <span className="font-sans bg-blue-50 text-blue-700 border border-blue-200 px-2.5 py-1 rounded text-[11px] font-bold tracking-wide uppercase whitespace-nowrap">
+                          <span className="font-sans bg-lime-300 text-lime-800 border border-lime-400 px-2.5 py-1 rounded text-[11px] font-bold tracking-wide uppercase whitespace-nowrap">
                             ASIGNADO
                           </span>
                         </td>
@@ -268,7 +268,7 @@ export default function SlepDashboardPage() {
                           <td className="px-4 py-3">{ins.marca || '—'}</td>
                           <td className="px-4 py-3">{ins.modelo || '—'}</td>
                           <td className="px-4 py-3 text-center">
-                            <span className={`font-sans px-2.5 py-1 rounded text-[11px] font-bold tracking-wide border uppercase whitespace-nowrap ${disponible ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-rose-50 text-rose-700 border-rose-200'}`}>
+                            <span className={`font-sans px-2.5 py-1 rounded text-[11px] font-bold tracking-wide border uppercase whitespace-nowrap ${disponible ? 'bg-green-300 text-green-800 border-green-400' : 'bg-rose-50 text-rose-700 border-rose-200'}`}>
                               {disponible ? 'DISPONIBLE' : 'AGOTADO'}
                             </span>
                           </td>
@@ -320,7 +320,7 @@ export default function SlepDashboardPage() {
                         <td className="px-4 py-3">{eq.Modelo || '—'}</td>
                         <td className="px-4 py-3 font-mono text-[12px]">{eq['Nº de serie'] || '—'}</td>
                         <td className="px-4 py-3 text-center">
-                          <span className="bg-fuchsia-50 text-fuchsia-700 border border-fuchsia-200 px-2.5 py-1 rounded text-[11px] font-bold tracking-wide uppercase whitespace-nowrap">
+                          <span className="bg-indigo-200 text-indigo-600 border border-indigo-600 px-2.5 py-1 rounded text-[11px] font-bold tracking-wide uppercase whitespace-nowrap">
                             PARA PRESTAMO
                           </span>
                         </td>

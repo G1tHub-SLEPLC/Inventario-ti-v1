@@ -2,9 +2,11 @@ import { useState, useMemo, useRef, useEffect } from 'react';
 import { useInventario } from '../context/InventarioContext';
 import * as XLSX from 'xlsx';
 import Papa from 'papaparse';
-import { Download, Search, Package, UserCircle, MonitorSmartphone, Printer, Eye, Upload, Pencil, CheckCircle, UploadCloud, AlertCircle, FileWarning, AlertTriangle, PlusCircle } from 'lucide-react';
+import { Download, Search, Package, UserCircle, MonitorSmartphone, Printer, Eye, Upload, Pencil, CheckCircle, UploadCloud, AlertCircle, FileWarning, AlertTriangle, PlusCircle, UserPlus } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { saveDocument, getDocument } from '../utils/db';
+import EditarEquipoModal from '../components/EditarEquipoModal';
+import { isSameUser } from '../utils/userUtils';
 
 const COLUMNS = [
   'Descripción del Bien', 'Marca', 'Modelo', 'Nº de serie',
@@ -17,16 +19,16 @@ function norm(s) {
 }
 
 const HEADER_ALIASES = {
-  'Descripción del Bien': ['descripción del bien','descripcion del bien','descripcion bien','descripción bien'],
+  'Descripción del Bien': ['descripción del bien', 'descripcion del bien', 'descripcion bien', 'descripción bien'],
   'Marca': ['marca'],
   'Modelo': ['modelo'],
-  'Nº de serie': ['nº de serie','n° de serie','no de serie','numero de serie','número de serie','serie'],
-  'ID Publicación': ['id publicación','id publicacion','codigo compra agil / licitación / codigo convenio marco','codigo compra agil / licitacion / codigo convenio marco','código compra ágil','codigo compra','licitacion','licitación','convenio marco','codigo'],
-  'Orden de Compra': ['orden de compra','oc','orden compra'],
-  'Factura': ['factura','n° factura','nº factura'],
-  'Proveedor': ['proveedor','empresa','vendedor','distribuidor'],
-  'SubDirección': ['subcdirección','subcdireccion','subdirección','subdireccion','area','área'],
-  'Usuario': ['usuario','funcionario','asignado a']
+  'Nº de serie': ['nº de serie', 'n° de serie', 'no de serie', 'numero de serie', 'número de serie', 'serie'],
+  'ID Publicación': ['id publicación', 'id publicacion', 'codigo compra agil / licitación / codigo convenio marco', 'codigo compra agil / licitacion / codigo convenio marco', 'código compra ágil', 'codigo compra', 'licitacion', 'licitación', 'convenio marco', 'codigo'],
+  'Orden de Compra': ['orden de compra', 'oc', 'orden compra'],
+  'Factura': ['factura', 'n° factura', 'nº factura'],
+  'Proveedor': ['proveedor', 'empresa', 'vendedor', 'distribuidor'],
+  'SubDirección': ['subcdirección', 'subcdireccion', 'subdirección', 'subdireccion', 'area', 'área'],
+  'Usuario': ['usuario', 'funcionario', 'asignado a']
 };
 
 function normalizeRow(rawRow) {
@@ -36,12 +38,12 @@ function normalizeRow(rawRow) {
   COLUMNS.forEach(canonical => {
     const aliases = HEADER_ALIASES[canonical] || [norm(canonical)];
     let found = '';
-    for(const a of aliases){
-      if(lowerMap[a] !== undefined && lowerMap[a] !== null && String(lowerMap[a]).trim() !== ''){
+    for (const a of aliases) {
+      if (lowerMap[a] !== undefined && lowerMap[a] !== null && String(lowerMap[a]).trim() !== '') {
         found = lowerMap[a]; break;
       }
     }
-    if(found === '' && lowerMap[norm(canonical)] !== undefined) found = lowerMap[norm(canonical)];
+    if (found === '' && lowerMap[norm(canonical)] !== undefined) found = lowerMap[norm(canonical)];
     out[canonical] = found == null ? '' : String(found).trim();
   });
   return out;
@@ -52,6 +54,36 @@ function isAvailable(usuario) {
   return v === '' || v === 'disponible';
 }
 
+function getEstadoFinal(row) {
+  if (!row) return 'DISPONIBLE';
+  const isDisp = isAvailable(row['Usuario']);
+  const dbEstado = (row.estado || '').trim().toUpperCase();
+
+  if (!isDisp) {
+    if (dbEstado === 'EN PRESTAMO' || dbEstado === 'EN PRÉSTAMO') {
+      return 'EN PRESTAMO';
+    }
+    if (dbEstado === 'BAJA' || dbEstado === 'DE BAJA') {
+      return 'DE BAJA';
+    }
+    return 'ASIGNADO';
+  } else {
+    if (dbEstado === 'ASIGNADO') {
+      return 'DISPONIBLE';
+    }
+    if (dbEstado === 'EN PRESTAMO' || dbEstado === 'EN PRÉSTAMO') {
+      return 'EN PRESTAMO';
+    }
+    if (dbEstado === 'BAJA' || dbEstado === 'DE BAJA') {
+      return 'DE BAJA';
+    }
+    if (dbEstado === 'PARA PRESTAMO' || dbEstado === 'PARA PRÉSTAMO') {
+      return 'PARA PRESTAMO';
+    }
+    return dbEstado || 'DISPONIBLE';
+  }
+}
+
 function safe(v) {
   return (v == null || String(v).trim() === '') ? '—' : String(v).trim();
 }
@@ -59,12 +91,12 @@ function safe(v) {
 function getBadgeClass(estado, isUserBadge = false) {
   const base = "font-sans px-2.5 py-1 rounded text-[11px] font-bold tracking-wide uppercase whitespace-nowrap border";
   if (isUserBadge) return `${base} bg-blue-50 text-blue-700 border-blue-200`;
-  
-  if (estado === 'DISPONIBLE') return `${base} bg-emerald-50 text-emerald-700 border-emerald-200`;
-  if (estado === 'PARA PRESTAMO' || estado === 'PARA PRÉSTAMO') return `${base} bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200`;
-  if (estado === 'EN PRESTAMO' || estado === 'EN PRÉSTAMO') return `${base} bg-amber-50 text-amber-700 border-amber-200`;
-  if (estado === 'BAJA' || estado === 'DE BAJA') return `${base} bg-rose-50 text-rose-700 border-rose-200`;
-  return `${base} bg-blue-50 text-blue-700 border-blue-200`; // ASIGNADO
+
+  if (estado === 'DISPONIBLE') return `${base} bg-green-300 text-green-700 border-green-600`;
+  if (estado === 'PARA PRESTAMO' || estado === 'PARA PRÉSTAMO') return `${base} bg-indigo-300 text-indigo-700 border-indigo-600`;
+  if (estado === 'EN PRESTAMO' || estado === 'EN PRÉSTAMO') return `${base} bg-amber-300 text-amber-700 border-amber-600`;
+  if (estado === 'BAJA' || estado === 'DE BAJA') return `${base} bg-rose-300 text-red-700 border-red-600`;
+  return `${base} bg-lime-300 text-lime-700 border-lime-600`; // ASIGNADO
 }
 
 function getInitials(name) {
@@ -75,7 +107,7 @@ function getInitials(name) {
 }
 
 export default function DashboardPage() {
-  const { equipos, loading, setFileStatus, addMasivo } = useInventario();
+  const { equipos, loading, setFileStatus, addMasivo, updateEquipo } = useInventario();
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = searchParams.get('tab') || 'disp';
   const setActiveTab = (tab) => {
@@ -83,14 +115,18 @@ export default function DashboardPage() {
   };
   const [globalSearch, setGlobalSearch] = useState('');
   const [sortConfig, setSortConfig] = useState({ col: null, dir: 1 });
-  
+
   const [isMasivaModalOpen, setIsMasivaModalOpen] = useState(false);
+  const [editingEquipo, setEditingEquipo] = useState(null);
   const [status, setStatus] = useState({ type: 'idle', message: '' });
   const [localToast, setLocalToast] = useState(null);
   const toastTimerRef = useRef(null);
   const [toastPos, setToastPos] = useState({ x: 0, y: 0 });
   const isDragging = useRef(false);
   const dragStart = useRef({ x: 0, y: 0 });
+
+  const [assignModalData, setAssignModalData] = useState(null);
+  const [assignUserName, setAssignUserName] = useState('');
 
   useEffect(() => {
     const handleGlobalMouseMove = (e) => {
@@ -153,17 +189,17 @@ export default function DashboardPage() {
   };
 
   const processData = (rows) => {
-    if(!rows || rows.length === 0){
+    if (!rows || rows.length === 0) {
       setStatus({ type: 'error', message: 'El archivo está vacío' });
       showLocalToast('Error', 'El archivo cargado está vacío.', 'error');
       return;
     }
-    
+
     const normalized = rows.map(r => normalizeRow(r)).filter(r => {
-        return COLUMNS.some(col => r[col] && r[col].toString().trim() !== '');
+      return COLUMNS.some(col => r[col] && r[col].toString().trim() !== '');
     });
-    
-    if(normalized.length === 0){
+
+    if (normalized.length === 0) {
       setStatus({ type: 'error', message: 'No se encontraron filas válidas.' });
       showLocalToast('Error', 'No se encontraron filas válidas en el archivo.', 'error');
       return;
@@ -173,7 +209,7 @@ export default function DashboardPage() {
     const noSerial = [];
     const validWithSerial = [];
     const importableItems = [];
-    
+
     normalized.forEach((row, index) => {
       const serial = row['Nº de serie'] ? String(row['Nº de serie']).trim() : '';
       if (!serial) {
@@ -185,7 +221,7 @@ export default function DashboardPage() {
         validWithSerial.push(row);
       }
     });
-    
+
     const duplicates = [];
     const newItems = [];
     const seenSerials = new Set(
@@ -193,10 +229,10 @@ export default function DashboardPage() {
         .map(e => e['Nº de serie'] ? String(e['Nº de serie']).trim().toLowerCase() : '')
         .filter(s => s !== '')
     );
-    
+
     validWithSerial.forEach(row => {
       const serial = String(row['Nº de serie']).trim().toLowerCase();
-      
+
       if (seenSerials.has(serial)) {
         duplicates.push(row);
       } else {
@@ -209,16 +245,16 @@ export default function DashboardPage() {
     if (importableItems.length > 0) {
       addMasivo(importableItems);
     }
-    
+
     if (isFirstUpload) {
       if (duplicates.length > 0 || noSerial.length > 0) {
-        setStatus({ 
-          type: 'success', 
-          message: `Cargados: ${importableItems.length}. Omitidos: ${duplicates.length} duplicados. ¡Atención! ${noSerial.length} sin serie.` 
+        setStatus({
+          type: 'success',
+          message: `Cargados: ${importableItems.length}. Omitidos: ${duplicates.length} duplicados. ¡Atención! ${noSerial.length} sin serie.`
         });
         showLocalToast(
-          'Carga Inicial con Advertencia', 
-          '', 
+          'Carga Inicial con Advertencia',
+          '',
           'warning',
           {
             duplicateSerials: duplicates.map(d => String(d['Nº de serie'] || '—').trim()),
@@ -228,13 +264,13 @@ export default function DashboardPage() {
           }
         );
       } else {
-        setStatus({ 
-          type: 'success', 
-          message: `✓ ${importableItems.length} registros cargados exitosamente.` 
+        setStatus({
+          type: 'success',
+          message: `✓ ${importableItems.length} registros cargados exitosamente.`
         });
         showLocalToast(
-          'Carga Exitosa', 
-          `Se han cargado correctamente los ${importableItems.length} equipos en el sistema.`, 
+          'Carga Exitosa',
+          `Se han cargado correctamente los ${importableItems.length} equipos en el sistema.`,
           'success'
         );
         setTimeout(() => setIsMasivaModalOpen(false), 2000);
@@ -242,15 +278,15 @@ export default function DashboardPage() {
     } else {
       if (newItems.length > 0) {
         if (noSerial.length > 0 || duplicates.length > 0) {
-          setStatus({ 
-            type: 'success', 
-            message: `Cargados: ${newItems.length} nuevos. Omitidos: ${noSerial.length} sin serie, ${duplicates.length} duplicados.` 
+          setStatus({
+            type: 'success',
+            message: `Cargados: ${newItems.length} nuevos. Omitidos: ${noSerial.length} sin serie, ${duplicates.length} duplicados.`
           });
           showLocalToast(
-            'Carga Parcial Completada', 
-            noSerial.length > 0 
+            'Carga Parcial Completada',
+            noSerial.length > 0
               ? 'ATENCIÓN: Solo se permite subir equipos con N° de serie. Los equipos sin serie fueron omitidos.'
-              : '', 
+              : '',
             'warning',
             {
               duplicateSerials: duplicates.map(d => String(d['Nº de serie'] || '—').trim()),
@@ -260,28 +296,28 @@ export default function DashboardPage() {
             }
           );
         } else {
-          setStatus({ 
-            type: 'success', 
-            message: `✓ ${newItems.length} registros cargados exitosamente.` 
+          setStatus({
+            type: 'success',
+            message: `✓ ${newItems.length} registros cargados exitosamente.`
           });
           showLocalToast(
-            'Carga Exitosa', 
-            `Se han cargado correctamente los ${newItems.length} equipos en el sistema.`, 
+            'Carga Exitosa',
+            `Se han cargado correctamente los ${newItems.length} equipos en el sistema.`,
             'success'
           );
           setTimeout(() => setIsMasivaModalOpen(false), 2000);
         }
       } else {
         if (noSerial.length > 0 || duplicates.length > 0) {
-          setStatus({ 
-            type: 'error', 
-            message: `No se agregaron registros. Omitidos: ${noSerial.length} sin serie, ${duplicates.length} duplicados.` 
+          setStatus({
+            type: 'error',
+            message: `No se agregaron registros. Omitidos: ${noSerial.length} sin serie, ${duplicates.length} duplicados.`
           });
           showLocalToast(
-            'Carga Omitida', 
-            noSerial.length > 0 
+            'Carga Omitida',
+            noSerial.length > 0
               ? 'ATENCIÓN: Solo se permite subir equipos con N° de serie. Todos los registros fueron omitidos por duplicidad o falta de serie.'
-              : 'Todos los equipos del archivo ya estaban registrados (duplicados).', 
+              : 'Todos los equipos del archivo ya estaban registrados (duplicados).',
             'error',
             {
               duplicateSerials: duplicates.map(d => String(d['Nº de serie'] || '—').trim()),
@@ -291,13 +327,13 @@ export default function DashboardPage() {
             }
           );
         } else {
-          setStatus({ 
-            type: 'error', 
-            message: 'No se encontraron equipos para agregar.' 
+          setStatus({
+            type: 'error',
+            message: 'No se encontraron equipos para agregar.'
           });
           showLocalToast(
-            'Carga Omitida', 
-            'El archivo no contenía equipos válidos.', 
+            'Carga Omitida',
+            'El archivo no contenía equipos válidos.',
             'error'
           );
         }
@@ -309,20 +345,20 @@ export default function DashboardPage() {
 
   const handleMasivaFile = (e) => {
     const file = e.target.files[0];
-    if(!file) return;
-    
+    if (!file) return;
+
     setStatus({ type: 'processing', message: 'Procesando archivo...' });
     setLocalToast(null);
 
     const ext = file.name.split('.').pop().toLowerCase();
-    
-    if(ext === 'csv') {
+
+    if (ext === 'csv') {
       Papa.parse(file, {
         header: true, skipEmptyLines: true, dynamicTyping: false,
         complete: res => { setTimeout(() => processData(res.data), 50); },
         error: err => setStatus({ type: 'error', message: err.message })
       });
-    } else if(ext === 'xlsx' || ext === 'xls') {
+    } else if (ext === 'xlsx' || ext === 'xls') {
       const reader = new FileReader();
       reader.onload = ev => {
         setTimeout(() => {
@@ -331,7 +367,7 @@ export default function DashboardPage() {
             const ws = wb.Sheets[wb.SheetNames[0]];
             const json = XLSX.utils.sheet_to_json(ws, { defval: '' });
             processData(json);
-          } catch(err) {
+          } catch (err) {
             setStatus({ type: 'error', message: 'Error al leer el archivo Excel' });
           }
         }, 50);
@@ -341,18 +377,18 @@ export default function DashboardPage() {
     } else {
       setStatus({ type: 'error', message: 'Formato no soportado. Use .csv, .xls o .xlsx' });
     }
-    
+
     if (masivaFileInputRef.current) {
       masivaFileInputRef.current.value = '';
     }
   };
-  
+
   // Tab: func state
   const [selectedFunc, setSelectedFunc] = useState('');
   const [funcSearch, setFuncSearch] = useState('');
   const [showFuncSug, setShowFuncSug] = useState(false);
   const [focusedIndex, setFocusedIndex] = useState(-1);
-  
+
   // Tab: equip state
   const [selectedDesc, setSelectedDesc] = useState('');
   const [selectedMod, setSelectedMod] = useState('');
@@ -364,8 +400,8 @@ export default function DashboardPage() {
     try {
       const eq = equipos.find(e => e.id === id);
       const code = eq ? (type === 'factura' ? eq['Factura'] : eq['Orden de Compra']) : '';
-      const storageKey = (code && code.trim() !== '—' && code.trim() !== '') 
-        ? `${type}_${code.trim().toLowerCase()}` 
+      const storageKey = (code && code.trim() !== '—' && code.trim() !== '')
+        ? `${type}_${code.trim().toLowerCase()}`
         : id;
 
       const doc = await getDocument(storageKey, type);
@@ -395,8 +431,8 @@ export default function DashboardPage() {
     try {
       const eq = equipos.find(item => item.id === uploadTarget.id);
       const code = eq ? (uploadTarget.type === 'factura' ? eq['Factura'] : eq['Orden de Compra']) : '';
-      const storageKey = (code && code.trim() !== '—' && code.trim() !== '') 
-        ? `${uploadTarget.type}_${code.trim().toLowerCase()}` 
+      const storageKey = (code && code.trim() !== '—' && code.trim() !== '')
+        ? `${uploadTarget.type}_${code.trim().toLowerCase()}`
         : uploadTarget.id;
 
       await saveDocument(storageKey, uploadTarget.type, file);
@@ -415,11 +451,11 @@ export default function DashboardPage() {
     equipos.forEach(r => {
       if (!isAvailable(r['Usuario'])) set.add(r['Usuario'].trim());
     });
-    return [...set].sort((a,b) => a.localeCompare(b,'es'));
+    return [...set].sort((a, b) => a.localeCompare(b, 'es'));
   }, [equipos]);
 
   const funcSuggestions = useMemo(() => {
-    if(!funcSearch) return uniqueUsers;
+    if (!funcSearch) return uniqueUsers;
     const v = norm(funcSearch);
     return uniqueUsers.filter(u => norm(u).includes(v));
   }, [uniqueUsers, funcSearch]);
@@ -432,8 +468,8 @@ export default function DashboardPage() {
       if (r['Modelo']) mSet.add(r['Modelo'].trim());
     });
     return {
-      descList: [...dSet].sort((a,b)=>a.localeCompare(b,'es')),
-      modList: [...mSet].sort((a,b)=>a.localeCompare(b,'es'))
+      descList: [...dSet].sort((a, b) => a.localeCompare(b, 'es')),
+      modList: [...mSet].sort((a, b) => a.localeCompare(b, 'es'))
     };
   }, [equipos]);
 
@@ -455,7 +491,7 @@ export default function DashboardPage() {
     if (selectedMod && selectedMod !== 'ALL' && selectedMod !== '') {
       pool = pool.filter(r => (r['Modelo'] || '').trim() === selectedMod.trim());
     }
-    
+
     if (selectedDesc !== '' || selectedMod !== '') {
       const dispCount = pool.filter(r => isAvailable(r['Usuario'])).length;
       kpisEquip = { total: pool.length, disp: dispCount, asig: pool.length - dispCount };
@@ -468,18 +504,42 @@ export default function DashboardPage() {
     const q = norm(globalSearch);
     baseData = baseData.filter(r => {
       const matchCols = COLUMNS.some(c => norm(r[c]).includes(q));
-      const estadoFinal = r.estado || (isAvailable(r['Usuario']) ? 'DISPONIBLE' : 'ASIGNADO');
+      const estadoFinal = getEstadoFinal(r);
       const matchEstado = norm(estadoFinal).includes(q);
       return matchCols || matchEstado;
     });
   }
 
+  // Define active columns dynamically
+  const activeCols = useMemo(() => {
+    if (activeTab === 'disp') {
+      const cols = COLUMNS.filter(c => c !== 'Usuario' && c !== 'SubDirección');
+      cols.push('Estado');
+      return cols;
+    }
+    const cols = [];
+    COLUMNS.forEach(c => {
+      if (c === 'Usuario') {
+        cols.push('Estado');
+      }
+      cols.push(c);
+    });
+    return cols;
+  }, [activeTab]);
+
   // Apply Sort
   if (sortConfig.col) {
     baseData.sort((a, b) => {
-      const va = norm(a[sortConfig.col]), vb = norm(b[sortConfig.col]);
-      if(va < vb) return -1 * sortConfig.dir;
-      if(va > vb) return 1 * sortConfig.dir;
+      let va, vb;
+      if (sortConfig.col === 'Estado') {
+        va = norm(getEstadoFinal(a));
+        vb = norm(getEstadoFinal(b));
+      } else {
+        va = norm(a[sortConfig.col]);
+        vb = norm(b[sortConfig.col]);
+      }
+      if (va < vb) return -1 * sortConfig.dir;
+      if (va > vb) return 1 * sortConfig.dir;
       return 0;
     });
   }
@@ -493,7 +553,7 @@ export default function DashboardPage() {
   };
 
   const exportData = async (format) => {
-    if(baseData.length === 0) {
+    if (baseData.length === 0) {
       alert('No hay datos para exportar.');
       return;
     }
@@ -501,7 +561,7 @@ export default function DashboardPage() {
     const activeCols = COLUMNS.filter(c => activeTab === 'disp' ? (c !== 'Usuario' && c !== 'SubDirección') : true);
     activeCols.push('Estado');
 
-    const stamp = new Date().toISOString().slice(0,16).replace(/[:T]/g,'-');
+    const stamp = new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-');
     const baseName = `inventario_${activeTab}_${stamp}`;
 
     if (format === 'xlsx') {
@@ -509,7 +569,7 @@ export default function DashboardPage() {
       const { saveAs } = await import('file-saver');
       const wb = new Workbook();
       const ws = wb.addWorksheet('Inventario');
-      
+
       ws.columns = activeCols.map(c => ({
         header: c.toUpperCase(),
         key: c,
@@ -527,13 +587,13 @@ export default function DashboardPage() {
       baseData.forEach((r, i) => {
         const rowData = {};
         activeCols.forEach(c => {
-          const estadoFinal = r.estado || (isAvailable(r['Usuario']) ? 'DISPONIBLE' : 'ASIGNADO');
+          const estadoFinal = getEstadoFinal(r);
           rowData[c] = c === 'Estado' ? estadoFinal : safe(r[c]);
         });
         const row = ws.addRow(rowData);
-        
+
         if (i % 2 !== 0) {
-           row.eachCell(cell => { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FAFC' } }; });
+          row.eachCell(cell => { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FAFC' } }; });
         }
 
         row.eachCell((cell, colNumber) => {
@@ -547,11 +607,11 @@ export default function DashboardPage() {
             else if (val === 'PARA PRESTAMO') color = 'FF6B21A8';
             else if (val === 'EN PRESTAMO') color = 'FFC2410C';
             else if (val === 'DE BAJA') color = 'FF991B1B';
-            
+
             cell.font = { bold: true, size: 10, color: { argb: color } };
           }
           if (colName === 'Nº de serie') {
-             cell.font = { ...cell.font, name: 'Courier New' };
+            cell.font = { ...cell.font, name: 'Courier New' };
           }
         });
         row.height = 20;
@@ -566,8 +626,8 @@ export default function DashboardPage() {
 
       const doc = new jsPDF('landscape', 'pt', 'a4');
       const tableRows = baseData.map(r => activeCols.map(c => {
-         const estadoFinal = r.estado || (isAvailable(r['Usuario']) ? 'DISPONIBLE' : 'ASIGNADO');
-         return c === 'Estado' ? estadoFinal : safe(r[c]);
+        const estadoFinal = getEstadoFinal(r);
+        return c === 'Estado' ? estadoFinal : safe(r[c]);
       }));
 
       doc.setFontSize(16);
@@ -585,14 +645,14 @@ export default function DashboardPage() {
           [activeCols.indexOf('Estado')]: { fontStyle: 'bold' },
           [activeCols.indexOf('Nº de serie')]: { font: 'courier' }
         },
-        didParseCell: function(data) {
+        didParseCell: function (data) {
           if (data.section === 'body' && data.column.index === activeCols.indexOf('Estado')) {
-             const val = data.cell.raw;
-             if (val === 'DISPONIBLE') data.cell.styles.textColor = [100, 160, 40];
-             else if (val === 'PARA PRESTAMO') data.cell.styles.textColor = [107, 33, 168];
-             else if (val === 'EN PRESTAMO') data.cell.styles.textColor = [194, 65, 12];
-             else if (val === 'DE BAJA') data.cell.styles.textColor = [153, 27, 27];
-             else data.cell.styles.textColor = [37, 48, 107];
+            const val = data.cell.raw;
+            if (val === 'DISPONIBLE') data.cell.styles.textColor = [100, 160, 40];
+            else if (val === 'PARA PRESTAMO') data.cell.styles.textColor = [107, 33, 168];
+            else if (val === 'EN PRESTAMO') data.cell.styles.textColor = [194, 65, 12];
+            else if (val === 'DE BAJA') data.cell.styles.textColor = [153, 27, 27];
+            else data.cell.styles.textColor = [37, 48, 107];
           }
         }
       });
@@ -602,13 +662,13 @@ export default function DashboardPage() {
       const exportRows = baseData.map(r => {
         const o = {};
         activeCols.forEach(c => {
-          const estadoFinal = r.estado || (isAvailable(r['Usuario']) ? 'DISPONIBLE' : 'ASIGNADO');
+          const estadoFinal = getEstadoFinal(r);
           o[c] = c === 'Estado' ? estadoFinal : safe(r[c]);
         });
         return o;
       });
       const csv = Papa.unparse(exportRows);
-      const blob = new Blob(['\ufeff' + csv], {type: 'text/csv;charset=utf-8;'});
+      const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -628,7 +688,7 @@ export default function DashboardPage() {
 
   return (
     <div className="p-6 w-full max-w-[1920px] mx-auto space-y-6">
-      
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-gray-200 pb-5">
         <div>
@@ -655,20 +715,20 @@ export default function DashboardPage() {
 
       {/* Global KPIs */}
       <section className="grid grid-cols-1 sm:grid-cols-3 gap-4 no-print-interactive">
-        <div className="bg-white rounded-xl shadow-sm p-5 border-l-4" style={{borderColor: 'var(--slep-primary)'}}>
+        <div className="bg-white rounded-xl shadow-sm p-5 border-l-4" style={{ borderColor: 'var(--slep-primary)' }}>
           <div className="text-xs uppercase tracking-wide text-gray-500 font-semibold">Total de Equipos</div>
           <div className="text-4xl font-bold mt-2 text-[#25306B]">{total}</div>
           <div className="text-xs text-gray-500 mt-1">Registros en el inventario</div>
         </div>
-        <div className="bg-white rounded-xl shadow-sm p-5 border-l-4" style={{borderColor: 'var(--slep-secondary)'}}>
+        <div className="bg-white rounded-xl shadow-sm p-5 border-l-4" style={{ borderColor: 'var(--slep-secondary)' }}>
           <div className="text-xs uppercase tracking-wide text-gray-500 font-semibold">Equipos Asignados</div>
           <div className="text-4xl font-bold mt-2 text-[#006BB9]">{totalAsig}</div>
-          <div className="text-xs text-gray-500 mt-1">{total ? ((totalAsig/total)*100).toFixed(1) : 0}% del total</div>
+          <div className="text-xs text-gray-500 mt-1">{total ? ((totalAsig / total) * 100).toFixed(1) : 0}% del total</div>
         </div>
-        <div className="bg-white rounded-xl shadow-sm p-5 border-l-4" style={{borderColor: 'var(--slep-green)'}}>
+        <div className="bg-white rounded-xl shadow-sm p-5 border-l-4" style={{ borderColor: 'var(--slep-green)' }}>
           <div className="text-xs uppercase tracking-wide text-gray-500 font-semibold">Equipos Disponibles</div>
           <div className="text-4xl font-bold mt-2 text-[#90d039]">{totalDisp}</div>
-          <div className="text-xs text-gray-500 mt-1">{total ? ((totalDisp/total)*100).toFixed(1) : 0}% del total</div>
+          <div className="text-xs text-gray-500 mt-1">{total ? ((totalDisp / total) * 100).toFixed(1) : 0}% del total</div>
         </div>
       </section>
 
@@ -677,13 +737,13 @@ export default function DashboardPage() {
         <div className="flex flex-col xl:flex-row justify-between items-stretch xl:items-center border-b border-gray-200">
           <nav className="flex flex-wrap w-full xl:w-auto">
             <button onClick={() => setActiveTab('disp')} className={`px-4 py-3 text-sm font-medium border-b-2 flex items-center gap-2 transition-colors ${activeTab === 'disp' ? 'border-[#25306B] bg-[#25306B] text-white' : 'border-transparent text-gray-600 hover:bg-gray-50'}`}>
-              <Package size={16}/> Disponibles
+              <Package size={16} /> Disponibles
             </button>
             <button onClick={() => setActiveTab('func')} className={`px-4 py-3 text-sm font-medium border-b-2 flex items-center gap-2 transition-colors ${activeTab === 'func' ? 'border-[#25306B] bg-[#25306B] text-white' : 'border-transparent text-gray-600 hover:bg-gray-50'}`}>
-              <UserCircle size={16}/> Por Funcionario
+              <UserCircle size={16} /> Por Funcionario
             </button>
             <button onClick={() => setActiveTab('equip')} className={`px-4 py-3 text-sm font-medium border-b-2 flex items-center gap-2 transition-colors ${activeTab === 'equip' ? 'border-[#25306B] bg-[#25306B] text-white' : 'border-transparent text-gray-600 hover:bg-gray-50'}`}>
-              <MonitorSmartphone size={16}/> Por Equipamiento
+              <MonitorSmartphone size={16} /> Por Equipamiento
             </button>
           </nav>
           <div className="flex flex-wrap gap-2 p-3 xl:p-0 xl:pr-4 bg-gray-50 xl:bg-transparent no-print-interactive">
@@ -710,14 +770,14 @@ export default function DashboardPage() {
               <div className="relative flex-1 sm:max-w-md">
                 <div className="relative flex items-center">
                   <Search className="absolute left-3 w-4 h-4 text-gray-400" />
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     value={funcSearch}
                     onChange={e => {
                       setFuncSearch(e.target.value);
                       setShowFuncSug(true);
                       setFocusedIndex(-1);
-                      if(!e.target.value) setSelectedFunc('');
+                      if (!e.target.value) setSelectedFunc('');
                     }}
                     onKeyDown={e => {
                       if (!showFuncSug) return;
@@ -743,7 +803,7 @@ export default function DashboardPage() {
                     }}
                     onFocus={() => setShowFuncSug(true)}
                     onBlur={() => setTimeout(() => { setShowFuncSug(false); setFocusedIndex(-1); }, 200)}
-                    placeholder="Buscar funcionario..." 
+                    placeholder="Buscar funcionario..."
                     className="w-full pl-9 pr-4 py-2.5 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#006BB9] focus:outline-none shadow-sm transition-all"
                   />
                 </div>
@@ -751,9 +811,9 @@ export default function DashboardPage() {
                   <div className="absolute z-50 w-full bg-white border border-gray-200 rounded-lg mt-1 max-h-60 overflow-y-auto shadow-xl">
                     <div className="py-1">
                       {funcSuggestions.length > 0 ? funcSuggestions.map((u, idx) => (
-                        <div 
-                          key={u} 
-                          onMouseDown={() => { setSelectedFunc(u); setFuncSearch(u); setShowFuncSug(false); setFocusedIndex(-1); }} 
+                        <div
+                          key={u}
+                          onMouseDown={() => { setSelectedFunc(u); setFuncSearch(u); setShowFuncSug(false); setFocusedIndex(-1); }}
                           className={`flex items-center gap-3 px-3 py-2 cursor-pointer transition-colors ${focusedIndex === idx ? 'bg-blue-100' : 'hover:bg-slate-50'}`}
                         >
                           <span className="w-7 h-7 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px] font-black uppercase shrink-0 shadow-sm">
@@ -795,18 +855,18 @@ export default function DashboardPage() {
                   </select>
                 </div>
               </div>
-              
+
               {kpisEquip && (
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
-                  <div className="bg-white rounded-lg p-3 border-l-4 shadow-sm" style={{borderColor:'var(--slep-primary)'}}>
+                  <div className="bg-white rounded-lg p-3 border-l-4 shadow-sm" style={{ borderColor: 'var(--slep-primary)' }}>
                     <div className="text-xs text-gray-500 uppercase font-semibold">Total del tipo</div>
                     <div className="text-2xl font-bold text-[#25306B]">{kpisEquip.total}</div>
                   </div>
-                  <div className="bg-white rounded-lg p-3 border-l-4 shadow-sm" style={{borderColor:'var(--slep-green)'}}>
+                  <div className="bg-white rounded-lg p-3 border-l-4 shadow-sm" style={{ borderColor: 'var(--slep-green)' }}>
                     <div className="text-xs text-gray-500 uppercase font-semibold">Disponibles en bodega</div>
                     <div className="text-2xl font-bold text-[#90d039]">{kpisEquip.disp}</div>
                   </div>
-                  <div className="bg-white rounded-lg p-3 border-l-4 shadow-sm" style={{borderColor:'var(--slep-secondary)'}}>
+                  <div className="bg-white rounded-lg p-3 border-l-4 shadow-sm" style={{ borderColor: 'var(--slep-secondary)' }}>
                     <div className="text-xs text-gray-500 uppercase font-semibold">Asignados</div>
                     <div className="text-2xl font-bold text-[#006BB9]">{kpisEquip.asig}</div>
                   </div>
@@ -819,21 +879,23 @@ export default function DashboardPage() {
           <div className="table-scroll rounded-lg border border-gray-200">
             {baseData.length === 0 ? (
               <div className="p-8 text-center text-gray-500 text-sm">
-                {activeTab === 'func' && !selectedFunc ? 'Seleccione un funcionario para ver sus equipos asignados.' : 
-                 activeTab === 'equip' && (selectedDesc === '' && selectedMod === '') ? 'Seleccione una descripción o modelo para comenzar el análisis.' :
-                 'No hay registros que mostrar.'}
+                {activeTab === 'func' && !selectedFunc ? 'Seleccione un funcionario para ver sus equipos asignados.' :
+                  activeTab === 'equip' && (selectedDesc === '' && selectedMod === '') ? 'Seleccione una descripción o modelo para comenzar el análisis.' :
+                    'No hay registros que mostrar.'}
               </div>
             ) : (
               <table>
                 <thead>
                   <tr>
-                    {COLUMNS.filter(c => activeTab === 'disp' ? (c !== 'Usuario' && c !== 'SubDirección') : true).map(c => {
-                      let headerClass = "sortable text-left align-top";
+                    {activeCols.map(c => {
+                      let headerClass = c === 'Estado' ? "text-left align-top w-24" : "sortable text-left align-top";
                       if (c === 'ID Publicación') headerClass += " max-w-[150px]";
                       if (c === 'Orden de Compra') headerClass += " max-w-[80px]";
-                      
+
+                      const onClickHandler = () => handleSort(c);
+
                       return (
-                        <th key={c} onClick={() => handleSort(c)} className={headerClass}>
+                        <th key={c} onClick={onClickHandler} className={headerClass}>
                           <div className="flex items-start gap-1 justify-between">
                             <span className="whitespace-normal leading-snug">{c}</span>
                             {sortConfig.col === c ? <span className="text-[11px] mt-0.5 shrink-0">{sortConfig.dir === 1 ? '▲' : '▼'}</span> : null}
@@ -841,11 +903,6 @@ export default function DashboardPage() {
                         </th>
                       );
                     })}
-                    {activeTab === 'disp' && (
-                      <th className="text-left w-24 align-top">
-                        <div className="flex items-start gap-1">Estado</div>
-                      </th>
-                    )}
                     <th className="text-center w-24 no-print-interactive align-top">
                       <div className="flex justify-center items-start gap-1">Acciones</div>
                     </th>
@@ -856,17 +913,28 @@ export default function DashboardPage() {
                     const disp = isAvailable(row['Usuario']);
                     return (
                       <tr key={i} className="hover:bg-blue-50 even:bg-slate-50 transition-colors">
-                        {COLUMNS.filter(c => activeTab === 'disp' ? (c !== 'Usuario' && c !== 'SubDirección') : true).map(c => {
-                          const value = safe(row[c]);
+                        {activeCols.map(c => {
+                          const value = c === 'Estado' ? '' : safe(row[c]);
                           const itemId = row.id || row['Nº de serie'] || `temp_${i}`;
-                          
+
+                          if (c === 'Estado') {
+                            const estadoFinal = getEstadoFinal(row);
+                            return (
+                              <td key={c} className="px-3 py-2 text-[12px] whitespace-nowrap">
+                                <span className={getBadgeClass(estadoFinal)}>
+                                  {estadoFinal}
+                                </span>
+                              </td>
+                            );
+                          }
+
                           if (c === 'Factura') {
                             const hasFile = row.hasFacturaFile;
                             return (
                               <td key={c} className="px-3 py-2 text-[12px] text-gray-700 min-w-[100px]">
                                 <div className="flex items-center gap-3 justify-between">
                                   {hasFile ? (
-                                    <button 
+                                    <button
                                       onClick={() => handlePreview(itemId, 'factura')}
                                       className="text-[#006BB9] hover:text-[#25306B] hover:underline text-left transition-colors"
                                       title="Abrir/Descargar Factura"
@@ -880,14 +948,14 @@ export default function DashboardPage() {
                               </td>
                             );
                           }
-                          
+
                           if (c === 'Orden de Compra') {
                             const hasFile = row.hasOcFile;
                             return (
                               <td key={c} className="px-3 py-2 text-[12px] text-gray-700 min-w-[100px]">
                                 <div className="flex items-center gap-3 justify-between">
                                   {hasFile ? (
-                                    <button 
+                                    <button
                                       onClick={() => handlePreview(itemId, 'oc')}
                                       className="text-[#006BB9] hover:text-[#25306B] hover:underline text-left transition-colors"
                                       title="Abrir/Descargar Orden de Compra"
@@ -915,7 +983,7 @@ export default function DashboardPage() {
                                 <div className="flex items-center gap-1.5">
                                   <span>{value}</span>
                                   {tipo && (
-                                    <span 
+                                    <span
                                       title={tipo}
                                       className="inline-flex items-center justify-center px-1.5 py-0.5 bg-blue-50 border border-blue-200 text-[#006BB9] rounded text-[9px] uppercase font-bold cursor-help"
                                     >
@@ -926,52 +994,48 @@ export default function DashboardPage() {
                               </td>
                             );
                           }
-                          
+
                           if (c === 'Usuario') {
                             const isDisp = isAvailable(value);
-                            const estadoFinal = row.estado || (isDisp ? 'DISPONIBLE' : 'ASIGNADO');
-                            
                             if (!isDisp) {
-                               return (
-                                 <td key={c} className="px-3 py-2 text-[12px] whitespace-nowrap">
-                                    <span className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-800 p-0.5 pr-2.5 rounded-full text-[12px] font-bold border border-blue-200 shadow-sm">
-                                       <span className="w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center text-[9px] font-black uppercase shrink-0">
-                                          {getInitials(value)}
-                                       </span>
-                                       <span title={value}>{value}</span>
+                              return (
+                                <td key={c} className="px-3 py-2 text-[12px] whitespace-nowrap">
+                                  <span className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-800 p-0.5 pr-2.5 rounded-full text-[12px] font-bold border border-blue-200 shadow-sm">
+                                    <span className="w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center text-[9px] font-black uppercase shrink-0">
+                                      {getInitials(value)}
                                     </span>
-                                 </td>
-                               );
+                                    <span title={value}>{value}</span>
+                                  </span>
+                                </td>
+                              );
                             } else {
-                               return (
-                                 <td key={c} className="px-3 py-2 text-[12px] whitespace-nowrap">
-                                    <span className={getBadgeClass(estadoFinal)}>
-                                       {estadoFinal}
-                                    </span>
-                                 </td>
-                               );
+                              return (
+                                <td key={c} className="px-3 py-2 text-[12px] text-gray-500 whitespace-nowrap">
+                                  —
+                                </td>
+                              );
                             }
                           }
 
                           return <td key={c} className="px-3 py-2 text-[12px] text-gray-700 max-w-[200px] break-words">{value}</td>;
                         })}
-                        {activeTab === 'disp' && (
-                          <td>
-                            {(() => {
-                              const disp = isAvailable(row['Usuario']);
-                              let estadoFinal = row.estado || (disp ? 'DISPONIBLE' : 'ASIGNADO');
-                              return <span className={getBadgeClass(estadoFinal)}>{estadoFinal}</span>;
-                            })()}
-                          </td>
-                        )}
                         <td className="text-center no-print-interactive">
-                          <Link 
-                            to={`/editar-equipo?id=${equipos.indexOf(row)}`}
-                            className="p-1 px-2 text-[#006BB9] hover:text-[#25306B] hover:bg-blue-50 rounded-lg inline-flex items-center gap-1 transition-colors text-xs font-semibold"
-                            title="Editar Equipo"
-                          >
-                            <Pencil size={13} /> Editar
-                          </Link>
+                          <div className="flex justify-center items-center gap-2">
+                            <button
+                              onClick={() => { setAssignModalData(row); setAssignUserName(row['Usuario'] || ''); }}
+                              className="p-2 text-emerald-600 hover:text-white hover:bg-emerald-600 border border-emerald-200 hover:border-emerald-600 rounded-lg transition-all shadow-xs flex items-center justify-center cursor-pointer"
+                              title="Asignar Equipo a un Funcionario"
+                            >
+                              <UserPlus size={14} className="stroke-[2.5]" />
+                            </button>
+                            <button
+                              onClick={() => setEditingEquipo(row)}
+                              className="p-2 text-[#006BB9] hover:text-white hover:bg-[#006BB9] border border-blue-200 hover:border-[#006BB9] rounded-lg transition-all shadow-xs flex items-center justify-center cursor-pointer"
+                              title="Editar Ficha del Equipo"
+                            >
+                              <Pencil size={14} className="stroke-[2.5]" />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     )
@@ -982,20 +1046,87 @@ export default function DashboardPage() {
           </div>
         </div>
       </section>
-      <input 
-        type="file" 
-        ref={fileInputRef} 
-        onChange={handleDirectUpload} 
-        accept="application/pdf,image/*" 
-        className="hidden" 
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleDirectUpload}
+        accept="application/pdf,image/*"
+        className="hidden"
       />
+
+      {/* Modal Asignar Equipo */}
+      {assignModalData && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white p-6 rounded-xl shadow-2xl w-full max-w-sm animate-fade-in relative flex flex-col">
+            <button
+              onClick={() => setAssignModalData(null)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-full w-8 h-8 flex items-center justify-center text-xl transition-colors cursor-pointer"
+            >
+              &times;
+            </button>
+            <h3 className="text-xl font-bold text-[#25306B] mb-2 flex items-center gap-2">
+              <UserPlus className="text-[#006BB9]" /> Asignar Equipo
+            </h3>
+            <p className="text-sm text-gray-600 mb-4 border-b pb-4">
+              <span className="font-semibold block">{assignModalData['Descripción del Bien'] || 'Equipo'}</span>
+              S/N: {assignModalData['Nº de serie'] || 'N/A'}
+            </p>
+            <div className="mb-6">
+              <label className="block text-sm font-semibold text-[#25306B] mb-2">Nombre del Usuario / Funcionario</label>
+              <input
+                type="text"
+                value={assignUserName}
+                onChange={(e) => setAssignUserName(e.target.value)}
+                placeholder="Ej. Juan Pérez (Dejar vacío para Disponible)"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#006BB9] focus:outline-none"
+              />
+            </div>
+            <div className="flex justify-end gap-3 mt-auto">
+              <button
+                onClick={() => setAssignModalData(null)}
+                className="px-4 py-2 text-sm font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => {
+                  const currentDesc = assignModalData['Descripción del Bien'];
+                  const isDisp = isAvailable(assignUserName);
+                  if (currentDesc && !isDisp) {
+                    const hasSameType = equipos.some(eq =>
+                      eq.id !== assignModalData.id &&
+                      eq['Descripción del Bien'] === currentDesc &&
+                      (eq['Usuario'] && isSameUser(eq['Usuario'], assignUserName))
+                    );
+
+                    if (hasSameType) {
+                      if (!window.confirm(`El usuario ya tiene asignado un equipo del tipo "${currentDesc}". ¿Desea asignarlo de igual manera?`)) {
+                        return;
+                      }
+                    }
+                  }
+
+                  const updated = { ...assignModalData, 'Usuario': assignUserName };
+                  updated.estado = isDisp ? 'DISPONIBLE' : 'ASIGNADO';
+                  updateEquipo(equipos.indexOf(assignModalData), updated);
+                  setAssignModalData(null);
+                  showLocalToast('Equipo Asignado', `El equipo se ha asignado correctamente a ${isDisp ? 'DISPONIBLE' : assignUserName}.`, 'success');
+                }}
+                className="px-4 py-2 text-sm font-semibold text-white bg-[#006BB9] hover:bg-[#25306B] rounded-lg transition-colors flex items-center gap-2 cursor-pointer"
+              >
+                <CheckCircle size={16} /> Guardar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal Carga Masiva */}
       {isMasivaModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white p-6 rounded-xl shadow-2xl w-full max-w-lg animate-fade-in relative max-h-[90vh] flex flex-col">
-            <button 
-              onClick={() => { setIsMasivaModalOpen(false); setStatus({ type: 'idle', message: '' }); setLocalToast(null); }} 
+            <button
+              onClick={() => { setIsMasivaModalOpen(false); setStatus({ type: 'idle', message: '' }); setLocalToast(null); }}
               className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-full p-1 transition-colors cursor-pointer"
             >
               &times;
@@ -1003,14 +1134,14 @@ export default function DashboardPage() {
             <h2 className="text-xl font-bold mb-2 text-[#25306B] flex items-center gap-2">
               <UploadCloud className="text-[#006BB9]" /> Carga Masiva de Equipos
             </h2>
-            
+
             <div className="overflow-y-auto flex-1 pr-2 mt-2 custom-scrollbar relative">
-              
+
               {/* Toast Flotante Interno */}
               {localToast && (
-                <div 
+                <div
                   onMouseDown={handleDragStart}
-                  style={{ 
+                  style={{
                     position: 'absolute',
                     left: '50%',
                     bottom: `calc(100% - 150px - ${toastPos.y}px)`,
@@ -1019,28 +1150,27 @@ export default function DashboardPage() {
                     zIndex: 9999
                   }}
                 >
-                  <div 
+                  <div
                     onMouseEnter={handleToastMouseEnter}
                     onMouseLeave={handleToastMouseLeave}
-                    className={`flex items-start gap-3 px-4 py-3 rounded-xl shadow-xl border w-[340px] text-sm text-left ${
-                      localToast.type === 'success' ? 'bg-emerald-50 border-emerald-200 text-emerald-800' :
+                    className={`flex items-start gap-3 px-4 py-3 rounded-xl shadow-xl border w-[340px] text-sm text-left ${localToast.type === 'success' ? 'bg-emerald-50 border-emerald-200 text-emerald-800' :
                       localToast.type === 'warning' ? 'bg-amber-50 border-amber-200 text-amber-800' :
-                      'bg-red-50 border-red-200 text-red-800'
-                    }`}
+                        'bg-red-50 border-red-200 text-red-800'
+                      }`}
                   >
                     {localToast.type === 'success' && <CheckCircle className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />}
                     {localToast.type === 'warning' && <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />}
                     {localToast.type === 'error' && <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />}
-                    
+
                     <div className="flex-1">
                       <p className="font-bold text-[11px] uppercase tracking-wider">{localToast.title}</p>
-                      
+
                       {localToast.addedCount !== undefined || (localToast.duplicateSerials && localToast.duplicateSerials.length > 0) ? (
                         <div className="text-[11px] opacity-90 mt-1.5 space-y-1.5">
                           {localToast.addedCount !== undefined && (
                             <p>
-                              {localToast.addedCount > 0 
-                                ? `Se agregaron ${localToast.addedCount} equipos en total.` 
+                              {localToast.addedCount > 0
+                                ? `Se agregaron ${localToast.addedCount} equipos en total.`
                                 : 'No se agregaron nuevos equipos.'}
                             </p>
                           )}
@@ -1061,7 +1191,7 @@ export default function DashboardPage() {
                               <span className="border-b border-dashed border-amber-500 font-semibold text-amber-900">
                                 • {localToast.duplicateSerials.length} equipos omitidos por duplicidad (Ver detalle)
                               </span>
-                              
+
                               <div className="invisible group-hover:visible absolute bottom-full left-0 pb-2 z-50">
                                 <div className="bg-slate-800 text-white p-2.5 rounded-lg shadow-xl w-60 max-h-48 overflow-y-auto leading-relaxed font-mono whitespace-normal normal-case border border-slate-700">
                                   <strong className="text-slate-300 block border-b border-slate-700 pb-1 mb-1">Series duplicadas omitidas:</strong>
@@ -1079,7 +1209,7 @@ export default function DashboardPage() {
                         <p className="text-[11px] opacity-90 mt-1 whitespace-pre-line">{localToast.message}</p>
                       )}
                     </div>
-                    
+
                     <button onClick={() => setLocalToast(null)} className="text-gray-400 hover:text-gray-600 font-bold ml-1 shrink-0 text-lg leading-none focus:outline-none cursor-pointer">
                       &times;
                     </button>
@@ -1102,7 +1232,7 @@ export default function DashboardPage() {
                   * Todos los equipos deben tener obligatoriamente un <strong>Nº de serie</strong>. Si se detecta un número de serie existente, se omitirá su carga para evitar alterar los datos.
                 </p>
               </div>
-              
+
               <div className="border-2 border-dashed border-blue-200 rounded-xl p-8 text-center bg-gray-50 hover:bg-blue-50 hover:border-blue-400 transition-colors relative group">
                 <label className="cursor-pointer flex flex-col items-center justify-center">
                   <div className="w-14 h-14 bg-white rounded-full shadow-sm flex items-center justify-center mb-3 text-blue-600 group-hover:scale-110 group-hover:bg-blue-600 group-hover:text-white transition-all">
@@ -1115,11 +1245,10 @@ export default function DashboardPage() {
               </div>
 
               {status.type !== 'idle' && (
-                <div className={`mt-4 p-3 rounded-lg flex items-start gap-2 text-xs ${
-                  status.type === 'processing' ? 'bg-blue-50 text-blue-700 border border-blue-100' :
+                <div className={`mt-4 p-3 rounded-lg flex items-start gap-2 text-xs ${status.type === 'processing' ? 'bg-blue-50 text-blue-700 border border-blue-100' :
                   status.type === 'success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' :
-                  'bg-red-50 text-red-700 border border-red-100'
-                }`}>
+                    'bg-red-50 text-red-700 border border-red-100'
+                  }`}>
                   {status.type === 'processing' && <AlertCircle className="w-4 h-4 animate-pulse shrink-0 mt-0.5" />}
                   {status.type === 'success' && <CheckCircle className="w-4 h-4 shrink-0 mt-0.5" />}
                   {status.type === 'error' && <FileWarning className="w-4 h-4 shrink-0 mt-0.5" />}
@@ -1129,6 +1258,14 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Modal Editar Equipo */}
+      {editingEquipo && (
+        <EditarEquipoModal
+          equipo={editingEquipo}
+          onClose={() => setEditingEquipo(null)}
+        />
       )}
     </div>
   );

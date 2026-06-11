@@ -181,7 +181,7 @@ export default function LicenciasAdminPage() {
 
   const funcSuggestions = useMemo(() => {
     const q = funcSearch.toLowerCase().trim();
-    if (!q) return [];
+    if (!q) return usuarios;
     return usuarios.filter(u => 
       (u.nombre || '').toLowerCase().includes(q) || 
       (u.email || '').toLowerCase().includes(q)
@@ -839,13 +839,13 @@ export default function LicenciasAdminPage() {
                                 {lic.factura ? (
                                   <button
                                     onClick={() => lic.has_factura_file ? handlePreview(lic.id, 'factura') : null}
-                                    className={`flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-bold border transition-colors ${lic.has_factura_file ? 'bg-blue-50 text-[#006BB9] border-blue-200 hover:bg-blue-100 cursor-pointer' : 'bg-gray-50 text-gray-500 border-gray-200 cursor-default'}`}
+                                    className={`flex items-center gap-1.5 border transition-colors ${lic.has_factura_file ? 'bg-blue-200 text-[#006BB9] border border-blue-400 px-2 py-0.5 rounded text-[11px] font-bold hover:bg-blue-300 cursor-pointer' : 'bg-gray-50 text-gray-500 border border-gray-200 px-2 py-0.5 rounded text-[11px] font-bold cursor-default'}`}
                                     title={lic.has_factura_file ? `Ver Factura ${lic.factura}` : `Factura: ${lic.factura} (Sin archivo)`}
                                   >
                                     <FileText size={12} /> FACTURA N° {lic.factura}
                                   </button>
                                 ) : (
-                                  <span className="flex items-center gap-1 px-2 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-bold uppercase" title="Falta Factura">
+                                  <span className="flex items-center gap-1 px-2 py-0.5 rounded bg-amber-100 text-amber-700 border border-amber-400 text-[10px] font-bold uppercase" title="Falta Factura">
                                     <AlertCircle size={10} /> Sin Factura
                                   </span>
                                 )}
@@ -854,13 +854,13 @@ export default function LicenciasAdminPage() {
                                 {lic.orden_compra ? (
                                   <button
                                     onClick={() => lic.has_oc_file ? handlePreview(lic.id, 'orden_compra') : null}
-                                    className={`flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-bold border transition-colors ${lic.has_oc_file ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 cursor-pointer' : 'bg-gray-50 text-gray-500 border-gray-200 cursor-default'}`}
+                                    className={`flex items-center gap-1.5 border transition-colors ${lic.has_oc_file ? 'bg-emerald-200 text-emerald-700 border border-emerald-400 px-2 py-0.5 rounded text-[11px] font-bold hover:bg-emerald-300 cursor-pointer' : 'bg-gray-50 text-gray-500 border border-gray-200 px-2 py-0.5 rounded text-[11px] font-bold cursor-default'}`}
                                     title={lic.has_oc_file ? `Ver OC ${lic.orden_compra}` : `OC: ${lic.orden_compra} (Sin archivo)`}
                                   >
                                     <FileText size={12} /> OC N° {lic.orden_compra}
                                   </button>
                                 ) : (
-                                  <span className="flex items-center gap-1 px-2 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-bold uppercase" title="Falta Orden de Compra">
+                                  <span className="flex items-center gap-1 px-2 py-0.5 rounded bg-amber-100 text-amber-700 border border-amber-400 text-[10px] font-bold uppercase" title="Falta Orden de Compra">
                                     <AlertCircle size={10} /> Sin OC
                                   </span>
                                 )}
@@ -876,48 +876,47 @@ export default function LicenciasAdminPage() {
                                 let IconComponent = Clock;
                                 
                                 if (ratio >= 0.4) {
-                                  badgeColorClass = 'bg-green-100 text-green-600 border-green-500';
+                                  badgeColorClass = 'bg-green-200 text-green-700 border-green-500 border';
                                   IconComponent = CheckCircle;
                                 } else if (ratio >= 0.2) {
-                                  badgeColorClass = 'bg-amber-100 text-amber-600 border-amber-600';
+                                  badgeColorClass = 'bg-amber-200 text-amber-700 border-amber-600 border';
                                   IconComponent = Clock;
                                 } else {
-                                  badgeColorClass = 'bg-rose-200 text-red-600 border-red-600';
+                                  badgeColorClass = 'bg-rose-200 text-red-700 border-red-600 border';
                                   IconComponent = AlertTriangle;
                                 }
                                 
                                 return (
-                                  <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border shadow-xs ${badgeColorClass}`}>
-                                    <IconComponent size={12} className="stroke-[2.5]" />
-                                    <span>{disponibles} de {total} disp.</span>
+                                  <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold border shadow-xs ${badgeColorClass}`}>
+                                    <IconComponent size={10} className="stroke-[2.5]" />
+                                    {disponibles} de {total} disp.
                                   </span>
                                 );
                               })()}
                             </div>
                           </td>
                           <td className="px-3 py-2.5 text-center">
-                            <span className="bg-blue-50 text-blue-800 border border-blue-200 px-2.5 py-1 rounded-full font-bold text-xs">{asignadas}</span>
+                            <span className="bg-blue-200 text-blue-800 border border-blue-400 px-2.5 py-1 rounded-full font-bold shadow-xs text-[11px]">{asignadas}</span>
                           </td>
                           <td className="px-3 py-2.5 text-center">
                             <div className="flex flex-col items-center gap-1.5">
-                              <span className={`px-2 py-0.5 rounded text-[9px] font-semibold uppercase border w-full ${hasStock ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-rose-50 text-rose-700 border-rose-200'}`}>
+                              <span className={`bg-green-200 text-green-800 border border-green-400 px-2 py-0.5 rounded font-semibold uppercase w-full block text-center text-[11px] ${hasStock ? 'bg-green-200 text-green-800 border border-green-400 px-2 py-0.5 rounded font-semibold uppercase w-full block text-center text-[11px]' : 'bg-rose-200 text-rose-700 border border-rose-400 px-2 py-0.5 rounded font-semibold uppercase w-full block text-center text-[11px]'}`}>
                                 {hasStock ? 'DISPONIBLE' : 'AGOTADO'}
                               </span>
                               {(() => {
                                 if (!lic.fecha_termino) return null;
-                                const parts = lic.fecha_termino.split('T')[0].split('-');
-                                if (parts.length !== 3) return null;
-                                const [year, month, day] = parts;
-                                const expirationDate = new Date(year, month - 1, day, 23, 59, 59);
-                                const diffTime = expirationDate - new Date();
+                                const today = new Date();
+                                today.setHours(0, 0, 0, 0);
+                                const termDate = new Date(lic.fecha_termino);
+                                const diffTime = termDate - today;
                                 const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
                                 if (diffDays > 0) {
-                                  return <span className={`px-2 py-0.5 rounded text-[9px] font-semibold uppercase border w-full ${diffDays <= 30 ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-blue-50 text-blue-700 border-blue-200'}`}>Quedan {diffDays} días</span>;
+                                  return <span className={`border w-full ${diffDays <= 30 ? 'bg-amber-200 text-amber-700 border border-amber-400 px-2 py-0.5 rounded font-semibold uppercase w-full block text-center text-[11px]' : 'bg-blue-200 text-blue-700 border border-blue-400 px-2 py-0.5 rounded font-semibold uppercase w-full block text-center text-[11px]'}`}>Quedan {diffDays} días</span>;
                                 } else if (diffDays === 0) {
-                                  return <span className="px-2 py-0.5 rounded text-[9px] font-semibold uppercase border bg-rose-50 text-rose-700 border-rose-200 w-full">Vence Hoy</span>;
+                                  return <span className="bg-rose-600 text-yellow-400 border border-yellow-400 px-2 py-0.5 rounded uppercase w-full block text-center font-bold text-[11px]">Vence Hoy</span>;
                                 } else {
-                                  return <span className="px-2 py-0.5 rounded text-[9px] font-semibold uppercase border bg-red-100 text-red-800 border-red-300 w-full">Vencida hace {Math.abs(diffDays)} días</span>;
+                                  return <span className="bg-yellow-400 text-orange-600 border border-orange-400 px-2 py-0.5 rounded uppercase w-full block text-center font-bold text-[11px]">Vencida hace {Math.abs(diffDays)} días</span>;
                                 }
                               })()}
                             </div>
@@ -1093,13 +1092,13 @@ export default function LicenciasAdminPage() {
                                     {licDetail.factura ? (
                                       <button
                                         onClick={() => licDetail.has_factura_file ? handlePreview(licDetail.id, 'factura') : null}
-                                        className={`flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-bold border transition-colors ${licDetail.has_factura_file ? 'bg-blue-50 text-[#006BB9] border-blue-200 hover:bg-blue-100 cursor-pointer' : 'bg-gray-50 text-gray-500 border-gray-200 cursor-default'}`}
+                                        className={`flex items-center gap-1.5 border transition-colors ${licDetail.has_factura_file ? 'bg-blue-200 text-[#006BB9] border border-blue-400 px-2 py-0.5 rounded text-[11px] font-bold hover:bg-blue-300 cursor-pointer' : 'bg-gray-50 text-gray-500 border border-gray-200 px-2 py-0.5 rounded text-[11px] font-bold cursor-default'}`}
                                         title={licDetail.has_factura_file ? `Ver Factura ${licDetail.factura}` : `Factura: ${licDetail.factura} (Sin archivo)`}
                                       >
                                         <FileText size={12} /> FACTURA N° {licDetail.factura}
                                       </button>
                                     ) : (
-                                      <span className="flex items-center gap-1 px-2 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-bold uppercase" title="Falta Factura">
+                                      <span className="flex items-center gap-1 px-2 py-0.5 rounded bg-amber-100 text-amber-700 border border-amber-400 text-[10px] font-bold uppercase" title="Falta Factura">
                                         <AlertCircle size={10} /> Sin Factura
                                       </span>
                                     )}
@@ -1108,13 +1107,13 @@ export default function LicenciasAdminPage() {
                                     {licDetail.orden_compra ? (
                                       <button
                                         onClick={() => licDetail.has_oc_file ? handlePreview(licDetail.id, 'orden_compra') : null}
-                                        className={`flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-bold border transition-colors ${licDetail.has_oc_file ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 cursor-pointer' : 'bg-gray-50 text-gray-500 border-gray-200 cursor-default'}`}
+                                        className={`flex items-center gap-1.5 border transition-colors ${licDetail.has_oc_file ? 'bg-emerald-200 text-emerald-700 border border-emerald-400 px-2 py-0.5 rounded text-[11px] font-bold hover:bg-emerald-300 cursor-pointer' : 'bg-gray-50 text-gray-500 border border-gray-200 px-2 py-0.5 rounded text-[11px] font-bold cursor-default'}`}
                                         title={licDetail.has_oc_file ? `Ver OC ${licDetail.orden_compra}` : `OC: ${licDetail.orden_compra} (Sin archivo)`}
                                       >
                                         <FileText size={12} /> OC N° {licDetail.orden_compra}
                                       </button>
                                     ) : (
-                                      <span className="flex items-center gap-1 px-2 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-bold uppercase" title="Falta Orden de Compra">
+                                      <span className="flex items-center gap-1 px-2 py-0.5 rounded bg-amber-100 text-amber-700 border border-amber-400 text-[10px] font-bold uppercase" title="Falta Orden de Compra">
                                         <AlertCircle size={10} /> Sin OC
                                       </span>
                                     )}
