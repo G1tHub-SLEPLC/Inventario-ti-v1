@@ -875,10 +875,10 @@ export default function LicenciasAdminPage() {
                                 let badgeColorClass = '';
                                 let IconComponent = Clock;
                                 
-                                if (ratio >= 0.5) {
+                                if (ratio >= 0.4) {
                                   badgeColorClass = 'bg-green-100 text-green-600 border-green-500';
                                   IconComponent = CheckCircle;
-                                } else if (ratio >= 0.25) {
+                                } else if (ratio >= 0.2) {
                                   badgeColorClass = 'bg-amber-100 text-amber-600 border-amber-600';
                                   IconComponent = Clock;
                                 } else {
