@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useLicencias } from '../context/LicenciasContext';
 import { useInventario } from '../context/InventarioContext';
 import { supabase } from '../lib/supabaseClient';
-import { PlusCircle, Edit2, Trash2, Key, Users, UploadCloud, Download, Printer, AlertTriangle, CheckCircle, AlertCircle, FileText, Upload, UserPlus, Plus, X, Search, Package, UserCircle, MonitorSmartphone } from 'lucide-react';
+import { PlusCircle, Edit2, Trash2, Key, Users, UploadCloud, Download, Printer, AlertTriangle, CheckCircle, AlertCircle, FileText, Upload, UserPlus, Plus, X, Search, Package, UserCircle, MonitorSmartphone, Clock } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import Papa from 'papaparse';
 import { exportToExcelAndPDF } from '../utils/exportUtils';
@@ -868,35 +868,29 @@ export default function LicenciasAdminPage() {
                             </div>
                           </td>
                           <td className="px-3 py-2.5 text-center">
-                            <div className="flex items-center justify-center">
+                            <div className="flex items-center justify-center font-bold">
                               {(() => {
                                 const total = lic.cantidad_total || 0;
                                 const ratio = total > 0 ? (disponibles / total) : 0;
-                                let color = 'bg-emerald-500';
-                                let text = 'text-emerald-600';
+                                let badgeColorClass = '';
+                                let IconComponent = Clock;
                                 
-                                if (ratio < 0.25) {
-                                  color = 'bg-red-500';
-                                  text = 'text-red-600';
-                                } else if (ratio < 0.5) {
-                                  color = 'bg-amber-500';
-                                  text = 'text-amber-600';
+                                if (ratio >= 0.5) {
+                                  badgeColorClass = 'bg-emerald-50 text-emerald-800 border-emerald-200';
+                                  IconComponent = CheckCircle;
+                                } else if (ratio >= 0.25) {
+                                  badgeColorClass = 'bg-amber-50 text-amber-800 border-amber-200';
+                                  IconComponent = Clock;
+                                } else {
+                                  badgeColorClass = 'bg-rose-50 text-rose-800 border-rose-200';
+                                  IconComponent = AlertTriangle;
                                 }
                                 
                                 return (
-                                  <div className="flex flex-col gap-1.5 w-full max-w-[110px] mx-auto">
-                                    <div className="flex justify-between items-center text-[11px] font-mono font-bold px-0.5">
-                                      <span className={text}>{disponibles}</span>
-                                      <span className="text-gray-400 text-[9px]">/</span>
-                                      <span className="text-gray-600">{total}</span>
-                                    </div>
-                                    <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden border border-gray-200/50">
-                                      <div 
-                                        className={`h-full rounded-full transition-all duration-300 shadow-[inset_0_1px_2px_rgba(0,0,0,0.1)] ${color}`} 
-                                        style={{ width: `${Math.min(100, ratio * 100)}%` }}
-                                      />
-                                    </div>
-                                  </div>
+                                  <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border shadow-xs ${badgeColorClass}`}>
+                                    <IconComponent size={12} className="stroke-[2.5]" />
+                                    <span>{disponibles} de {total} disp.</span>
+                                  </span>
                                 );
                               })()}
                             </div>
