@@ -77,41 +77,41 @@ export default function AppShell() {
             );
           })}
           </div>
-          <div className="w-px h-6 bg-gray-300 mx-1 flex-shrink-0"></div>
-          <div className="relative ml-1 sm:ml-2 flex-shrink-0">
-            <button 
-              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className="flex items-center gap-2.5 p-1 rounded-full hover:bg-gray-100 transition-colors focus:outline-none"
-            >
-              <img 
-                src={`https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=f1f5f9&color=334155&rounded=true&bold=true`} 
-                alt="Avatar" 
-                className="w-8 h-8 rounded-full border border-gray-200"
-              />
-              <span className="text-sm font-semibold text-gray-700 hidden sm:block max-w-[140px] truncate" title={`${firstName} ${lastName}`}>
-                {firstName} {lastName}
-              </span>
-              <ChevronDown size={16} className="text-gray-500" />
-            </button>
-
-            {isDropdownOpen && (
-              <>
-                <div 
-                  className="fixed inset-0 z-40"
-                  onClick={() => setIsDropdownOpen(false)}
-                ></div>
-                <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50 animate-fade-in">
-                  <button 
-                    onClick={handleLogout}
-                    className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors font-medium"
-                  >
-                    <LogOut size={16} /> Cerrar Sesión
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
         </nav>
+        <div className="w-px h-6 bg-gray-300 mx-1 flex-shrink-0"></div>
+        <div className="relative ml-1 sm:ml-2 flex-shrink-0">
+          <button 
+            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+            className="flex items-center gap-2.5 p-1 rounded-full hover:bg-gray-100 transition-colors focus:outline-none"
+          >
+            <img 
+              src={`https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=f1f5f9&color=334155&rounded=true&bold=true`} 
+              alt="Avatar" 
+              className="w-8 h-8 rounded-full border border-gray-200"
+            />
+            <span className="text-sm font-semibold text-gray-700 hidden sm:block max-w-[140px] truncate" title={`${firstName} ${lastName}`}>
+              {firstName} {lastName}
+            </span>
+            <ChevronDown size={16} className="text-gray-500" />
+          </button>
+
+          {isDropdownOpen && (
+            <>
+              <div 
+                className="fixed inset-0 z-40"
+                onClick={() => setIsDropdownOpen(false)}
+              ></div>
+              <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50 animate-fade-in">
+                <button 
+                  onClick={handleLogout}
+                  className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors font-medium"
+                >
+                  <LogOut size={16} /> Cerrar Sesión
+                </button>
+              </div>
+            </>
+          )}
+        </div>
       </header>
 
       {/* Contenido */}
