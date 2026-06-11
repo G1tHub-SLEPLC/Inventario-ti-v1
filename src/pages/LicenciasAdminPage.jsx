@@ -874,11 +874,11 @@ export default function LicenciasAdminPage() {
                                 const ratio = total > 0 ? (disponibles / total) : 0;
                                 let badgeColorClass = '';
                                 if (ratio >= 0.5) {
-                                  badgeColorClass = 'bg-emerald-600 text-white border-emerald-700';
+                                  badgeColorClass = 'bg-emerald-500/10 text-emerald-600 border-emerald-500/30';
                                 } else if (ratio >= 0.25) {
-                                  badgeColorClass = 'bg-orange-500 text-white border-orange-600';
+                                  badgeColorClass = 'bg-orange-500/10 text-orange-600 border-orange-500/30';
                                 } else {
-                                  badgeColorClass = 'bg-red-600 text-white border-red-700';
+                                  badgeColorClass = 'bg-red-500/10 text-red-600 border-red-500/30';
                                 }
                                 return (
                                   <span className={`px-3 py-1 rounded-full text-xs font-black border tracking-wide shadow-sm ${badgeColorClass}`}>
