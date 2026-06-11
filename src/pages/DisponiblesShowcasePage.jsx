@@ -59,21 +59,18 @@ export default function DisponiblesShowcasePage() {
 
   const ratio = totalSim > 0 ? (availableSim / totalSim) : 0;
   
-  // Render functions
+  // Render functions for Main Ideas
   const renderProgressBar = (available, total) => {
     const r = total > 0 ? available / total : 0;
     let color = 'bg-emerald-500';
     let text = 'text-emerald-600 dark:text-emerald-400';
-    let track = 'bg-emerald-100 dark:bg-emerald-950/40';
     
     if (r < 0.25) {
       color = 'bg-red-500';
       text = 'text-red-600 dark:text-red-400';
-      track = 'bg-red-100 dark:bg-red-950/40';
     } else if (r < 0.5) {
       color = 'bg-amber-500';
       text = 'text-amber-600 dark:text-amber-400';
-      track = 'bg-amber-100 dark:bg-amber-950/40';
     }
 
     return (
@@ -163,6 +160,111 @@ export default function DisponiblesShowcasePage() {
     );
   };
 
+  // Render functions for Linear Progress Bar SPECIFIC VARIANTS
+  const renderProgressBarClassic = (available, total) => {
+    return renderProgressBar(available, total); // Reuses the main implementation
+  };
+
+  const renderProgressBarSegmented = (available, total) => {
+    const r = total > 0 ? available / total : 0;
+    const activeSegments = Math.round(r * 5);
+    let color = 'bg-emerald-500 border-emerald-500/40';
+    let text = 'text-emerald-600 dark:text-emerald-400';
+    
+    if (r < 0.25) {
+      color = 'bg-red-500 border-red-500/40';
+      text = 'text-red-600 dark:text-red-400';
+    } else if (r < 0.5) {
+      color = 'bg-amber-500 border-amber-500/40';
+      text = 'text-amber-600 dark:text-amber-400';
+    }
+    
+    return (
+      <div className="flex flex-col gap-1.5 w-full max-w-[120px] mx-auto">
+        <div className="flex justify-between items-center text-xs font-mono font-bold px-0.5">
+          <span className={text}>{available}</span>
+          <span className="text-gray-400 text-[10px]">/</span>
+          <span className="text-gray-600 dark:text-gray-300">{total}</span>
+        </div>
+        <div className="flex gap-1 h-2 w-full">
+          {[0, 1, 2, 3, 4].map((i) => {
+            const isActive = i < activeSegments;
+            return (
+              <div 
+                key={i} 
+                className={`flex-1 h-full rounded-xs transition-all duration-300 border ${
+                  isActive 
+                    ? `${color}` 
+                    : 'bg-gray-100 border-gray-200 dark:bg-slate-800 dark:border-slate-700/60'
+                }`} 
+              />
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
+  const renderProgressBarEmbedded = (available, total) => {
+    const r = total > 0 ? available / total : 0;
+    let color = 'bg-emerald-500';
+    let border = 'border-emerald-500/20';
+    
+    if (r < 0.25) {
+      color = 'bg-red-500';
+      border = 'border-red-500/20';
+    } else if (r < 0.5) {
+      color = 'bg-amber-500';
+      border = 'border-amber-500/20';
+    }
+
+    return (
+      <div className={`w-full max-w-[130px] h-6 bg-slate-100 dark:bg-slate-800 border ${border} rounded-lg overflow-hidden relative flex items-center justify-center font-mono text-[10px] font-black shadow-inner mx-auto`}>
+        {/* Background Fill */}
+        <div 
+          className={`absolute left-0 top-0 h-full transition-all duration-300 ${color}`}
+          style={{ width: `${r * 100}%` }}
+        />
+        {/* Text overlay */}
+        <span className="z-10 text-slate-800 dark:text-white mix-blend-difference uppercase tracking-wider font-extrabold">
+          {available} / {total} ({(r * 100).toFixed(0)}%)
+        </span>
+      </div>
+    );
+  };
+
+  const renderProgressBarMinimal = (available, total) => {
+    const r = total > 0 ? available / total : 0;
+    let color = 'bg-emerald-500';
+    let text = 'text-gray-800 dark:text-white font-extrabold';
+    let badgeColor = 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200/50 dark:border-emerald-800/40';
+    
+    if (r < 0.25) {
+      color = 'bg-red-500';
+      badgeColor = 'bg-red-500/10 text-red-700 dark:text-red-400 border-red-200/50 dark:border-red-800/40';
+    } else if (r < 0.5) {
+      color = 'bg-amber-500';
+      badgeColor = 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-200/50 dark:border-amber-800/40';
+    }
+
+    return (
+      <div className="flex flex-col gap-1 w-full max-w-[125px] items-center mx-auto">
+        <div className="flex items-center gap-1.5 justify-between w-full px-0.5">
+          <span className={`font-mono text-xs ${text}`}>{available} / {total}</span>
+          <span className={`text-[9px] px-1 py-0.2 rounded border font-mono font-bold ${badgeColor}`}>
+            {(r * 100).toFixed(0)}%
+          </span>
+        </div>
+        <div className="w-full h-1 bg-gray-100 dark:bg-slate-800 rounded-full overflow-hidden border border-gray-200/20">
+          <div 
+            className={`h-full rounded-full transition-all duration-300 ${color}`} 
+            style={{ width: `${r * 100}%` }}
+          />
+        </div>
+      </div>
+    );
+  };
+
   const renderCellByStyle = (styleName, available, total) => {
     switch(styleName) {
       case 'idea1': return renderProgressBar(available, total);
@@ -182,7 +284,7 @@ export default function DisponiblesShowcasePage() {
   };
 
   return (
-    <div className="p-6 max-w-[1920px] mx-auto space-y-8 pb-20 bg-slate-50 min-h-screen">
+    <div className="p-6 max-w-[1280px] mx-auto space-y-8 pb-20 bg-slate-50 min-h-screen">
       
       {/* Header */}
       <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -196,9 +298,9 @@ export default function DisponiblesShowcasePage() {
           </p>
         </div>
         
-        <span className="text-xs px-3 py-1.5 rounded-xl bg-blue-50 text-blue-700 font-bold border border-blue-100 flex items-center gap-1.5 self-start md:self-auto shadow-sm">
-          <Sparkles size={14} className="animate-spin" style={{ animationDuration: '4s' }} />
-          Interactivo v1.0
+        <span className="text-xs px-3 py-1.5 rounded-xl bg-blue-50 text-blue-700 font-bold border border-blue-100 flex items-center gap-1.5 self-start md:self-auto shadow-sm font-mono">
+          <Sparkles size={14} className="animate-spin text-blue-500" style={{ animationDuration: '4s' }} />
+          Interactivo v1.1
         </span>
       </div>
 
@@ -215,7 +317,7 @@ export default function DisponiblesShowcasePage() {
                 <Sliders size={18} className="text-gray-500" />
                 1. Simulador Dinámico de Stock
               </h3>
-              <span className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-bold uppercase">Simulación en vivo</span>
+              <span className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-bold uppercase font-mono">Simulación en vivo</span>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -230,8 +332,8 @@ export default function DisponiblesShowcasePage() {
                 {/* Available input */}
                 <div className="space-y-2">
                   <div className="flex justify-between text-xs font-bold">
-                    <span className="text-slate-600">LICENCIAS DISPONIBLES</span>
-                    <span className="text-[#006BB9] font-mono">{availableSim} unid.</span>
+                    <span className="text-slate-600 font-medium">LICENCIAS DISPONIBLES</span>
+                    <span className="text-[#006BB9] font-mono font-black">{availableSim} unid.</span>
                   </div>
                   <div className="flex items-center gap-3">
                     <button 
@@ -247,7 +349,7 @@ export default function DisponiblesShowcasePage() {
                       max={totalSim} 
                       value={availableSim} 
                       onChange={(e) => setAvailableSim(Number(e.target.value))}
-                      className="flex-1 accent-[#006BB9] cursor-pointer"
+                      className="flex-1 accent-[#006BB9] cursor-pointer h-1.5 bg-gray-200 rounded-lg appearance-none"
                     />
                     <button 
                       onClick={incrementAvailable}
@@ -262,8 +364,8 @@ export default function DisponiblesShowcasePage() {
                 {/* Total Input */}
                 <div className="space-y-2">
                   <div className="flex justify-between text-xs font-bold">
-                    <span className="text-slate-600">CANTIDAD TOTAL ADQUIRIDA</span>
-                    <span className="text-gray-600 font-mono">{totalSim} unid.</span>
+                    <span className="text-slate-600 font-medium">CANTIDAD TOTAL ADQUIRIDA</span>
+                    <span className="text-gray-600 font-mono font-black">{totalSim} unid.</span>
                   </div>
                   <div className="flex items-center gap-3">
                     <button 
@@ -284,7 +386,7 @@ export default function DisponiblesShowcasePage() {
                         setTotalSim(newTotal);
                         if (availableSim > newTotal) setAvailableSim(newTotal);
                       }}
-                      className="flex-1 accent-slate-700 cursor-pointer"
+                      className="flex-1 accent-slate-700 cursor-pointer h-1.5 bg-gray-200 rounded-lg appearance-none"
                     />
                     <button 
                       onClick={incrementTotal}
@@ -297,7 +399,7 @@ export default function DisponiblesShowcasePage() {
                 </div>
 
                 <div className="border-t border-slate-200/60 pt-4 flex justify-between items-center text-xs font-semibold text-slate-500">
-                  <span>Porcentaje Disponible:</span>
+                  <span>Proporción de Stock:</span>
                   <span className="font-mono bg-blue-50 text-blue-700 border border-blue-100 px-2 py-0.5 rounded font-black text-sm">
                     {(ratio * 100).toFixed(0)}%
                   </span>
@@ -313,7 +415,7 @@ export default function DisponiblesShowcasePage() {
                     {/* Option 1 */}
                     <div className="flex items-center justify-between p-3 rounded-xl border border-gray-100 bg-white shadow-xs">
                       <span className="text-xs font-bold text-gray-500 uppercase">Idea 1: Barra Lineal</span>
-                      <div className="w-32 flex justify-end">
+                      <div className="w-36 flex justify-end">
                         {renderProgressBar(availableSim, totalSim)}
                       </div>
                     </div>
@@ -321,7 +423,7 @@ export default function DisponiblesShowcasePage() {
                     {/* Option 2 */}
                     <div className="flex items-center justify-between p-3 rounded-xl border border-gray-100 bg-white shadow-xs">
                       <span className="text-xs font-bold text-gray-500 uppercase">Idea 2: Punto Estado</span>
-                      <div className="w-32 flex justify-end">
+                      <div className="w-36 flex justify-end">
                         {renderStatusDot(availableSim, totalSim)}
                       </div>
                     </div>
@@ -329,7 +431,7 @@ export default function DisponiblesShowcasePage() {
                     {/* Option 3 */}
                     <div className="flex items-center justify-between p-3 rounded-xl border border-gray-100 bg-white shadow-xs">
                       <span className="text-xs font-bold text-gray-500 uppercase">Idea 3: Alerta Selectiva</span>
-                      <div className="w-32 flex justify-end">
+                      <div className="w-36 flex justify-end">
                         {renderSelectiveAlerting(availableSim, totalSim)}
                       </div>
                     </div>
@@ -337,7 +439,7 @@ export default function DisponiblesShowcasePage() {
                     {/* Option 4 */}
                     <div className="flex items-center justify-between p-3 rounded-xl border border-gray-100 bg-white shadow-xs">
                       <span className="text-xs font-bold text-gray-500 uppercase">Idea 4: Borde Neón</span>
-                      <div className="w-32 flex justify-end">
+                      <div className="w-36 flex justify-end">
                         {renderNeonOutline(availableSim, totalSim)}
                       </div>
                     </div>
@@ -399,7 +501,7 @@ export default function DisponiblesShowcasePage() {
                     <th className="px-4 py-3">Software / Aplicativo</th>
                     <th className="px-4 py-3 text-center">Total</th>
                     <th className="px-4 py-3 text-center">Asignadas</th>
-                    <th className="px-4 py-3 text-center w-40">Disponibles</th>
+                    <th className="px-4 py-3 text-center w-44">Disponibles</th>
                     <th className="px-4 py-3 text-center">Estado Visual</th>
                   </tr>
                 </thead>
@@ -442,7 +544,86 @@ export default function DisponiblesShowcasePage() {
             </div>
 
             <div className="text-[11px] text-gray-400 italic text-right">
-              * Haz clic en los botones de arriba para cambiar el estilo de toda la columna "Disponibles" al instante.
+              * Haz clic en los botones de la barra de pestañas de arriba para cambiar el estilo de la columna "Disponibles".
+            </div>
+          </div>
+
+          {/* Card 3: Specific Variations of the Progress Bar */}
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 space-y-6">
+            <div className="flex justify-between items-center border-b border-gray-100 pb-4">
+              <h3 className="font-black text-gray-800 text-sm uppercase tracking-wider flex items-center gap-2">
+                <Sparkles size={18} className="text-[#006BB9]" />
+                3. Variantes Específicas del Estilo Barra Lineal
+              </h3>
+              <span className="text-[10px] bg-blue-50 text-blue-700 px-2.5 py-0.5 rounded-full font-bold uppercase font-mono">Variantes de barra</span>
+            </div>
+
+            <p className="text-xs text-gray-500">
+              Dado que te interesa el formato de <strong>barra lineal</strong>, hemos preparado cuatro variantes distintas para el indicador. Modifica los controles del simulador (Bloque 1) y observa cómo cambian todas estas barras simultáneamente.
+            </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              
+              {/* Variant A: Classic Thin Pill */}
+              <div className="border border-gray-200 rounded-2xl p-5 bg-white flex flex-col justify-between h-40 hover:border-blue-400 hover:shadow-xs transition-all duration-300">
+                <div className="space-y-1">
+                  <div className="flex justify-between items-center">
+                    <span className="text-[9px] font-mono font-black text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md uppercase">Variante A</span>
+                    <span className="text-[10px] text-slate-400 font-bold">Clásica</span>
+                  </div>
+                  <h4 className="text-xs font-bold text-slate-800 pt-1">Barra Píldora delgada</h4>
+                  <p className="text-[11px] text-gray-400 leading-relaxed">Números bold a la izquierda/derecha y una barra delgada de 8px por debajo con bordes redondeados.</p>
+                </div>
+                <div className="pt-2 flex justify-start">
+                  {renderProgressBarClassic(availableSim, totalSim)}
+                </div>
+              </div>
+
+              {/* Variant B: Segmented Blocks */}
+              <div className="border border-gray-200 rounded-2xl p-5 bg-white flex flex-col justify-between h-40 hover:border-blue-400 hover:shadow-xs transition-all duration-300">
+                <div className="space-y-1">
+                  <div className="flex justify-between items-center">
+                    <span className="text-[9px] font-mono font-black text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md uppercase">Variante B</span>
+                    <span className="text-[10px] text-slate-400 font-bold">Segmentada</span>
+                  </div>
+                  <h4 className="text-xs font-bold text-slate-800 pt-1">Bloques Tipo Celdas</h4>
+                  <p className="text-[11px] text-gray-400 leading-relaxed">Divide el progreso en 5 celdas separadas (cada una representa 20%). Aporta un toque industrial/técnico.</p>
+                </div>
+                <div className="pt-2 flex justify-start">
+                  {renderProgressBarSegmented(availableSim, totalSim)}
+                </div>
+              </div>
+
+              {/* Variant C: Embedded Text Thick Pill */}
+              <div className="border border-gray-200 rounded-2xl p-5 bg-white flex flex-col justify-between h-40 hover:border-blue-400 hover:shadow-xs transition-all duration-300">
+                <div className="space-y-1">
+                  <div className="flex justify-between items-center">
+                    <span className="text-[9px] font-mono font-black text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md uppercase">Variante C</span>
+                    <span className="text-[10px] text-slate-400 font-bold">Integrada</span>
+                  </div>
+                  <h4 className="text-xs font-bold text-slate-800 pt-1">Barra Ancha con Texto</h4>
+                  <p className="text-[11px] text-gray-400 leading-relaxed">Una píldora gruesa de 24px con el porcentaje y stock superpuesto en el centro, usando efecto de color invertido.</p>
+                </div>
+                <div className="pt-2 flex justify-start">
+                  {renderProgressBarEmbedded(availableSim, totalSim)}
+                </div>
+              </div>
+
+              {/* Variant D: Minimal Line with Percentage */}
+              <div className="border border-gray-200 rounded-2xl p-5 bg-white flex flex-col justify-between h-40 hover:border-blue-400 hover:shadow-xs transition-all duration-300">
+                <div className="space-y-1">
+                  <div className="flex justify-between items-center">
+                    <span className="text-[9px] font-mono font-black text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md uppercase">Variante D</span>
+                    <span className="text-[10px] text-slate-400 font-bold">Compacta</span>
+                  </div>
+                  <h4 className="text-xs font-bold text-slate-800 pt-1">Línea Fina y Porcentaje</h4>
+                  <p className="text-[11px] text-gray-400 leading-relaxed">Muestra el stock y el porcentaje de stock en un badge lateral, sobre una línea de progreso ultrafina de 4px.</p>
+                </div>
+                <div className="pt-2 flex justify-start">
+                  {renderProgressBarMinimal(availableSim, totalSim)}
+                </div>
+              </div>
+
             </div>
           </div>
 
@@ -517,16 +698,42 @@ export default function DisponiblesShowcasePage() {
 
             <div className="space-y-2 pt-2">
               <button 
-                onClick={() => handleSelectOption(1, 'Barra de Progreso Lineal')}
+                onClick={() => handleSelectOption("1A", "Barra Lineal: Píldora Clásica")}
                 className="w-full text-left px-4 py-3 rounded-xl border border-gray-200 hover:border-[#006BB9] hover:bg-blue-50/30 text-xs font-bold text-gray-700 flex justify-between items-center transition-all group"
               >
-                <span>Opción 1: Barra de Progreso</span>
+                <span>Opción 1A: Barra Píldora Clásica</span>
+                <ArrowRight size={14} className="text-gray-400 group-hover:translate-x-1 transition-transform" />
+              </button>
+
+              <button 
+                onClick={() => handleSelectOption("1B", "Barra Lineal: Segmentada en Bloques")}
+                className="w-full text-left px-4 py-3 rounded-xl border border-gray-200 hover:border-[#006BB9] hover:bg-blue-50/30 text-xs font-bold text-gray-700 flex justify-between items-center transition-all group"
+              >
+                <span>Opción 1B: Barra Segmentada</span>
+                <ArrowRight size={14} className="text-gray-400 group-hover:translate-x-1 transition-transform" />
+              </button>
+
+              <button 
+                onClick={() => handleSelectOption("1C", "Barra Lineal: Barra Ancha Integrada")}
+                className="w-full text-left px-4 py-3 rounded-xl border border-gray-200 hover:border-[#006BB9] hover:bg-blue-50/30 text-xs font-bold text-gray-700 flex justify-between items-center transition-all group"
+              >
+                <span>Opción 1C: Barra Ancha con Texto</span>
+                <ArrowRight size={14} className="text-gray-400 group-hover:translate-x-1 transition-transform" />
+              </button>
+
+              <button 
+                onClick={() => handleSelectOption("1D", "Barra Lineal: Línea Ultrafina con Porcentaje")}
+                className="w-full text-left px-4 py-3 rounded-xl border border-gray-200 hover:border-[#006BB9] hover:bg-blue-50/30 text-xs font-bold text-gray-700 flex justify-between items-center transition-all group"
+              >
+                <span>Opción 1D: Barra Fina con Porcentaje</span>
                 <ArrowRight size={14} className="text-gray-400 group-hover:translate-x-1 transition-transform" />
               </button>
               
+              <div className="h-px bg-gray-200 my-2"></div>
+
               <button 
                 onClick={() => handleSelectOption(2, 'Punto de Estado Minimalista')}
-                className="w-full text-left px-4 py-3 rounded-xl border border-gray-200 hover:border-[#006BB9] hover:bg-blue-50/30 text-xs font-bold text-gray-700 flex justify-between items-center transition-all group"
+                className="w-full text-left px-4 py-3.5 rounded-xl border border-gray-100 hover:border-[#006BB9] hover:bg-blue-50/20 text-xs font-medium text-gray-600 flex justify-between items-center transition-all group"
               >
                 <span>Opción 2: Punto de Estado (Dot)</span>
                 <ArrowRight size={14} className="text-gray-400 group-hover:translate-x-1 transition-transform" />
@@ -534,7 +741,7 @@ export default function DisponiblesShowcasePage() {
               
               <button 
                 onClick={() => handleSelectOption(3, 'Alerta Selectiva (Sin Ruido)')}
-                className="w-full text-left px-4 py-3 rounded-xl border border-gray-200 hover:border-[#006BB9] hover:bg-blue-50/30 text-xs font-bold text-gray-700 flex justify-between items-center transition-all group"
+                className="w-full text-left px-4 py-3.5 rounded-xl border border-gray-100 hover:border-[#006BB9] hover:bg-blue-50/20 text-xs font-medium text-gray-600 flex justify-between items-center transition-all group"
               >
                 <span>Opción 3: Alerta Selectiva</span>
                 <ArrowRight size={14} className="text-gray-400 group-hover:translate-x-1 transition-transform" />
@@ -542,7 +749,7 @@ export default function DisponiblesShowcasePage() {
               
               <button 
                 onClick={() => handleSelectOption(4, 'Borde Neón de Alto Contraste')}
-                className="w-full text-left px-4 py-3 rounded-xl border border-gray-200 hover:border-[#006BB9] hover:bg-blue-50/30 text-xs font-bold text-gray-700 flex justify-between items-center transition-all group"
+                className="w-full text-left px-4 py-3.5 rounded-xl border border-gray-100 hover:border-[#006BB9] hover:bg-blue-50/20 text-xs font-medium text-gray-600 flex justify-between items-center transition-all group"
               >
                 <span>Opción 4: Borde Neón (Outline)</span>
                 <ArrowRight size={14} className="text-gray-400 group-hover:translate-x-1 transition-transform" />
