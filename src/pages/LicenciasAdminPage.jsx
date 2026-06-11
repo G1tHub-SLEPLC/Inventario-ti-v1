@@ -686,12 +686,6 @@ export default function LicenciasAdminPage() {
           <p className="text-sm text-gray-500 mt-1">Gestiona el inventario de software y asigna licencias a los funcionarios.</p>
         </div>
         <div className="flex gap-2 flex-wrap">
-          <button onClick={() => exportData('xlsx')} className="flex items-center gap-2 bg-green-200 text-green-800 px-3 py-2 rounded-lg hover:bg-green-300 font-medium transition-colors text-sm">
-            <Download size={16} /> Excel
-          </button>
-          <button onClick={() => exportData('pdf')} className="flex items-center gap-2 bg-rose-200 text-rose-800 px-3 py-2 rounded-lg hover:bg-rose-300 font-medium transition-colors text-sm">
-            <Printer size={16} /> PDF
-          </button>
           <button
             onClick={() => { setStatus({ type: 'idle', message: '' }); setIsMasivaModalOpen(true); }}
             className="flex items-center gap-2 bg-blue-100 text-[#006BB9] px-4 py-2 rounded-lg hover:bg-blue-200 transition-colors text-sm font-medium border border-blue-200"
@@ -762,16 +756,24 @@ export default function LicenciasAdminPage() {
           {/* Header Controls for Available Tab */}
           <div className="flex flex-wrap gap-2 p-3 xl:p-0 xl:pr-4 bg-gray-50 xl:bg-transparent items-center">
             {activeTab === 'disp' && (
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input 
-                  type="text"
-                  value={licGlobalSearch}
-                  onChange={e => setLicGlobalSearch(e.target.value)}
-                  placeholder="Filtrar software disponible..."
-                  className="pl-9 pr-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#006BB9] focus:outline-none bg-white min-w-[220px]"
-                />
-              </div>
+              <>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input 
+                    type="text"
+                    value={licGlobalSearch}
+                    onChange={e => setLicGlobalSearch(e.target.value)}
+                    placeholder="Filtrar software disponible..."
+                    className="pl-9 pr-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#006BB9] focus:outline-none bg-white min-w-[220px]"
+                  />
+                </div>
+                <button onClick={() => exportData('xlsx')} className="flex items-center gap-2 bg-green-200 text-green-800 px-3 py-1.5 rounded-lg hover:bg-green-300 font-medium transition-colors text-sm cursor-pointer">
+                  <Download size={14} /> Excel
+                </button>
+                <button onClick={() => exportData('pdf')} className="flex items-center gap-2 bg-rose-200 text-rose-800 px-3 py-1.5 rounded-lg hover:bg-rose-300 font-medium transition-colors text-sm cursor-pointer">
+                  <Printer size={14} /> PDF
+                </button>
+              </>
             )}
           </div>
         </div>
