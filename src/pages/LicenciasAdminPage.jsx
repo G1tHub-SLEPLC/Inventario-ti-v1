@@ -876,13 +876,13 @@ export default function LicenciasAdminPage() {
                                 let IconComponent = Clock;
                                 
                                 if (ratio >= 0.5) {
-                                  badgeColorClass = 'bg-emerald-50 text-emerald-800 border-emerald-200';
+                                  badgeColorClass = 'bg-green-100 text-green-600 border-green-500';
                                   IconComponent = CheckCircle;
                                 } else if (ratio >= 0.25) {
-                                  badgeColorClass = 'bg-amber-50 text-amber-800 border-amber-200';
+                                  badgeColorClass = 'bg-amber-100 text-amber-600 border-amber-600';
                                   IconComponent = Clock;
                                 } else {
-                                  badgeColorClass = 'bg-rose-50 text-rose-800 border-rose-200';
+                                  badgeColorClass = 'bg-rose-200 text-red-600 border-red-600';
                                   IconComponent = AlertTriangle;
                                 }
                                 
