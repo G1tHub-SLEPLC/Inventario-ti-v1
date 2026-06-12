@@ -230,7 +230,12 @@ const updateClassString = (currentClasses, type, newValue) => {
   let parts = currentClasses.split(/\s+/).filter(Boolean);
   
   const valuesToRepl = {
-    family: ['font-sans', 'font-serif', 'font-mono'],
+    family: [
+      'font-sans', 'font-serif', 'font-mono',
+      'font-[\'Roboto\']', 'font-[\'Outfit\']', 'font-[\'Poppins\']',
+      'font-[\'Montserrat\']', 'font-[\'Kanit\']', 'font-[\'Playfair_Display\']',
+      'font-[\'Lora\']', 'font-[\'Merriweather\']', 'font-[\'Fira_Code\']'
+    ],
     size: ['text-[9px]', 'text-[10px]', 'text-[11px]', 'text-xs', 'text-sm', 'text-base'],
     weight: ['font-normal', 'font-medium', 'font-semibold', 'font-bold', 'font-extrabold', 'font-black'],
     case: ['uppercase', 'lowercase', 'capitalize'],
@@ -249,7 +254,12 @@ const updateClassString = (currentClasses, type, newValue) => {
 const getClassType = (currentClasses, type) => {
   const parts = currentClasses.split(/\s+/);
   const valuesToRepl = {
-    family: ['font-sans', 'font-serif', 'font-mono'],
+    family: [
+      'font-sans', 'font-serif', 'font-mono',
+      'font-[\'Roboto\']', 'font-[\'Outfit\']', 'font-[\'Poppins\']',
+      'font-[\'Montserrat\']', 'font-[\'Kanit\']', 'font-[\'Playfair_Display\']',
+      'font-[\'Lora\']', 'font-[\'Merriweather\']', 'font-[\'Fira_Code\']'
+    ],
     size: ['text-[9px]', 'text-[10px]', 'text-[11px]', 'text-xs', 'text-sm', 'text-base'],
     weight: ['font-normal', 'font-medium', 'font-semibold', 'font-bold', 'font-extrabold', 'font-black'],
     case: ['uppercase', 'lowercase', 'capitalize'],
@@ -265,6 +275,7 @@ export default function LicenciasBadgeShowcasePage() {
   const [copiedCode, setCopiedCode] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('disp'); // 'disp', 'func', 'lic'
+  const [showBadges, setShowBadges] = useState(true);
 
   // Licenses Badge Custom Classes state
   const [licClasses, setLicClasses] = useState({
@@ -446,9 +457,18 @@ export default function LicenciasBadgeShowcasePage() {
                           className="px-2 py-0.5 border border-slate-200 rounded text-[10px] bg-white text-slate-700 font-bold outline-none cursor-pointer hover:border-slate-350"
                         >
                           <option value="">Defecto</option>
-                          <option value="font-sans">Sans</option>
-                          <option value="font-serif">Serif</option>
-                          <option value="font-mono">Mono</option>
+                          <option value="font-sans">Sans (Inter)</option>
+                          <option value="font-['Roboto']">Roboto</option>
+                          <option value="font-['Outfit']">Outfit</option>
+                          <option value="font-['Poppins']">Poppins</option>
+                          <option value="font-['Montserrat']">Montserrat</option>
+                          <option value="font-['Kanit']">Kanit</option>
+                          <option value="font-['Playfair_Display']">Playfair</option>
+                          <option value="font-['Lora']">Lora</option>
+                          <option value="font-['Merriweather']">Merriweather</option>
+                          <option value="font-['Fira_Code']">Fira Code</option>
+                          <option value="font-serif">Serif (Clásico)</option>
+                          <option value="font-mono">Mono (Defecto)</option>
                         </select>
                       </div>
 
@@ -666,10 +686,29 @@ className={\`... ${licClasses.respOcFaltante}\`}`}
 
       {/* Interactive Tabs Simulation */}
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 space-y-4">
-        <h3 className="font-black text-gray-800 text-sm uppercase tracking-wider flex items-center gap-2 border-b border-gray-100 pb-3">
-          <Sparkles size={18} className="text-amber-500" />
-          Simulador del Módulo de Licencias en Vivo
-        </h3>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-100 pb-3 no-print-interactive">
+          <h3 className="font-black text-gray-800 text-sm uppercase tracking-wider flex items-center gap-2">
+            <Sparkles size={18} className="text-amber-500" />
+            Simulador del Módulo de Licencias en Vivo
+          </h3>
+          
+          <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl shadow-inner border border-slate-200">
+            <button
+              type="button"
+              onClick={() => setShowBadges(true)}
+              className={`px-3 py-1 text-[10px] font-extrabold uppercase rounded-lg transition-all cursor-pointer ${showBadges ? 'bg-[#006BB9] text-white shadow-xs' : 'text-slate-500 hover:text-slate-800'}`}
+            >
+              Con Badges
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowBadges(false)}
+              className={`px-3 py-1 text-[10px] font-extrabold uppercase rounded-lg transition-all cursor-pointer ${!showBadges ? 'bg-[#006BB9] text-white shadow-xs' : 'text-slate-500 hover:text-slate-800'}`}
+            >
+              Sin Badges (Texto Plano)
+            </button>
+          </div>
+        </div>
 
         {/* Tab Selection */}
         <div className="flex bg-gray-100 p-1.5 rounded-xl max-w-md no-print-interactive">
@@ -738,56 +777,84 @@ className={\`... ${licClasses.respOcFaltante}\`}`}
                       </td>
                       <td className="px-4 py-3 text-center">
                         <div className="flex flex-col gap-1.5 items-center justify-center max-w-[170px] mx-auto">
-                          <div>
-                            {row.fac ? (
-                              <span className={`inline-flex items-center justify-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold border transition-all ${row.facFile ? licClasses.respFacturaConFile : licClasses.respFacturaSinFile}`}>
-                                <FileText size={10} /> FACTURA N° {row.fac}
-                              </span>
-                            ) : (
-                              <span className={`inline-flex items-center justify-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase border transition-all ${licClasses.respFacturaFaltante}`}>
-                                <AlertTriangle size={10} /> Sin Factura
-                              </span>
-                            )}
-                          </div>
-                          <div>
-                            {row.oc ? (
-                              <span className={`inline-flex items-center justify-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold border transition-all ${row.ocFile ? licClasses.respOcConFile : licClasses.respOcSinFile}`}>
-                                <FileText size={10} /> OC N° {row.oc}
-                              </span>
-                            ) : (
-                              <span className={`inline-flex items-center justify-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase border transition-all ${licClasses.respOcFaltante}`}>
-                                <AlertTriangle size={10} /> Sin OC
-                              </span>
-                            )}
-                          </div>
+                          {showBadges ? (
+                            <>
+                              <div>
+                                {row.fac ? (
+                                  <span className={`inline-flex items-center justify-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold border transition-all ${row.facFile ? licClasses.respFacturaConFile : licClasses.respFacturaSinFile}`}>
+                                    <FileText size={10} /> FACTURA N° {row.fac}
+                                  </span>
+                                ) : (
+                                  <span className={`inline-flex items-center justify-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase border transition-all ${licClasses.respFacturaFaltante}`}>
+                                    <AlertTriangle size={10} /> Sin Factura
+                                  </span>
+                                )}
+                              </div>
+                              <div>
+                                {row.oc ? (
+                                  <span className={`inline-flex items-center justify-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold border transition-all ${row.ocFile ? licClasses.respOcConFile : licClasses.respOcSinFile}`}>
+                                    <FileText size={10} /> OC N° {row.oc}
+                                  </span>
+                                ) : (
+                                  <span className={`inline-flex items-center justify-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase border transition-all ${licClasses.respOcFaltante}`}>
+                                    <AlertTriangle size={10} /> Sin OC
+                                  </span>
+                                )}
+                              </div>
+                            </>
+                          ) : (
+                            <div className="text-slate-600 text-[11px] flex flex-col gap-0.5 font-medium leading-tight">
+                              {row.fac ? <span>Factura N° {row.fac} {row.facFile ? '(con arch.)' : '(sin arch.)'}</span> : <span className="text-slate-400">Sin Factura</span>}
+                              {row.oc ? <span>OC N° {row.oc} {row.ocFile ? '(con arch.)' : '(sin arch.)'}</span> : <span className="text-slate-400">Sin OC</span>}
+                            </div>
+                          )}
                         </div>
                       </td>
                       <td className="px-4 py-3 text-center font-bold text-slate-700">{row.total}</td>
                       <td className="px-4 py-3 text-center">
-                        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold border shadow-xs ${stockClass}`}>
-                          <StockIcon size={10} className="stroke-[2.5]" />
-                          {row.disp} de {row.total} disp.
-                        </span>
+                        {showBadges ? (
+                          <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold border shadow-xs ${stockClass}`}>
+                            <StockIcon size={10} className="stroke-[2.5]" />
+                            {row.disp} de {row.total} disp.
+                          </span>
+                        ) : (
+                          <span className="text-xs text-slate-700 font-bold">{row.disp} de {row.total}</span>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-center">
-                        <span className={licClasses.asignadas}>{row.asig}</span>
+                        {showBadges ? (
+                          <span className={licClasses.asignadas}>{row.asig}</span>
+                        ) : (
+                          <span className="text-xs text-slate-700 font-bold">{row.asig}</span>
+                        )}
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex flex-col items-center gap-1 max-w-[150px] mx-auto">
-                          <span className={row.hasStock ? licClasses.statusDisponible : licClasses.statusAgotado}>
-                            {row.hasStock ? 'DISPONIBLE' : 'AGOTADO'}
-                          </span>
-                          {row.days > 30 && (
-                            <span className={licClasses.venceLejos}>Quedan {row.days} días</span>
-                          )}
-                          {row.days > 0 && row.days <= 30 && (
-                            <span className={licClasses.vencePronto}>Quedan {row.days} días</span>
-                          )}
-                          {row.days === 0 && (
-                            <span className={licClasses.venceHoy}>Vence Hoy</span>
-                          )}
-                          {row.days < 0 && (
-                            <span className={licClasses.venceVencida}>Vencida hace {Math.abs(row.days)} días</span>
+                          {showBadges ? (
+                            <>
+                              <span className={row.hasStock ? licClasses.statusDisponible : licClasses.statusAgotado}>
+                                {row.hasStock ? 'DISPONIBLE' : 'AGOTADO'}
+                              </span>
+                              {row.days > 30 && (
+                                <span className={licClasses.venceLejos}>Quedan {row.days} días</span>
+                              )}
+                              {row.days > 0 && row.days <= 30 && (
+                                <span className={licClasses.vencePronto}>Quedan {row.days} días</span>
+                              )}
+                              {row.days === 0 && (
+                                <span className={licClasses.venceHoy}>Vence Hoy</span>
+                              )}
+                              {row.days < 0 && (
+                                <span className={licClasses.venceVencida}>Vencida hace {Math.abs(row.days)} días</span>
+                              )}
+                            </>
+                          ) : (
+                            <div className="flex flex-col items-center gap-0.5 text-[11px] leading-tight text-center">
+                              <span className={`font-bold ${row.hasStock ? 'text-green-700' : 'text-red-650'}`}>{row.hasStock ? 'DISPONIBLE' : 'AGOTADO'}</span>
+                              {row.days > 0 && <span className="text-slate-500">Quedan {row.days} días</span>}
+                              {row.days === 0 && <span className="text-red-600 font-black">Vence Hoy</span>}
+                              {row.days < 0 && <span className="text-red-600 font-black">Vencida hace {Math.abs(row.days)} días</span>}
+                            </div>
                           )}
                         </div>
                       </td>
@@ -836,19 +903,27 @@ className={\`... ${licClasses.respOcFaltante}\`}`}
                       </td>
                       <td className="px-4 py-3 text-slate-500">{row.date}</td>
                       <td className="px-4 py-3">
-                        <div className="flex gap-1.5 items-center">
-                          {row.fac ? (
-                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9.5px] font-bold border transition-all ${row.facFile ? licClasses.respFacturaConFile : licClasses.respFacturaSinFile}`}>
-                              <FileText size={10} /> Factura N° {row.fac}
+                        {showBadges ? (
+                          <div className="flex gap-1.5 items-center">
+                            {row.fac ? (
+                              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9.5px] font-bold border transition-all ${row.facFile ? licClasses.respFacturaConFile : licClasses.respFacturaSinFile}`}>
+                                <FileText size={10} /> Factura N° {row.fac}
+                              </span>
+                            ) : (
+                              <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase border transition-all ${licClasses.respFacturaFaltante}`}>Sin Factura</span>
+                            )}
+                            
+                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9.5px] font-bold border transition-all ${row.ocFile ? licClasses.respOcConFile : licClasses.respOcSinFile}`}>
+                              <FileText size={10} /> OC N° {row.oc}
                             </span>
-                          ) : (
-                            <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase border transition-all ${licClasses.respFacturaFaltante}`}>Sin Factura</span>
-                          )}
-                          
-                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9.5px] font-bold border transition-all ${row.ocFile ? licClasses.respOcConFile : licClasses.respOcSinFile}`}>
-                            <FileText size={10} /> OC N° {row.oc}
-                          </span>
-                        </div>
+                          </div>
+                        ) : (
+                          <div className="text-[11px] text-slate-600 font-medium">
+                            {row.fac ? `Factura N° ${row.fac} ${row.facFile ? '(con arch.)' : '(sin arch.)'}` : 'Sin Factura'}
+                            {' • '}
+                            {`OC N° ${row.oc} ${row.ocFile ? '(con arch.)' : '(sin arch.)'}`}
+                          </div>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -866,7 +941,11 @@ className={\`... ${licClasses.respOcFaltante}\`}`}
                 <h4 className="font-bold text-slate-800 text-xs uppercase">Adobe Creative Cloud Suite Pro</h4>
                 <span className="text-[10px] text-gray-500 block mt-0.5">Asignaciones vigentes</span>
               </div>
-              <span className={licClasses.asignadas}>7 Asignadas</span>
+              {showBadges ? (
+                <span className={licClasses.asignadas}>7 Asignadas</span>
+              ) : (
+                <span className="text-xs text-slate-700 font-bold">7 Asignadas</span>
+              )}
             </div>
 
             <div className="overflow-x-auto rounded-xl border border-gray-200">

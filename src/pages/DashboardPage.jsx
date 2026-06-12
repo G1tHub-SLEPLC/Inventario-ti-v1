@@ -2,7 +2,8 @@ import { useState, useMemo, useRef, useEffect } from 'react';
 import { useInventario } from '../context/InventarioContext';
 import * as XLSX from 'xlsx';
 import Papa from 'papaparse';
-import { Download, Search, Package, UserCircle, MonitorSmartphone, Printer, Eye, Upload, Pencil, CheckCircle, UploadCloud, AlertCircle, FileWarning, AlertTriangle, PlusCircle, UserPlus } from 'lucide-react';
+import { Download, Search, Package, UserCircle, MonitorSmartphone, Printer, Eye, Upload, Pencil, CheckCircle, UploadCloud, AlertCircle, FileWarning, AlertTriangle, PlusCircle, UserPlus, QrCode } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { saveDocument, getDocument } from '../utils/db';
 import EditarEquipoModal from '../components/EditarEquipoModal';
@@ -106,6 +107,11 @@ function getInitials(name) {
   return (words[0][0] + words[words.length - 1][0]).toUpperCase();
 }
 
+const isQRSupported = (tipo) => {
+  const t = (tipo || '').toLowerCase();
+  return t.includes('notebook') || t.includes('aio') || t.includes('tablet') || t.includes('all in one') || t.includes('todo en uno');
+};
+
 export default function DashboardPage() {
   const { equipos, loading, setFileStatus, addMasivo, updateEquipo } = useInventario();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -113,7 +119,7 @@ export default function DashboardPage() {
   const setActiveTab = (tab) => {
     setSearchParams({ tab });
   };
-  const [globalSearch, setGlobalSearch] = useState('');
+  const [globalSearch, setGlobalSearch] = useState(() => searchParams.get('q') || searchParams.get('search') || '');
   const [sortConfig, setSortConfig] = useState({ col: null, dir: 1 });
 
   const [isMasivaModalOpen, setIsMasivaModalOpen] = useState(false);
@@ -127,6 +133,7 @@ export default function DashboardPage() {
 
   const [assignModalData, setAssignModalData] = useState(null);
   const [assignUserName, setAssignUserName] = useState('');
+  const [qrModalData, setQrModalData] = useState(null);
 
   useEffect(() => {
     const handleGlobalMouseMove = (e) => {
@@ -477,7 +484,11 @@ export default function DashboardPage() {
   let baseData = [];
   let kpisEquip = null;
 
-  if (activeTab === 'disp') {
+  const isSearchingQR = globalSearch && (searchParams.get('q') || searchParams.get('search')) === globalSearch;
+
+  if (isSearchingQR) {
+    baseData = equipos;
+  } else if (activeTab === 'disp') {
     baseData = equipos.filter(r => isAvailable(r['Usuario']));
   } else if (activeTab === 'func') {
     if (selectedFunc) {
@@ -512,6 +523,16 @@ export default function DashboardPage() {
 
   // Define active columns dynamically
   const activeCols = useMemo(() => {
+    if (isSearchingQR) {
+      const cols = [];
+      COLUMNS.forEach(c => {
+        if (c === 'Usuario') {
+          cols.push('Estado');
+        }
+        cols.push(c);
+      });
+      return cols;
+    }
     if (activeTab === 'disp') {
       const cols = COLUMNS.filter(c => c !== 'Usuario' && c !== 'SubDirección');
       cols.push('Estado');
@@ -525,7 +546,7 @@ export default function DashboardPage() {
       cols.push(c);
     });
     return cols;
-  }, [activeTab]);
+  }, [activeTab, isSearchingQR]);
 
   // Apply Sort
   if (sortConfig.col) {
@@ -678,6 +699,114 @@ export default function DashboardPage() {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     }
+  };
+
+  const handleDownloadQR = (eq) => {
+    const svgElement = document.getElementById("qr-code-svg");
+    if (!svgElement) return;
+    const svgString = new XMLSerializer().serializeToString(svgElement);
+    const svgBlob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" });
+    const URL = window.URL || window.webkitURL || window;
+    const blobURL = URL.createObjectURL(svgBlob);
+    const image = new Image();
+    image.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = 300;
+      canvas.height = 300;
+      const context = canvas.getContext("2d");
+      context.fillStyle = "#FFFFFF";
+      context.fillRect(0, 0, 300, 300);
+      context.drawImage(image, 10, 10, 280, 280);
+      const png = canvas.toDataURL("image/png");
+      const downloadLink = document.createElement("a");
+      downloadLink.href = png;
+      downloadLink.download = `QR_${eq['Nº de serie'] || 'equipo'}.png`;
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      document.body.removeChild(downloadLink);
+      URL.revokeObjectURL(blobURL);
+    };
+    image.src = blobURL;
+  };
+
+  const handlePrintQR = (eq) => {
+    const svgElement = document.getElementById("qr-code-svg");
+    if (!svgElement) return;
+    const svgHtml = svgElement.outerHTML;
+    const printWindow = window.open('', '_blank', 'width=600,height=600');
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Imprimir Código QR</title>
+          <style>
+            body {
+              font-family: system-ui, -apple-system, sans-serif;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+              height: 100vh;
+              margin: 0;
+              background-color: #fff;
+              color: #333;
+            }
+            .container {
+              text-align: center;
+              border: 1px solid #ccc;
+              padding: 20px;
+              border-radius: 10px;
+              width: 250px;
+            }
+            svg {
+              width: 200px;
+              height: 200px;
+              margin-bottom: 15px;
+            }
+            .label-info {
+              font-size: 11px;
+              line-height: 1.4;
+              text-align: left;
+              margin: 0 auto;
+              width: 200px;
+            }
+            .label-info div {
+              margin-bottom: 4px;
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
+            }
+            @media print {
+              body {
+                height: auto;
+              }
+              .container {
+                border: none;
+                padding: 0;
+                width: 100%;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            \${svgHtml}
+            <div class="label-info">
+              <div><strong>Marca:</strong> \${eq['Marca'] || '—'}</div>
+              <div><strong>Modelo:</strong> \${eq['Modelo'] || '—'}</div>
+              <div><strong>N° Serie:</strong> \${eq['Nº de serie'] || '—'}</div>
+              <div><strong>Usuario:</strong> \${isAvailable(eq['Usuario']) ? 'Disponible' : eq['Usuario']}</div>
+            </div>
+          </div>
+          <script>
+            window.onload = function() {
+              window.print();
+              setTimeout(function() { window.close(); }, 500);
+            };
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
   };
 
   const total = equipos.length;
@@ -1022,6 +1151,18 @@ export default function DashboardPage() {
                         <td className="text-center no-print-interactive">
                           <div className="flex justify-center items-center gap-2">
                             <button
+                              disabled={!isQRSupported(row['Descripción del Bien'])}
+                              onClick={() => setQrModalData(row)}
+                              className={`p-2 rounded-lg transition-all shadow-xs flex items-center justify-center cursor-pointer border ${
+                                isQRSupported(row['Descripción del Bien'])
+                                  ? 'text-[#006BB9] hover:text-white hover:bg-[#006BB9] border-blue-200 hover:border-[#006BB9]'
+                                  : 'text-gray-300 border-gray-100 bg-gray-50 cursor-not-allowed'
+                              }`}
+                              title={isQRSupported(row['Descripción del Bien']) ? "Generar Código QR" : "Código QR no soportado para este tipo de bien"}
+                            >
+                              <QrCode size={14} className="stroke-[2.5]" />
+                            </button>
+                            <button
                               onClick={() => { setAssignModalData(row); setAssignUserName(row['Usuario'] || ''); }}
                               className="p-2 text-emerald-600 hover:text-white hover:bg-emerald-600 border border-emerald-200 hover:border-emerald-600 rounded-lg transition-all shadow-xs flex items-center justify-center cursor-pointer"
                               title="Asignar Equipo a un Funcionario"
@@ -1266,6 +1407,81 @@ export default function DashboardPage() {
           equipo={editingEquipo}
           onClose={() => setEditingEquipo(null)}
         />
+      )}
+
+      {/* Modal Código QR */}
+      {qrModalData && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-2xl w-full max-w-sm flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            {/* Header */}
+            <div className="flex justify-between items-center px-4 py-3 bg-[#25306B] text-white">
+              <h2 className="text-sm font-bold flex items-center gap-1.5">
+                <QrCode size={16} /> Etiqueta QR del Equipo
+              </h2>
+              <button
+                onClick={() => setQrModalData(null)}
+                className="text-white/80 hover:text-white hover:bg-white/10 px-2 py-0.5 rounded-lg transition-colors cursor-pointer text-lg font-bold"
+              >
+                &times;
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-5 flex flex-col items-center gap-4 text-xs">
+              <div className="bg-slate-50 border border-slate-200 p-3 rounded-xl shadow-inner flex items-center justify-center">
+                <QRCodeSVG
+                  id="qr-code-svg"
+                  value={`${window.location.origin}/qr-info?search=${encodeURIComponent(qrModalData['Nº de serie'] || '')}`}
+                  size={180}
+                  level="H"
+                  includeMargin={true}
+                />
+              </div>
+
+              {/* Detalles */}
+              <div className="w-full bg-slate-50 border border-gray-150 p-3 rounded-xl space-y-1.5">
+                <div>
+                  <span className="font-bold text-[#25306B]">Descripción:</span>{' '}
+                  <span className="text-gray-705 font-medium">{qrModalData['Descripción del Bien'] || '—'}</span>
+                </div>
+                <div>
+                  <span className="font-bold text-[#25306B]">Marca:</span>{' '}
+                  <span className="text-gray-705 font-medium">{qrModalData['Marca'] || '—'}</span>
+                </div>
+                <div>
+                  <span className="font-bold text-[#25306B]">Modelo:</span>{' '}
+                  <span className="text-gray-705 font-medium">{qrModalData['Modelo'] || '—'}</span>
+                </div>
+                <div>
+                  <span className="font-bold text-[#25306B]">N° Serie:</span>{' '}
+                  <span className="text-gray-755 font-mono font-bold">{qrModalData['Nº de serie'] || '—'}</span>
+                </div>
+                <div>
+                  <span className="font-bold text-[#25306B]">Usuario:</span>{' '}
+                  <span className="text-gray-705 font-medium">
+                    {isAvailable(qrModalData['Usuario']) ? 'Disponible' : qrModalData['Usuario']}
+                  </span>
+                </div>
+              </div>
+
+              {/* Botones de acción */}
+              <div className="flex gap-2 w-full mt-1">
+                <button
+                  onClick={() => handleDownloadQR(qrModalData)}
+                  className="flex-1 py-2 bg-slate-100 hover:bg-slate-200 text-gray-700 font-bold rounded-xl border border-gray-300 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <Download size={14} /> Descargar PNG
+                </button>
+                <button
+                  onClick={() => handlePrintQR(qrModalData)}
+                  className="flex-1 py-2 bg-[#006BB9] hover:bg-[#25306B] text-white font-bold rounded-xl flex items-center justify-center gap-1.5 transition-colors shadow-sm cursor-pointer"
+                >
+                  <Printer size={14} /> Imprimir
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

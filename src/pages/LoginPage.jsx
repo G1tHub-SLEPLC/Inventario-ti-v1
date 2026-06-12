@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -22,7 +23,10 @@ export default function LoginPage() {
       });
 
       if (err) throw err;
-      navigate('/');
+      
+      const from = location.state?.from;
+      const redirectTo = from ? from.pathname + (from.search || '') : '/';
+      navigate(redirectTo, { replace: true });
     } catch (err) {
       setError('Credenciales inválidas. Por favor, verifique su correo y contraseña.');
       setCargando(false);

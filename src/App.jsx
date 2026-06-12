@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Suspense, lazy } from 'react';
 import { InventarioProvider } from './context/InventarioContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -24,16 +24,18 @@ const EstadoBadgeShowcasePage = lazy(() => import('./pages/EstadoBadgeShowcasePa
 const LicenciasShowcasePage = lazy(() => import('./pages/LicenciasShowcasePage'));
 const DisponiblesShowcasePage = lazy(() => import('./pages/DisponiblesShowcasePage'));
 const LicenciasBadgeShowcasePage = lazy(() => import('./pages/LicenciasBadgeShowcasePage'));
+const QRInfoPage = lazy(() => import('./pages/QRInfoPage'));
 
 function ProtectedRoute({ children }) {
   const { session, loading } = useAuth();
+  const location = useLocation();
   
   if (loading && !session) {
     return <div className="flex items-center justify-center h-screen bg-slate-900 text-blue-200">Verificando sesión...</div>;
   }
   
   if (!session && !loading) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/login" replace state={{ from: location }} />;
   }
   
   return children;
@@ -72,6 +74,7 @@ export default function App() {
             <Suspense fallback={<div className="flex items-center justify-center h-screen text-gray-400">Cargando…</div>}>
               <Routes>
                 <Route path="/login" element={<LoginPage />} />
+                <Route path="/qr-info" element={<ProtectedRoute><QRInfoPage /></ProtectedRoute>} />
                 <Route path="/" element={<ProtectedRoute><AppShell /></ProtectedRoute>}>
                   
                   {/* Common Route */}

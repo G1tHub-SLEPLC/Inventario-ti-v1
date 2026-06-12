@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useInventario } from '../context/InventarioContext';
-import { Save, AlertCircle, Eye, Clock, UserCheck, X } from 'lucide-react';
+import { Save, AlertCircle, Eye, Clock, UserCheck, X, QrCode, Download, Printer } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
 import { saveDocument, getDocument } from '../utils/db';
 import { supabase } from '../lib/supabaseClient';
 import AutocompleteInput from './AutocompleteInput';
@@ -155,6 +156,124 @@ export default function EditarEquipoModal({ equipo, onClose }) {
       console.error('Error al previsualizar:', err);
       alert('Error al abrir el documento.');
     }
+  };
+
+  const isQRSupported = () => {
+    const desc = (formData['Descripción del Bien'] || '').toLowerCase();
+    return desc.includes('notebook') || desc.includes('aio') || desc.includes('tablet') || desc.includes('all in one') || desc.includes('todo en uno');
+  };
+
+  const handleDownloadQR = () => {
+    const svgElement = document.getElementById("edit-qr-code-svg");
+    if (!svgElement) return;
+    const svgString = new XMLSerializer().serializeToString(svgElement);
+    const svgBlob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" });
+    const URL = window.URL || window.webkitURL || window;
+    const blobURL = URL.createObjectURL(svgBlob);
+    const image = new Image();
+    image.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = 300;
+      canvas.height = 300;
+      const context = canvas.getContext("2d");
+      context.fillStyle = "#FFFFFF";
+      context.fillRect(0, 0, 300, 300);
+      context.drawImage(image, 10, 10, 280, 280);
+      const png = canvas.toDataURL("image/png");
+      const downloadLink = document.createElement("a");
+      downloadLink.href = png;
+      downloadLink.download = `QR_${formData['Nº de serie'] || 'equipo'}.png`;
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      document.body.removeChild(downloadLink);
+      URL.revokeObjectURL(blobURL);
+    };
+    image.src = blobURL;
+  };
+
+  const handlePrintQR = () => {
+    const svgElement = document.getElementById("edit-qr-code-svg");
+    if (!svgElement) return;
+    const svgHtml = svgElement.outerHTML;
+    const printWindow = window.open('', '_blank', 'width=600,height=600');
+    const isAvailableVal = (u) => {
+      const v = (u || '').toLowerCase().trim();
+      return v === '' || v === 'disponible' || v === 'bodega' || v === 'sin asignar' || v === '—' || v === '-';
+    };
+    const userVal = isAvailableVal(formData['Usuario']) ? 'Disponible' : formData['Usuario'];
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Imprimir Código QR</title>
+          <style>
+            body {
+              font-family: system-ui, -apple-system, sans-serif;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+              height: 100vh;
+              margin: 0;
+              background-color: #fff;
+              color: #333;
+            }
+            .container {
+              text-align: center;
+              border: 1px solid #ccc;
+              padding: 20px;
+              border-radius: 10px;
+              width: 250px;
+            }
+            svg {
+              width: 200px;
+              height: 200px;
+              margin-bottom: 15px;
+            }
+            .label-info {
+              font-size: 11px;
+              line-height: 1.4;
+              text-align: left;
+              margin: 0 auto;
+              width: 200px;
+            }
+            .label-info div {
+              margin-bottom: 4px;
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
+            }
+            @media print {
+              body {
+                height: auto;
+              }
+              .container {
+                border: none;
+                padding: 0;
+                width: 100%;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            \${svgHtml}
+            <div class="label-info">
+              <div><strong>Marca:</strong> \${formData['Marca'] || '—'}</div>
+              <div><strong>Modelo:</strong> \${formData['Modelo'] || '—'}</div>
+              <div><strong>N° Serie:</strong> \${formData['Nº de serie'] || '—'}</div>
+              <div><strong>Usuario:</strong> \${userVal}</div>
+            </div>
+          </div>
+          <script>
+            window.onload = function() {
+              window.print();
+              setTimeout(function() { window.close(); }, 500);
+            };
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
   };
 
   const handleSubmit = async (e) => {
@@ -440,6 +559,42 @@ export default function EditarEquipoModal({ equipo, onClose }) {
                   placeholder="Proveedor"
                 />
               </div>
+
+              {/* Código QR (Sólo para Notebooks, AIO, Tablets) */}
+              {isQRSupported() && (
+                <div className="mt-3 pt-3 border-t border-gray-150 flex flex-col items-center gap-2">
+                  <span className="block text-[10px] font-bold text-[#25306B] uppercase tracking-wide w-full text-left">
+                    Código QR del Equipo
+                  </span>
+                  <div className="bg-slate-50 border border-slate-200 p-2 rounded-xl flex items-center justify-center shadow-inner">
+                    <QRCodeSVG
+                      id="edit-qr-code-svg"
+                      value={`${window.location.origin}/qr-info?search=${encodeURIComponent(formData['Nº de serie'] || '')}`}
+                      size={110}
+                      level="H"
+                      includeMargin={true}
+                    />
+                  </div>
+                  <div className="flex gap-1.5 w-full">
+                    <button
+                      type="button"
+                      onClick={handleDownloadQR}
+                      className="flex-1 py-1.5 bg-slate-100 hover:bg-slate-200 text-gray-700 font-bold rounded-lg border border-gray-300 flex items-center justify-center gap-1 text-[10px] transition-colors cursor-pointer"
+                      title="Descargar código QR como PNG"
+                    >
+                      <Download size={11} /> Descargar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handlePrintQR}
+                      className="flex-1 py-1.5 bg-[#006BB9] hover:bg-[#25306B] text-white font-bold rounded-lg flex items-center justify-center gap-1 text-[10px] transition-colors shadow-xs cursor-pointer"
+                      title="Imprimir etiqueta de código QR"
+                    >
+                      <Printer size={11} /> Imprimir
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 

@@ -787,19 +787,21 @@ export default function LicenciasAdminPage() {
                 <thead>
                   <tr>
                     <th className="px-3 py-3 w-16 font-bold text-white text-left">Logo</th>
-                    <th className="px-3 py-3 font-bold text-white text-left">Software</th>
+                    <th className="px-3 py-3 font-bold text-white text-left">Nombre</th>
                     <th className="px-3 py-3 font-bold text-white text-left">Respaldo</th>
                     <th className="px-3 py-3 text-center font-bold text-white">Disponibles</th>
-                    <th className="px-3 py-3 text-center font-bold text-white">Asignadas</th>
+                    <th className="px-3 py-3 text-center font-bold text-white">Total</th>
+                    <th className="px-3 py-3 text-center font-bold text-white">% Restante</th>
                     <th className="px-3 py-3 text-center font-bold text-white">Estado</th>
+                    <th className="px-3 py-3 text-center font-bold text-white">Expiración</th>
                     <th className="px-3 py-3 text-center font-bold text-white">Acciones</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                   {loading ? (
-                    <tr><td colSpan="7" className="px-6 py-8 text-center text-gray-500">Cargando licencias...</td></tr>
+                    <tr><td colSpan="9" className="px-6 py-8 text-center text-gray-500">Cargando licencias...</td></tr>
                   ) : disponiblesLicencias.length === 0 ? (
-                    <tr><td colSpan="7" className="px-6 py-8 text-center text-gray-500">No hay licencias disponibles.</td></tr>
+                    <tr><td colSpan="9" className="px-6 py-8 text-center text-gray-500">No hay licencias disponibles.</td></tr>
                   ) : (
                     disponiblesLicencias.map((lic) => {
                       const asignadas = getAsignacionesCount(lic.id);
@@ -867,63 +869,82 @@ export default function LicenciasAdminPage() {
                               </div>
                             </div>
                           </td>
+                          <td className="px-3 py-2.5 text-center font-bold text-[#112A46]">
+                            {disponibles}
+                          </td>
+                          <td className="px-3 py-2.5 text-center font-bold text-[#112A46]">
+                            {lic.cantidad_total}
+                          </td>
                           <td className="px-3 py-2.5 text-center">
-                            <div className="flex items-center justify-center font-bold">
-                              {(() => {
-                                const total = lic.cantidad_total || 0;
-                                const ratio = total > 0 ? (disponibles / total) : 0;
-                                let badgeColorClass = '';
-                                let IconComponent = Clock;
-                                
-                                if (ratio >= 0.4) {
-                                  badgeColorClass = 'bg-green-200 text-green-700 border-green-500 border';
-                                  IconComponent = CheckCircle;
-                                } else if (ratio >= 0.2) {
-                                  badgeColorClass = 'bg-amber-200 text-amber-700 border-amber-600 border';
-                                  IconComponent = Clock;
-                                } else {
-                                  badgeColorClass = 'bg-rose-200 text-red-700 border-red-600 border';
-                                  IconComponent = AlertTriangle;
-                                }
-                                
-                                return (
-                                  <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold border shadow-xs ${badgeColorClass}`}>
-                                    <IconComponent size={10} className="stroke-[2.5]" />
-                                    {disponibles} de {total} disp.
+                            {(() => {
+                              const total = lic.cantidad_total || 0;
+                              const r = total > 0 ? (disponibles / total) : 0;
+                              let color = 'bg-emerald-500';
+                              let border = 'border-emerald-500/20';
+                              
+                              if (r < 0.2) {
+                                color = 'bg-red-500';
+                                border = 'border-red-500/20';
+                              } else if (r < 0.4) {
+                                color = 'bg-amber-500';
+                                border = 'border-amber-500/20';
+                              }
+
+                              return (
+                                <div className={`w-full max-w-[130px] h-6 bg-slate-100 border ${border} rounded-lg overflow-hidden relative flex items-center justify-center font-mono text-[10px] font-black shadow-inner mx-auto`}>
+                                  <div 
+                                    className={`absolute left-0 top-0 h-full transition-all duration-300 ${color}`}
+                                    style={{ width: `${r * 100}%` }}
+                                  />
+                                  <span className="z-10 text-slate-800 mix-blend-difference uppercase tracking-wider font-extrabold">
+                                    {disponibles} / {total} ({(r * 100).toFixed(0)}%)
                                   </span>
-                                );
-                              })()}
-                            </div>
+                                </div>
+                              );
+                            })()}
                           </td>
                           <td className="px-3 py-2.5 text-center">
-                            <button 
-                              onClick={() => handleOpenViewModal(lic)} 
-                              className="bg-blue-200 text-blue-800 border border-blue-400 px-2.5 py-1 rounded-full font-bold shadow-xs text-[11px] hover:bg-blue-300 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-400"
-                              title="Ver Asignaciones"
-                            >
-                              {asignadas}
-                            </button>
+                            <span className={`bg-green-200 text-green-800 border border-green-400 px-2 py-0.5 rounded font-semibold uppercase w-full block text-center text-[11px] ${hasStock ? 'bg-green-200 text-green-800 border border-green-400 px-2 py-0.5 rounded font-semibold uppercase w-full block text-center text-[11px]' : 'bg-rose-200 text-rose-700 border border-rose-400 px-2 py-0.5 rounded font-semibold uppercase w-full block text-center text-[11px]'}`}>
+                              {hasStock ? 'DISPONIBLE' : 'AGOTADO'}
+                            </span>
                           </td>
                           <td className="px-3 py-2.5 text-center">
-                            <div className="flex flex-col items-center gap-1.5">
-                              <span className={`bg-green-200 text-green-800 border border-green-400 px-2 py-0.5 rounded font-semibold uppercase w-full block text-center text-[11px] ${hasStock ? 'bg-green-200 text-green-800 border border-green-400 px-2 py-0.5 rounded font-semibold uppercase w-full block text-center text-[11px]' : 'bg-rose-200 text-rose-700 border border-rose-400 px-2 py-0.5 rounded font-semibold uppercase w-full block text-center text-[11px]'}`}>
-                                {hasStock ? 'DISPONIBLE' : 'AGOTADO'}
-                              </span>
+                            <div className="flex items-center justify-center">
                               {(() => {
-                                if (!lic.fecha_termino) return null;
+                                if (!lic.fecha_termino) return <span className="text-gray-400 italic text-[11px]">Sin caducidad</span>;
                                 const today = new Date();
                                 today.setHours(0, 0, 0, 0);
                                 const termDate = new Date(lic.fecha_termino);
                                 const diffTime = termDate - today;
                                 const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
+                                let badgeColorClass = '';
+                                let IconComponent = null;
+                                let text = '';
+
                                 if (diffDays > 0) {
-                                  return <span className={`border w-full ${diffDays <= 30 ? 'bg-amber-200 text-amber-700 border border-amber-400 px-2 py-0.5 rounded font-semibold uppercase w-full block text-center text-[11px]' : 'bg-blue-200 text-blue-700 border border-blue-400 px-2 py-0.5 rounded font-semibold uppercase w-full block text-center text-[11px]'}`}>Quedan {diffDays} días</span>;
+                                  text = `Quedan ${diffDays} días`;
+                                  if (diffDays <= 30) {
+                                    badgeColorClass = 'bg-amber-200 text-amber-700 border-amber-400';
+                                  } else {
+                                    badgeColorClass = 'bg-blue-200 text-blue-700 border-blue-400';
+                                  }
                                 } else if (diffDays === 0) {
-                                  return <span className="bg-rose-600 text-yellow-400 border border-yellow-400 px-2 py-0.5 rounded uppercase w-full block text-center font-bold text-[11px]">Vence Hoy</span>;
+                                  text = 'Vence Hoy';
+                                  badgeColorClass = 'bg-rose-600 text-yellow-400 border-yellow-400';
+                                  IconComponent = AlertCircle;
                                 } else {
-                                  return <span className="bg-yellow-400 text-orange-600 border border-orange-400 px-2 py-0.5 rounded uppercase w-full block text-center font-bold text-[11px]">Vencida hace {Math.abs(diffDays)} días</span>;
+                                  text = `Vencida hace ${Math.abs(diffDays)} días`;
+                                  badgeColorClass = 'bg-yellow-400 text-orange-600 border-orange-400';
+                                  IconComponent = AlertTriangle;
                                 }
+
+                                return (
+                                  <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold border shadow-xs ${badgeColorClass}`}>
+                                    {IconComponent && <IconComponent size={10} className="stroke-[2.5]" />}
+                                    {text}
+                                  </span>
+                                );
                               })()}
                             </div>
                           </td>
