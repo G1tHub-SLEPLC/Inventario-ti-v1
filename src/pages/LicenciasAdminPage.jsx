@@ -1616,7 +1616,7 @@ export default function LicenciasAdminPage() {
       {/* Modal para Ver Asignaciones */}
       {isViewModalOpen && viewLicencia && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white p-6 rounded-xl shadow-2xl w-full max-w-lg max-h-[80vh] flex flex-col animate-fade-in">
+          <div className="bg-white p-6 rounded-xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col animate-fade-in">
             <h2 className="text-xl font-bold mb-1 text-[#25306B] flex items-center gap-2">
               <img src={getLogoUrl(viewLicencia.software)} className="w-6 h-6 object-contain" alt="" onError={e => e.target.style.display = 'none'} />
               Asignaciones: {viewLicencia.software}
@@ -1625,31 +1625,55 @@ export default function LicenciasAdminPage() {
               {asignacionesDeLicencia.length} de {viewLicencia.cantidad_total} licencias en uso
             </p>
 
-            <div className="overflow-y-auto flex-1 pr-2">
+            <div className="overflow-y-auto flex-1 overflow-x-auto">
               {asignacionesDeLicencia.length === 0 ? (
                 <div className="text-center text-gray-500 py-4 text-sm bg-gray-50 rounded-lg border border-dashed border-gray-200">Nadie tiene asignada esta licencia aún.</div>
               ) : (
-                <div className="space-y-3">
-                  {asignacionesDeLicencia.map(a => (
-                    <div key={a.id} className="flex justify-between items-center bg-gray-50 p-3 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors">
-                      <div>
-                        <div className="font-bold text-sm text-gray-800">{a.perfiles?.nombre || a.perfiles?.email}</div>
-                        <div className="text-[11px] text-gray-500 font-medium">Asignado el: {new Date(a.fecha_asignacion).toLocaleDateString()}</div>
-                      </div>
-                      <button
-                        onClick={() => handleRevocar(a)}
-                        className="text-[11px] font-bold bg-white border border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 px-3 py-1.5 rounded transition-colors shadow-sm"
-                      >
-                        Revocar
-                      </button>
-                    </div>
-                  ))}
+                <div className="border border-gray-200 rounded-lg overflow-hidden">
+                  <table className="min-w-full text-xs text-left whitespace-nowrap border-collapse">
+                    <thead>
+                      <tr className="bg-slate-900 text-white font-bold uppercase tracking-wider text-[10px]">
+                        <th className="px-3 py-2.5">Funcionario</th>
+                        <th className="px-3 py-2.5">Correo Electrónico</th>
+                        <th className="px-3 py-2.5">Fecha Asignación</th>
+                        <th className="px-3 py-2.5 text-center w-16">Acción</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-150 bg-white">
+                      {asignacionesDeLicencia.map(a => {
+                        const uName = a.perfiles?.nombre || 'Sin nombre';
+                        const uEmail = a.perfiles?.email || 'Sin correo';
+                        const dateStr = formatLocalDate(a.fecha_asignacion);
+                        return (
+                          <tr key={a.id} className="hover:bg-slate-50 transition-colors">
+                            <td className="px-3 py-2 flex items-center gap-2 max-w-[200px]">
+                              <span className="w-7 h-7 rounded-full bg-blue-600 text-white flex items-center justify-center text-[9px] font-black uppercase shrink-0 shadow-xs">
+                                {getInitials(uName)}
+                              </span>
+                              <span className="font-semibold text-slate-800 truncate" title={uName}>{uName}</span>
+                            </td>
+                            <td className="px-3 py-2 text-slate-650 truncate max-w-[180px]" title={uEmail}>{uEmail}</td>
+                            <td className="px-3 py-2 text-slate-500">{dateStr}</td>
+                            <td className="px-3 py-2 text-center">
+                              <button
+                                onClick={() => handleRevocar(a)}
+                                className="text-red-650 hover:text-red-800 bg-red-50 hover:bg-red-100 p-1.5 rounded-lg transition-colors border border-red-100 inline-flex items-center justify-center shrink-0 cursor-pointer"
+                                title="Revocar Asignación"
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
                 </div>
               )}
             </div>
 
-            <div className="flex justify-end pt-4 mt-4 border-t">
-              <button onClick={() => setIsViewModalOpen(false)} className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-bold text-gray-700">Cerrar</button>
+            <div className="flex justify-end pt-4 mt-4 border-t shrink-0">
+              <button onClick={() => setIsViewModalOpen(false)} className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-bold text-gray-700 cursor-pointer">Cerrar</button>
             </div>
           </div>
         </div>
