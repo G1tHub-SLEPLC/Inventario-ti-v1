@@ -1616,7 +1616,7 @@ export default function LicenciasAdminPage() {
       {/* Modal para Ver Asignaciones */}
       {isViewModalOpen && viewLicencia && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white p-6 rounded-xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col animate-fade-in">
+          <div className="bg-white p-6 rounded-xl shadow-2xl w-full max-w-3xl max-h-[80vh] flex flex-col animate-fade-in">
             <h2 className="text-xl font-bold mb-1 text-[#25306B] flex items-center gap-2">
               <img src={getLogoUrl(viewLicencia.software)} className="w-6 h-6 object-contain" alt="" onError={e => e.target.style.display = 'none'} />
               Asignaciones: {viewLicencia.software}
@@ -1633,10 +1633,10 @@ export default function LicenciasAdminPage() {
                   <table className="min-w-full text-xs text-left whitespace-nowrap border-collapse">
                     <thead>
                       <tr className="bg-slate-900 text-white font-bold uppercase tracking-wider text-[10px]">
-                        <th className="px-3 py-2.5">Funcionario</th>
-                        <th className="px-3 py-2.5">Correo Electrónico</th>
-                        <th className="px-3 py-2.5">Fecha Asignación</th>
-                        <th className="px-3 py-2.5 text-center w-16">Acción</th>
+                        <th className="px-3 py-1.5">Funcionario</th>
+                        <th className="px-3 py-1.5">Correo Electrónico</th>
+                        <th className="px-3 py-1.5">Fecha Asignación</th>
+                        <th className="px-3 py-1.5 text-center w-16">Acción</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-150 bg-white">
@@ -1646,18 +1646,18 @@ export default function LicenciasAdminPage() {
                         const dateStr = formatLocalDate(a.fecha_asignacion);
                         return (
                           <tr key={a.id} className="hover:bg-slate-50 transition-colors">
-                            <td className="px-3 py-2 flex items-center gap-2 max-w-[200px]">
-                              <span className="w-7 h-7 rounded-full bg-blue-600 text-white flex items-center justify-center text-[9px] font-black uppercase shrink-0 shadow-xs">
+                            <td className="px-3 py-1 flex items-center gap-2">
+                              <span className="w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center text-[9px] font-black uppercase shrink-0 shadow-xs">
                                 {getInitials(uName)}
                               </span>
-                              <span className="font-semibold text-slate-800 truncate" title={uName}>{uName}</span>
+                              <span className="font-semibold text-slate-800">{uName}</span>
                             </td>
-                            <td className="px-3 py-2 text-slate-650 truncate max-w-[180px]" title={uEmail}>{uEmail}</td>
-                            <td className="px-3 py-2 text-slate-500">{dateStr}</td>
-                            <td className="px-3 py-2 text-center">
+                            <td className="px-3 py-1 text-slate-650">{uEmail}</td>
+                            <td className="px-3 py-1 text-slate-500">{dateStr}</td>
+                            <td className="px-3 py-1 text-center">
                               <button
                                 onClick={() => handleRevocar(a)}
-                                className="text-red-650 hover:text-red-800 bg-red-50 hover:bg-red-100 p-1.5 rounded-lg transition-colors border border-red-100 inline-flex items-center justify-center shrink-0 cursor-pointer"
+                                className="text-red-650 hover:text-red-800 bg-red-50 hover:bg-red-100 p-1 rounded-lg transition-colors border border-red-100 inline-flex items-center justify-center shrink-0 cursor-pointer"
                                 title="Revocar Asignación"
                               >
                                 <Trash2 size={13} />
