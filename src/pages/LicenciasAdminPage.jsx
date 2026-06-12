@@ -896,7 +896,13 @@ export default function LicenciasAdminPage() {
                             </div>
                           </td>
                           <td className="px-3 py-2.5 text-center">
-                            <span className="bg-blue-200 text-blue-800 border border-blue-400 px-2.5 py-1 rounded-full font-bold shadow-xs text-[11px]">{asignadas}</span>
+                            <button 
+                              onClick={() => handleOpenViewModal(lic)} 
+                              className="bg-blue-200 text-blue-800 border border-blue-400 px-2.5 py-1 rounded-full font-bold shadow-xs text-[11px] hover:bg-blue-300 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-400"
+                              title="Ver Asignaciones"
+                            >
+                              {asignadas}
+                            </button>
                           </td>
                           <td className="px-3 py-2.5 text-center">
                             <div className="flex flex-col items-center gap-1.5">
