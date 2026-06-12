@@ -1636,7 +1636,7 @@ export default function LicenciasAdminPage() {
                         <th className="px-3 py-1.5">Funcionario</th>
                         <th className="px-3 py-1.5">Correo Electrónico</th>
                         <th className="px-3 py-1.5">Fecha Asignación</th>
-                        <th className="px-3 py-1.5 text-center w-16">Acción</th>
+                        <th className="px-3 py-1.5 text-center w-24">Acción</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-150 bg-white">
@@ -1646,11 +1646,13 @@ export default function LicenciasAdminPage() {
                         const dateStr = formatLocalDate(a.fecha_asignacion);
                         return (
                           <tr key={a.id} className="hover:bg-slate-50 transition-colors">
-                            <td className="px-3 py-1 flex items-center gap-2">
-                              <span className="w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center text-[9px] font-black uppercase shrink-0 shadow-xs">
-                                {getInitials(uName)}
-                              </span>
-                              <span className="font-semibold text-slate-800">{uName}</span>
+                            <td className="px-3 py-1">
+                              <div className="flex items-center gap-2">
+                                <span className="w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center text-[9px] font-black uppercase shrink-0 shadow-xs">
+                                  {getInitials(uName)}
+                                </span>
+                                <span className="font-semibold text-slate-800">{uName}</span>
+                              </div>
                             </td>
                             <td className="px-3 py-1 text-slate-650">{uEmail}</td>
                             <td className="px-3 py-1 text-slate-500">{dateStr}</td>
