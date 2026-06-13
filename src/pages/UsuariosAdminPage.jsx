@@ -28,11 +28,13 @@ export default function UsuariosAdminPage() {
   const [usuarios, setUsuarios] = useState([]);
   const { sorted: sortedUsuarios, sortKey: uSortKey, sortDir: uSortDir, handleSort: handleUSort } = useSort(usuarios);
   
-  // Unique list of subdirecciones from existing users
+  // Unique list of subdirecciones from existing users and equipos
   const subdirecciones = useMemo(() => {
-    const list = usuarios.map(u => u.subdireccion).filter(Boolean);
-    return [...new Set(list)].sort((a, b) => a.localeCompare(b));
-  }, [usuarios]);
+    const listFromUsers = usuarios.map(u => u.subdireccion).filter(Boolean);
+    const listFromEquipos = equipos.map(eq => eq['SubDirección']).filter(Boolean);
+    const combinedList = [...listFromUsers, ...listFromEquipos].map(s => String(s).trim()).filter(s => s !== '' && s !== '—');
+    return [...new Set(combinedList)].sort((a, b) => a.localeCompare(b));
+  }, [usuarios, equipos]);
 
   const [loading, setLoading] = useState(true);
   
