@@ -718,108 +718,158 @@ export default function DashboardPage() {
     }
   };
 
-  const handleDownloadQR = (eq) => {
-    const svgElement = document.getElementById("qr-code-svg");
-    if (!svgElement) return;
-    const svgString = new XMLSerializer().serializeToString(svgElement);
-    const svgBlob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" });
-    const URL = window.URL || window.webkitURL || window;
-    const blobURL = URL.createObjectURL(svgBlob);
-    const image = new Image();
-    image.onload = () => {
-      const canvas = document.createElement("canvas");
-      canvas.width = 300;
-      canvas.height = 300;
-      const context = canvas.getContext("2d");
-      context.fillStyle = "#FFFFFF";
-      context.fillRect(0, 0, 300, 300);
-      context.drawImage(image, 10, 10, 280, 280);
-      const png = canvas.toDataURL("image/png");
-      const downloadLink = document.createElement("a");
-      downloadLink.href = png;
-      downloadLink.download = `QR_${eq['Nº de serie'] || 'equipo'}.png`;
-      document.body.appendChild(downloadLink);
-      downloadLink.click();
-      document.body.removeChild(downloadLink);
-      URL.revokeObjectURL(blobURL);
-    };
-    image.src = blobURL;
+  const generarCodigoInventario = (eq) => {
+    if (!eq) return 'SLEPLC-XXX-0000';
+    const d = (eq['Descripción del Bien'] || '').toLowerCase();
+    let prefix = 'XXX';
+    if (d.includes('notebook') || d.includes('laptop')) prefix = 'NOT';
+    else if (d.includes('impresora')) prefix = 'IMP';
+    else if (d.includes('all in one') || d.includes('aio')) prefix = 'AIO';
+    else if (d.includes('proyector')) prefix = 'PRY';
+    else if (d.includes('monitor')) prefix = 'MON';
+    else if (d.includes('router')) prefix = 'ROT';
+    else if (d.includes('switch')) prefix = 'SWT';
+    else if (d.includes('dron') || d.includes('drone')) prefix = 'DRO';
+    else if (d.includes('dock')) prefix = 'DOC';
+    else if (d.includes('camara') || d.includes('cámara') || d.includes('fotografica') || d.includes('fotográfica')) prefix = 'CAM';
+    else if (d.includes('tv') || d.includes('smart tv') || d.includes('televisor')) prefix = 'STV';
+    else if (d.includes('tablet')) prefix = 'TAB';
+    else {
+      prefix = d.substring(0, 3).toUpperCase().replace(/[^A-Z]/g, 'X').padEnd(3, 'X');
+    }
+    
+    const equiposConMismoPrefix = baseData.filter(e => {
+       const desc = (e['Descripción del Bien'] || '').toLowerCase();
+       let p = 'XXX';
+       if (desc.includes('notebook') || desc.includes('laptop')) p = 'NOT';
+       else if (desc.includes('impresora')) p = 'IMP';
+       else if (desc.includes('all in one') || desc.includes('aio')) p = 'AIO';
+       else if (desc.includes('proyector')) p = 'PRY';
+       else if (desc.includes('monitor')) p = 'MON';
+       else if (desc.includes('router')) p = 'ROT';
+       else if (desc.includes('switch')) p = 'SWT';
+       else if (desc.includes('dron') || desc.includes('drone')) p = 'DRO';
+       else if (desc.includes('dock')) p = 'DOC';
+       else if (desc.includes('camara') || desc.includes('cámara') || desc.includes('fotografica') || desc.includes('fotográfica')) p = 'CAM';
+       else if (desc.includes('tv') || desc.includes('smart tv') || desc.includes('televisor')) p = 'STV';
+       else if (desc.includes('tablet')) p = 'TAB';
+       else {
+         p = desc.substring(0, 3).toUpperCase().replace(/[^A-Z]/g, 'X').padEnd(3, 'X');
+       }
+       return p === prefix;
+    }).sort((a, b) => a.id - b.id);
+
+    const index = equiposConMismoPrefix.findIndex(e => e.id === eq.id);
+    const sequential = index !== -1 ? index + 1 : equiposConMismoPrefix.length + 1;
+    const sequentialStr = String(sequential).padStart(4, '0');
+    return `SLEPLC-${prefix}-${sequentialStr}`;
   };
 
-  const handlePrintQR = (eq) => {
+  const generateStickerCanvas = (svgElement, eq) => {
+    return new Promise((resolve) => {
+      const svgString = new XMLSerializer().serializeToString(svgElement);
+      const svgBlob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" });
+      const URL = window.URL || window.webkitURL || window;
+      const blobURL = URL.createObjectURL(svgBlob);
+      const image = new Image();
+      image.onload = () => {
+        const canvas = document.createElement("canvas");
+        const scale = 3;
+        const baseWidth = 208;
+        const baseHeight = 302;
+        canvas.width = baseWidth * scale;
+        canvas.height = baseHeight * scale;
+        const ctx = canvas.getContext("2d");
+        ctx.scale(scale, scale);
+        
+        ctx.fillStyle = "#FFFFFF";
+        ctx.fillRect(0, 0, baseWidth, baseHeight);
+        
+        ctx.fillStyle = "#1e293b";
+        ctx.fillRect(10, 10, baseWidth - 20, 24);
+        ctx.fillStyle = "#FFFFFF";
+        ctx.font = "bold 11px 'Segoe UI', sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText("SLEP LOS COPIHUES", baseWidth / 2, 22);
+        
+        const qrSize = 130;
+        const qrX = (baseWidth - qrSize) / 2;
+        ctx.drawImage(image, qrX, 45, qrSize, qrSize);
+        
+        const boxY = 185;
+        const boxH = 26;
+        ctx.fillStyle = "#f1f5f9";
+        ctx.strokeStyle = "#cbd5e1";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.roundRect(15, boxY, baseWidth - 30, boxH, 4);
+        ctx.fill();
+        ctx.stroke();
+        
+        const codigoInventario = generarCodigoInventario(eq);
+        ctx.fillStyle = "#0f172a";
+        ctx.font = "bold 13px 'Segoe UI', sans-serif";
+        ctx.fillText(codigoInventario, baseWidth / 2, boxY + (boxH / 2));
+        
+        const descripcionCompleta = `${eq['Descripción del Bien'] || ''} ${eq['Marca'] || ''} ${eq['Modelo'] || ''}`.trim();
+        ctx.font = "bold 10px 'Segoe UI', sans-serif";
+        ctx.fillText(descripcionCompleta, baseWidth / 2, 225);
+        
+        const serialText = eq['Nº de serie'] ? `S/N: ${eq['Nº de serie']}` : '';
+        ctx.fillStyle = "#475569";
+        ctx.font = "9px 'Segoe UI', sans-serif";
+        ctx.fillText(serialText, baseWidth / 2, 240);
+        
+        URL.revokeObjectURL(blobURL);
+        resolve(canvas.toDataURL("image/png"));
+      };
+      image.src = blobURL;
+    });
+  };
+
+  const handleDownloadQR = async (eq) => {
     const svgElement = document.getElementById("qr-code-svg");
     if (!svgElement) return;
-    const svgHtml = svgElement.outerHTML;
-    const printWindow = window.open('', '_blank', 'width=600,height=600');
+    const pngDataUrl = await generateStickerCanvas(svgElement, eq);
+    const downloadLink = document.createElement("a");
+    downloadLink.href = pngDataUrl;
+    downloadLink.download = `QR_${eq['Nº de serie'] || 'equipo'}.png`;
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
+  };
+
+  const handlePrintQR = async (eq) => {
+    const svgElement = document.getElementById("qr-code-svg");
+    if (!svgElement) return;
+    const pngDataUrl = await generateStickerCanvas(svgElement, eq);
+    const printWindow = window.open('', '_blank', 'width=400,height=600');
     printWindow.document.write(`
       <html>
         <head>
-          <title>Imprimir Código QR</title>
+          <title>Imprimir Etiqueta QR</title>
           <style>
             body {
-              font-family: system-ui, -apple-system, sans-serif;
-              display: flex;
-              flex-direction: column;
-              align-items: center;
-              justify-content: center;
-              height: 100vh;
               margin: 0;
-              background-color: #fff;
-              color: #333;
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              height: 100vh;
+              background: #fff;
             }
-            .container {
-              text-align: center;
-              border: 1px solid #ccc;
-              padding: 20px;
-              border-radius: 10px;
-              width: 250px;
-            }
-            svg {
-              width: 200px;
-              height: 200px;
-              margin-bottom: 15px;
-            }
-            .label-info {
-              font-size: 11px;
-              line-height: 1.4;
-              text-align: left;
-              margin: 0 auto;
-              width: 200px;
-            }
-            .label-info div {
-              margin-bottom: 4px;
-              white-space: nowrap;
-              overflow: hidden;
-              text-overflow: ellipsis;
+            img {
+              width: 5.5cm;
+              height: auto;
+              max-width: 100%;
             }
             @media print {
-              body {
-                height: auto;
-              }
-              .container {
-                border: none;
-                padding: 0;
-                width: 100%;
-              }
+              body { align-items: flex-start; justify-content: flex-start; }
             }
           </style>
         </head>
         <body>
-          <div class="container">
-            \${svgHtml}
-            <div class="label-info">
-              <div><strong>Marca:</strong> \${eq['Marca'] || '—'}</div>
-              <div><strong>Modelo:</strong> \${eq['Modelo'] || '—'}</div>
-              <div><strong>N° Serie:</strong> \${eq['Nº de serie'] || '—'}</div>
-              <div><strong>Usuario:</strong> \${isAvailable(eq['Usuario']) ? 'Disponible' : eq['Usuario']}</div>
-            </div>
-          </div>
-          <script>
-            window.onload = function() {
-              window.print();
-              setTimeout(function() { window.close(); }, 500);
-            };
-          </script>
+          <img src="${pngDataUrl}" onload="window.print(); setTimeout(() => window.close(), 500);" />
         </body>
       </html>
     `);

@@ -27,7 +27,7 @@ export default function UsuariosAdminPage() {
   const [loading, setLoading] = useState(true);
   
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState({ id: null, email: '', nombre: '', rol: 'slep', password: '' });
+  const [formData, setFormData] = useState({ id: null, email: '', nombre: '', rol: 'slep', password: '', subdireccion: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Carga Masiva States
@@ -176,9 +176,9 @@ export default function UsuariosAdminPage() {
 
   const handleOpenModal = (user = null) => {
     if (user) {
-      setFormData({ id: user.id, email: user.email, nombre: user.nombre || '', rol: user.rol, password: '' });
+      setFormData({ id: user.id, email: user.email, nombre: user.nombre || '', rol: user.rol, password: '', subdireccion: user.subdireccion || '' });
     } else {
-      setFormData({ id: null, email: '', nombre: '', rol: 'slep', password: '' });
+      setFormData({ id: null, email: '', nombre: '', rol: 'slep', password: '', subdireccion: '' });
     }
     setIsModalOpen(true);
   };
@@ -196,7 +196,8 @@ export default function UsuariosAdminPage() {
               userId: formData.id,
               nombre: formData.nombre,
               rol: formData.rol,
-              password: formData.password
+              password: formData.password,
+              subdireccion: formData.subdireccion
             }
           }
         });
@@ -224,7 +225,8 @@ export default function UsuariosAdminPage() {
               email: formData.email,
               password: formData.password,
               nombre: formData.nombre,
-              rol: formData.rol
+              rol: formData.rol,
+              subdireccion: formData.subdireccion
             }
           }
         });
@@ -398,6 +400,7 @@ export default function UsuariosAdminPage() {
             <tr>
               <th className="px-6 py-3">Nombre</th>
               <th className="px-6 py-3">Correo Electrónico</th>
+              <th className="px-6 py-3">Subdirección</th>
               <th className="px-6 py-3">Rol</th>
               <th className="px-6 py-3 text-center">Acciones</th>
             </tr>
@@ -421,6 +424,7 @@ export default function UsuariosAdminPage() {
                     </span>
                   </td>
                   <td className="px-6 py-4 text-gray-600">{user.email}</td>
+                  <td className="px-6 py-4 text-gray-600">{user.subdireccion || '—'}</td>
                   <td className="px-6 py-4">
                     <span className={`px-2.5 py-1 rounded text-[11px] font-bold tracking-wide uppercase border whitespace-nowrap ${
                       user.rol === 'admin_ti' ? 'bg-purple-50 text-purple-700 border-purple-200' : 'bg-blue-50 text-blue-700 border-blue-200'
@@ -479,6 +483,17 @@ export default function UsuariosAdminPage() {
                 {formData.id && <p className="text-[10px] text-gray-500 mt-1">El correo no se puede modificar desde aquí.</p>}
               </div>
               
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Subdirección</label>
+                <input 
+                  type="text" 
+                  value={formData.subdireccion} 
+                  onChange={e => setFormData({...formData, subdireccion: e.target.value})} 
+                  className="w-full rounded-lg border-gray-300 shadow-sm border p-2.5 focus:border-[#006BB9] focus:ring-[#006BB9]" 
+                  placeholder="Ej: Administración y Finanzas"
+                />
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div className="col-span-2 sm:col-span-1">
                   <label className="block text-sm font-semibold text-gray-700 mb-1">Rol</label>

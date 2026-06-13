@@ -853,11 +853,13 @@ export default function EditarEquipoModal({ equipo, onClose }) {
                           }
                         }
 
+                        const selectedUser = usuarios.find(u => u.id === opt.value);
                         setFormData({
                           ...formData,
                           usuario_asignado_id: opt.value,
                           'Usuario': opt.label,
-                          estado: 'ASIGNADO'
+                          estado: 'ASIGNADO',
+                          'SubDirección': (selectedUser && selectedUser.subdireccion) ? selectedUser.subdireccion : formData['SubDirección']
                         });
                         setUserSearchTerm('');
                       }}
