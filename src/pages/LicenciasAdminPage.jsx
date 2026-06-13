@@ -8,6 +8,8 @@ import * as XLSX from 'xlsx';
 import Papa from 'papaparse';
 import { exportToExcelAndPDF } from '../utils/exportUtils';
 import { useAuth } from '../context/AuthContext';
+import { useSort } from '../hooks/useSort';
+import { SortableHeader } from '../components/SortableHeader';
 
 const TIPOS_LICENCIA = [
   'SAAS', 'Perpetua', 'SW Propietario', 'SW Libre (Open Source)', 'Freemium / Shareware', 'PAAS (Plataforma como Servicio)', 'IAAS (Infraestructura como Servicio)'
