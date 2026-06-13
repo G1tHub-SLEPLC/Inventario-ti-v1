@@ -32,19 +32,19 @@ export default function QRInfoPage() {
           
           // Intentar buscar por ID (si es número)
           if (!isNaN(equipoId)) {
-            const { data } = await supabase.from('equipos').select('*').eq('id', equipoId).single();
+            const { data } = await supabase.from('equipos').select('*').eq('id', equipoId).maybeSingle();
             if (data) foundData = data;
           }
           
           // Si no se encontró por ID o no es un número, intentar por Nº de serie
           if (!foundData) {
-            const { data } = await supabase.from('equipos').select('*').eq('Nº de serie', equipoId).single();
+            const { data } = await supabase.from('equipos').select('*').eq('Nº de serie', equipoId).maybeSingle();
             if (data) foundData = data;
           }
 
           // Si tampoco, intentar por Código de Inventario
           if (!foundData) {
-            const { data } = await supabase.from('equipos').select('*').eq('Código de Inventario', equipoId).single();
+            const { data } = await supabase.from('equipos').select('*').eq('Código de Inventario', equipoId).maybeSingle();
             if (data) foundData = data;
           }
 
