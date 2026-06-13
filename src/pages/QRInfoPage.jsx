@@ -28,8 +28,29 @@ export default function QRInfoPage() {
       setLoading(true);
       try {
         if (equipoId) {
-          const { data, error } = await supabase.from('equipos').select('*').eq('id', equipoId).single();
-          if (data) setEquipos([data]);
+          let foundData = null;
+          
+          // Intentar buscar por ID (si es número)
+          if (!isNaN(equipoId)) {
+            const { data } = await supabase.from('equipos').select('*').eq('id', equipoId).single();
+            if (data) foundData = data;
+          }
+          
+          // Si no se encontró por ID o no es un número, intentar por Nº de serie
+          if (!foundData) {
+            const { data } = await supabase.from('equipos').select('*').eq('Nº de serie', equipoId).single();
+            if (data) foundData = data;
+          }
+
+          // Si tampoco, intentar por Código de Inventario
+          if (!foundData) {
+            const { data } = await supabase.from('equipos').select('*').eq('Código de Inventario', equipoId).single();
+            if (data) foundData = data;
+          }
+
+          if (foundData) {
+            setEquipos([foundData]);
+          }
         } else if (usuarioNombre) {
           // Buscamos todos los equipos asignados a este usuario
           const { data, error } = await supabase.from('equipos')
