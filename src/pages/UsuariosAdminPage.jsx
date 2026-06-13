@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { useInventario } from '../context/InventarioContext';
 import { PlusCircle, Edit2, Trash2, Users, UploadCloud, XCircle, CheckCircle, QrCode, Download, Printer } from 'lucide-react';
@@ -47,10 +47,6 @@ export default function UsuariosAdminPage() {
   const [masivaResults, setMasivaResults] = useState(null);
   const [qrModalUser, setQrModalUser] = useState(null);
 
-  useEffect(() => {
-    fetchUsuarios();
-  }, []);
-
   const fetchUsuarios = async () => {
     setLoading(true);
     const { data, error } = await supabase.from('perfiles').select('*').order('created_at', { ascending: false });
@@ -62,6 +58,10 @@ export default function UsuariosAdminPage() {
     }
     setLoading(false);
   };
+
+  useEffect(() => {
+    fetchUsuarios();
+  }, []);
 
   const getSubdireccionUser = (user) => {
     if (!equipos || equipos.length === 0) return 'Sin Subdirección';
