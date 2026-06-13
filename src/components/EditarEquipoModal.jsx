@@ -252,7 +252,7 @@ export default function EditarEquipoModal({ equipo, onClose }) {
           <title>Imprimir Código QR</title>
           <style>
             body {
-              font-family: system-ui, -apple-system, sans-serif;
+              font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
               display: flex;
               flex-direction: column;
               align-items: center;
@@ -263,68 +263,63 @@ export default function EditarEquipoModal({ equipo, onClose }) {
               color: #000;
             }
             .sticker-container {
-              width: 5cm;
-              height: 5cm;
-              border: 1px dashed #ccc;
-              border-radius: 8px;
+              width: 5.5cm;
+              height: 8cm;
               display: flex;
               flex-direction: column;
               align-items: center;
               justify-content: flex-start;
-              overflow: hidden;
               box-sizing: border-box;
-              font-family: Arial, sans-serif;
+              background: #fff;
             }
             .header {
-              background-color: #25306B;
+              background-color: #1e293b;
               color: white;
               width: 100%;
               text-align: center;
-              font-weight: bold;
-              font-size: 10px;
-              padding: 4px 0;
+              font-weight: 700;
+              font-size: 11px;
+              padding: 6px 0;
               letter-spacing: 0.5px;
+              border-radius: 4px;
+              margin-bottom: 12px;
             }
             .qr-wrapper {
-              margin-top: 5px;
-              margin-bottom: 5px;
+              margin-bottom: 15px;
             }
             .qr-wrapper svg {
-              width: 90px;
-              height: 90px;
+              width: 130px;
+              height: 130px;
             }
             .code-label-container {
-              background-color: #E2F0FF;
+              background-color: #f1f5f9;
+              border: 1px solid #cbd5e1;
               border-radius: 6px;
               width: 90%;
               text-align: center;
-              padding: 4px 0;
-              margin-bottom: 5px;
-            }
-            .code-label-title {
-              font-size: 8px;
-              color: #25306B;
-              margin-bottom: 1px;
+              padding: 6px 0;
+              margin-bottom: 8px;
             }
             .code-value {
-              font-size: 12px;
-              font-weight: bold;
-              color: #000;
+              font-size: 13px;
+              font-weight: 700;
+              color: #0f172a;
               letter-spacing: 0.5px;
             }
             .desc-value {
-              font-size: 9px;
-              font-weight: bold;
+              font-size: 10px;
+              font-weight: 600;
+              color: #0f172a;
               text-align: center;
-              margin-bottom: 2px;
+              margin-bottom: 3px;
               width: 95%;
               white-space: nowrap;
               overflow: hidden;
               text-overflow: ellipsis;
             }
             .serial-value {
-              font-size: 8px;
-              color: #555;
+              font-size: 9px;
+              color: #475569;
             }
             @media print {
               body {
@@ -334,9 +329,13 @@ export default function EditarEquipoModal({ equipo, onClose }) {
                 margin: 0;
                 padding: 0;
               }
-              .sticker-container {
-                border: none;
-                page-break-inside: avoid;
+              .header {
+                -webkit-print-color-adjust: exact;
+                color-adjust: exact;
+              }
+              .code-label-container {
+                -webkit-print-color-adjust: exact;
+                color-adjust: exact;
               }
             }
           </style>
@@ -348,7 +347,6 @@ export default function EditarEquipoModal({ equipo, onClose }) {
               ${svgHtml}
             </div>
             <div class="code-label-container">
-              <div class="code-label-title">Código de inventario TI</div>
               <div class="code-value">${codigoInventario}</div>
             </div>
             <div class="desc-value">${descripcionCompleta}</div>
