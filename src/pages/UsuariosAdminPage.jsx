@@ -24,13 +24,14 @@ function getInitials(name) {
 }
 
 export default function UsuariosAdminPage() {
-  const { showToast, equipos } = useInventario();
+  const { showToast, equipos, opcionesMapeadas } = useInventario();
   const [usuarios, setUsuarios] = useState([]);
   const { sorted: sortedUsuarios, sortKey: uSortKey, sortDir: uSortDir, handleSort: handleUSort } = useSort(usuarios);
   const [loading, setLoading] = useState(true);
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState({ id: null, email: '', nombre: '', rol: 'slep', password: '', subdireccion: '' });
+  const [showSubdirSug, setShowSubdirSug] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Carga Masiva States
@@ -529,15 +530,38 @@ export default function UsuariosAdminPage() {
                 {formData.id && <p className="text-[10px] text-gray-500 mt-1">El correo no se puede modificar desde aquí.</p>}
               </div>
               
-              <div>
+              <div className="relative">
                 <label className="block text-sm font-semibold text-gray-700 mb-1">Subdirección</label>
                 <input 
                   type="text" 
                   value={formData.subdireccion} 
-                  onChange={e => setFormData({...formData, subdireccion: e.target.value})} 
+                  onChange={e => {
+                    setFormData({...formData, subdireccion: e.target.value});
+                    setShowSubdirSug(true);
+                  }}
+                  onFocus={() => setShowSubdirSug(true)}
+                  onBlur={() => setTimeout(() => setShowSubdirSug(false), 200)}
                   className="w-full rounded-lg border-gray-300 shadow-sm border p-2.5 focus:border-[#006BB9] focus:ring-[#006BB9]" 
                   placeholder="Ej: Administración y Finanzas"
                 />
+                {showSubdirSug && opcionesMapeadas?.SubDirección && (
+                  <ul className="absolute z-10 w-full bg-white border border-gray-200 mt-1 rounded-md shadow-lg max-h-40 overflow-auto sug-list">
+                    {opcionesMapeadas.SubDirección
+                      .filter(opt => opt.toLowerCase().includes(formData.subdireccion.toLowerCase()))
+                      .map((opt, i) => (
+                        <li 
+                          key={i} 
+                          className="px-3 py-2 hover:bg-blue-50 cursor-pointer text-sm"
+                          onClick={() => {
+                            setFormData({...formData, subdireccion: opt});
+                            setShowSubdirSug(false);
+                          }}
+                        >
+                          {opt}
+                        </li>
+                    ))}
+                  </ul>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-4">

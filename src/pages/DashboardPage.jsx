@@ -1084,7 +1084,7 @@ export default function DashboardPage() {
                 <thead>
                   <tr>
                     {activeCols.map(c => {
-                      let headerClass = c === 'Estado' ? "text-left align-top w-24" : "sortable text-left align-top";
+                      let headerClass = c === 'Estado' ? "sortable text-left align-top w-24" : "sortable text-left align-top";
                       if (c === 'ID Publicación') headerClass += " max-w-[150px]";
                       if (c === 'Orden de Compra') headerClass += " max-w-[80px]";
 
