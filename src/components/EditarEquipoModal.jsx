@@ -159,25 +159,53 @@ export default function EditarEquipoModal({ equipo, onClose }) {
   };
 
   const isQRSupported = () => {
-    const desc = (formData['Descripción del Bien'] || '').toLowerCase();
-    return (
-      desc.includes('notebook') ||
-      desc.includes('aio') ||
-      desc.includes('tablet') ||
-      desc.includes('all in one') ||
-      desc.includes('todo en uno') ||
-      desc.includes('impresora') ||
-      desc.includes('switch') ||
-      desc.includes('router') ||
-      desc.includes('monitor') ||
-      desc.includes('proyector') ||
-      desc.includes('dron') ||
-      desc.includes('drone') ||
-      desc.includes('dock') ||
-      desc.includes('camara') ||
-      desc.includes('cámara') ||
-      desc.includes('tv')
-    );
+    return true; // Todos los equipos soportan QR ahora según los requerimientos
+  };
+
+  const generarCodigoInventario = () => {
+    const desc = (formData['Descripción del Bien'] || '').toLowerCase().trim();
+    let prefix = 'VAR';
+    if (desc.includes('notebook')) prefix = 'NOT';
+    else if (desc.includes('impresora')) prefix = 'IMP';
+    else if (desc.includes('aio') || desc.includes('all in one') || desc.includes('todo en uno')) prefix = 'AIO';
+    else if (desc.includes('proyector')) prefix = 'PRY';
+    else if (desc.includes('monitor')) prefix = 'MON';
+    else if (desc.includes('router')) prefix = 'ROT';
+    else if (desc.includes('switch')) prefix = 'SWT';
+    else if (desc.includes('dron') || desc.includes('drone')) prefix = 'DRO';
+    else if (desc.includes('dock')) prefix = 'DOC';
+    else if (desc.includes('camara') || desc.includes('cámara') || desc.includes('fotografica') || desc.includes('fotográfica')) prefix = 'CAM';
+    else if (desc.includes('tv') || desc.includes('smart tv') || desc.includes('televisor')) prefix = 'STV';
+    else if (desc.includes('tablet')) prefix = 'TAB';
+    else {
+      prefix = desc.substring(0, 3).toUpperCase().replace(/[^A-Z]/g, 'X').padEnd(3, 'X');
+    }
+
+    const equiposConMismoPrefix = equipos.filter(eq => {
+       const d = (eq['Descripción del Bien'] || '').toLowerCase().trim();
+       let p = 'VAR';
+       if (d.includes('notebook')) p = 'NOT';
+       else if (d.includes('impresora')) p = 'IMP';
+       else if (d.includes('aio') || d.includes('all in one') || d.includes('todo en uno')) p = 'AIO';
+       else if (d.includes('proyector')) p = 'PRY';
+       else if (d.includes('monitor')) p = 'MON';
+       else if (d.includes('router')) p = 'ROT';
+       else if (d.includes('switch')) p = 'SWT';
+       else if (d.includes('dron') || d.includes('drone')) p = 'DRO';
+       else if (d.includes('dock')) p = 'DOC';
+       else if (d.includes('camara') || d.includes('cámara') || d.includes('fotografica') || d.includes('fotográfica')) p = 'CAM';
+       else if (d.includes('tv') || d.includes('smart tv') || d.includes('televisor')) p = 'STV';
+       else if (d.includes('tablet')) p = 'TAB';
+       else {
+         p = d.substring(0, 3).toUpperCase().replace(/[^A-Z]/g, 'X').padEnd(3, 'X');
+       }
+       return p === prefix;
+    }).sort((a, b) => a.id - b.id);
+
+    const index = equiposConMismoPrefix.findIndex(eq => eq.id === originalEquipo?.id);
+    const sequential = index !== -1 ? index + 1 : equiposConMismoPrefix.length + 1;
+    const sequentialStr = String(sequential).padStart(4, '0');
+    return `SLEPLC-${prefix}-${sequentialStr}`;
   };
 
   const handleDownloadQR = () => {
@@ -213,11 +241,11 @@ export default function EditarEquipoModal({ equipo, onClose }) {
     if (!svgElement) return;
     const svgHtml = svgElement.outerHTML;
     const printWindow = window.open('', '_blank', 'width=600,height=600');
-    const isAvailableVal = (u) => {
-      const v = (u || '').toLowerCase().trim();
-      return v === '' || v === 'disponible' || v === 'bodega' || v === 'sin asignar' || v === '—' || v === '-';
-    };
-    const userVal = isAvailableVal(formData['Usuario']) ? 'Disponible' : formData['Usuario'];
+    
+    const codigoInventario = generarCodigoInventario();
+    const descripcionCompleta = `${formData['Descripción del Bien'] || ''} ${formData['Marca'] || ''} ${formData['Modelo'] || ''}`.trim();
+    const serialText = formData['Nº de serie'] ? `S/N: ${formData['Nº de serie']}` : '';
+
     printWindow.document.write(`
       <html>
         <head>
@@ -232,54 +260,99 @@ export default function EditarEquipoModal({ equipo, onClose }) {
               height: 100vh;
               margin: 0;
               background-color: #fff;
-              color: #333;
+              color: #000;
             }
-            .container {
+            .sticker-container {
+              width: 5cm;
+              height: 5cm;
+              border: 1px dashed #ccc;
+              border-radius: 8px;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: flex-start;
+              overflow: hidden;
+              box-sizing: border-box;
+              font-family: Arial, sans-serif;
+            }
+            .header {
+              background-color: #25306B;
+              color: white;
+              width: 100%;
               text-align: center;
-              border: 1px solid #ccc;
-              padding: 20px;
-              border-radius: 10px;
-              width: 250px;
+              font-weight: bold;
+              font-size: 10px;
+              padding: 4px 0;
+              letter-spacing: 0.5px;
             }
-            svg {
-              width: 200px;
-              height: 200px;
-              margin-bottom: 15px;
+            .qr-wrapper {
+              margin-top: 5px;
+              margin-bottom: 5px;
             }
-            .label-info {
-              font-size: 11px;
-              line-height: 1.4;
-              text-align: left;
-              margin: 0 auto;
-              width: 200px;
+            .qr-wrapper svg {
+              width: 90px;
+              height: 90px;
             }
-            .label-info div {
-              margin-bottom: 4px;
+            .code-label-container {
+              background-color: #E2F0FF;
+              border-radius: 6px;
+              width: 90%;
+              text-align: center;
+              padding: 4px 0;
+              margin-bottom: 5px;
+            }
+            .code-label-title {
+              font-size: 8px;
+              color: #25306B;
+              margin-bottom: 1px;
+            }
+            .code-value {
+              font-size: 12px;
+              font-weight: bold;
+              color: #000;
+              letter-spacing: 0.5px;
+            }
+            .desc-value {
+              font-size: 9px;
+              font-weight: bold;
+              text-align: center;
+              margin-bottom: 2px;
+              width: 95%;
               white-space: nowrap;
               overflow: hidden;
               text-overflow: ellipsis;
             }
+            .serial-value {
+              font-size: 8px;
+              color: #555;
+            }
             @media print {
               body {
                 height: auto;
-              }
-              .container {
-                border: none;
+                align-items: flex-start;
+                justify-content: flex-start;
+                margin: 0;
                 padding: 0;
-                width: 100%;
+              }
+              .sticker-container {
+                border: none;
+                page-break-inside: avoid;
               }
             }
           </style>
         </head>
         <body>
-          <div class="container">
-            \${svgHtml}
-            <div class="label-info">
-              <div><strong>Marca:</strong> \${formData['Marca'] || '—'}</div>
-              <div><strong>Modelo:</strong> \${formData['Modelo'] || '—'}</div>
-              <div><strong>N° Serie:</strong> \${formData['Nº de serie'] || '—'}</div>
-              <div><strong>Usuario:</strong> \${userVal}</div>
+          <div class="sticker-container">
+            <div class="header">SLEP LOS COPIHUES</div>
+            <div class="qr-wrapper">
+              ${svgHtml}
             </div>
+            <div class="code-label-container">
+              <div class="code-label-title">Código de inventario TI</div>
+              <div class="code-value">${codigoInventario}</div>
+            </div>
+            <div class="desc-value">${descripcionCompleta}</div>
+            <div class="serial-value">${serialText}</div>
           </div>
           <script>
             window.onload = function() {
@@ -584,10 +657,10 @@ export default function EditarEquipoModal({ equipo, onClose }) {
                     Código QR del Equipo
                   </span>
                   <div className="bg-slate-50 border border-slate-200 p-2 rounded-xl flex items-center justify-center shadow-inner">
-                    <QRCodeSVG
-                      id="edit-qr-code-svg"
-                      value={`${window.location.origin}/qr-info?search=${encodeURIComponent(formData['Nº de serie'] || '')}`}
-                      size={110}
+                      <QRCodeSVG
+                        id="edit-qr-code-svg"
+                        value={`${window.location.origin}/qr-info/${originalEquipo?.id}`}
+                        size={110}
                       level="H"
                       includeMargin={true}
                     />

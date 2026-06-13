@@ -74,7 +74,7 @@ export default function App() {
             <Suspense fallback={<div className="flex items-center justify-center h-screen text-gray-400">Cargando…</div>}>
               <Routes>
                 <Route path="/login" element={<LoginPage />} />
-                <Route path="/qr-info" element={<ProtectedRoute><QRInfoPage /></ProtectedRoute>} />
+                <Route path="/qr-info" element={<QRInfoPage />} />
                 <Route path="/" element={<ProtectedRoute><AppShell /></ProtectedRoute>}>
                   
                   {/* Common Route */}

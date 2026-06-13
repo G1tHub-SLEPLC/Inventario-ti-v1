@@ -89,7 +89,7 @@ export default function UsuariosAdminPage() {
     printWindow.document.write(`
       <html>
         <head>
-          <title>Imprimir Código QR</title>
+          <title>Imprimir Código QR Funcionario</title>
           <style>
             body {
               font-family: system-ui, -apple-system, sans-serif;
@@ -100,53 +100,99 @@ export default function UsuariosAdminPage() {
               height: 100vh;
               margin: 0;
               background-color: #fff;
-              color: #333;
+              color: #000;
             }
-            .container {
+            .sticker-container {
+              width: 5cm;
+              height: 5cm;
+              border: 1px dashed #ccc;
+              border-radius: 8px;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: flex-start;
+              overflow: hidden;
+              box-sizing: border-box;
+              font-family: Arial, sans-serif;
+            }
+            .header {
+              background-color: #25306B;
+              color: white;
+              width: 100%;
               text-align: center;
-              border: 1px solid #ccc;
-              padding: 20px;
-              border-radius: 10px;
-              width: 250px;
+              font-weight: bold;
+              font-size: 10px;
+              padding: 4px 0;
+              letter-spacing: 0.5px;
             }
-            svg {
-              width: 200px;
-              height: 200px;
-              margin-bottom: 15px;
+            .qr-wrapper {
+              margin-top: 5px;
+              margin-bottom: 5px;
             }
-            .label-info {
+            .qr-wrapper svg {
+              width: 90px;
+              height: 90px;
+            }
+            .code-label-container {
+              background-color: #E2F0FF;
+              border-radius: 6px;
+              width: 90%;
+              text-align: center;
+              padding: 4px 0;
+              margin-bottom: 5px;
+            }
+            .code-label-title {
+              font-size: 8px;
+              color: #25306B;
+              margin-bottom: 1px;
+            }
+            .code-value {
               font-size: 11px;
-              line-height: 1.4;
-              text-align: left;
-              margin: 0 auto;
-              width: 200px;
+              font-weight: bold;
+              color: #000;
+              letter-spacing: 0.5px;
             }
-            .label-info div {
-              margin-bottom: 4px;
+            .desc-value {
+              font-size: 9px;
+              font-weight: bold;
+              text-align: center;
+              margin-bottom: 2px;
+              width: 95%;
               white-space: nowrap;
               overflow: hidden;
               text-overflow: ellipsis;
             }
+            .serial-value {
+              font-size: 8px;
+              color: #555;
+            }
             @media print {
               body {
                 height: auto;
-              }
-              .container {
-                border: none;
+                align-items: flex-start;
+                justify-content: flex-start;
+                margin: 0;
                 padding: 0;
-                width: 100%;
+              }
+              .sticker-container {
+                border: none;
+                page-break-inside: avoid;
               }
             }
           </style>
         </head>
         <body>
-          <div class="container">
-            \${svgHtml}
-            <div class="label-info">
-              <div><strong>Funcionario:</strong> \${uName}</div>
-              <div><strong>Correo:</strong> \${user.email}</div>
-              <div><strong>Rol:</strong> \${user.rol === 'admin_ti' ? 'Administrador' : 'Funcionario'}</div>
+          <div class="sticker-container">
+            <div class="header">SLEP LOS COPIHUES</div>
+            <div class="qr-wrapper">
+              ${svgHtml}
             </div>
+            <div class="code-label-container">
+              <div class="code-label-title">Funcionario</div>
+              <div class="code-value">${uName}</div>
+            </div>
+            <div class="desc-value">Equipos Asignados</div>
+            <div class="serial-value">${user.email}</div>
           </div>
           <script>
             window.onload = function() {
@@ -651,7 +697,7 @@ export default function UsuariosAdminPage() {
               <div className="bg-slate-50 border border-slate-200 p-3 rounded-xl shadow-inner flex items-center justify-center">
                 <QRCodeSVG
                   id="user-qr-code-svg"
-                  value={`${window.location.origin}/qr-info?user=${qrModalUser.id}`}
+                  value={`${window.location.origin}/qr-info?usuario=${encodeURIComponent(qrModalUser.nombre || formatEmailName(qrModalUser.email))}`}
                   size={180}
                   level="H"
                   includeMargin={true}
