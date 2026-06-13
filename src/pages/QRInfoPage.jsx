@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useInventario } from '../context/InventarioContext';
 import { supabase } from '../lib/supabaseClient';
 import { MonitorSmartphone, AlertTriangle, User } from 'lucide-react';
+import { isSameUser } from '../utils/userUtils';
 
 const COLUMNS = [
   'Descripción del Bien', 'Marca', 'Modelo', 'Nº de serie',
@@ -110,10 +111,8 @@ export default function QRInfoPage() {
       return equipos.filter(eq => {
         if (eq.usuario_asignado_id === searchUserId) return true;
         
-        // fallback legacy check:
-        const eqUser = (eq['Usuario'] || '').trim().toLowerCase();
-        const profUser = uName.trim().toLowerCase();
-        return eqUser !== '' && profUser !== '' && eqUser === profUser;
+        // fallback legacy check using system equivalence:
+        return eq['Usuario'] && isSameUser(eq['Usuario'], uName);
       });
     }
 
