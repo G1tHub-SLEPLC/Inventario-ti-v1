@@ -15,6 +15,26 @@ const EstadoBadge = ({ estado }) => {
   );
 };
 
+// Misma función fromDbRow usada en InventarioContext
+function fromDbRow(dbRow) {
+  const detalles = { ...(dbRow.detalles || {}) };
+  if (detalles['Codigo Compra Agil / Licitación / Codigo Convenio Marco'] !== undefined) {
+    detalles['ID Publicación'] = detalles['Codigo Compra Agil / Licitación / Codigo Convenio Marco'];
+    delete detalles['Codigo Compra Agil / Licitación / Codigo Convenio Marco'];
+  }
+  return {
+    id: dbRow.id,
+    'Nº de serie': dbRow.serial,
+    'Orden de Compra': dbRow.orden_compra,
+    'Factura': dbRow.factura,
+    hasOcFile: dbRow.has_oc_file,
+    hasFacturaFile: dbRow.has_factura_file,
+    estado: dbRow.estado || 'DISPONIBLE',
+    usuario_asignado_id: dbRow.usuario_asignado_id || null,
+    ...detalles
+  };
+}
+
 export default function QRInfoPage() {
   const [searchParams] = useSearchParams();
   const equipoId = searchParams.get('equipo');
@@ -29,34 +49,40 @@ export default function QRInfoPage() {
       try {
         if (equipoId) {
           let foundData = null;
+          const searchVal = equipoId.trim();
           
-          // Intentar buscar por ID (si es número)
-          if (!isNaN(equipoId)) {
-            const { data } = await supabase.from('equipos').select('*').eq('id', equipoId).limit(1);
+          // Intentar buscar por ID numérico
+          if (!isNaN(searchVal) && searchVal !== '') {
+            const { data } = await supabase.from('equipos').select('*').eq('id', Number(searchVal)).limit(1);
             if (data && data.length > 0) foundData = data[0];
           }
           
-          // Si no se encontró por ID o no es un número, intentar por Nº de serie
+          // Buscar por columna "serial" (nombre real en la DB)
           if (!foundData) {
-            const { data } = await supabase.from('equipos').select('*').ilike('Nº de serie', `%${equipoId.trim()}%`).limit(1);
+            const { data } = await supabase.from('equipos').select('*').eq('serial', searchVal).limit(1);
             if (data && data.length > 0) foundData = data[0];
           }
 
-          // Si tampoco, intentar por Código de Inventario
+          // Buscar con ilike en serial por si hay diferencias de case
           if (!foundData) {
-            const { data } = await supabase.from('equipos').select('*').ilike('Código de Inventario', `%${equipoId.trim()}%`).limit(1);
+            const { data } = await supabase.from('equipos').select('*').ilike('serial', `%${searchVal}%`).limit(1);
             if (data && data.length > 0) foundData = data[0];
           }
 
           if (foundData) {
-            setEquipos([foundData]);
+            setEquipos([fromDbRow(foundData)]);
           }
         } else if (usuarioNombre) {
-          // Buscamos todos los equipos asignados a este usuario
-          const { data, error } = await supabase.from('equipos')
-            .select('*')
-            .ilike('Usuario', `%${usuarioNombre}%`);
-          if (data) setEquipos(data);
+          // Traer todos y filtrar por usuario (que está dentro de detalles JSON)
+          const { data } = await supabase.from('equipos').select('*');
+          if (data) {
+            const parsed = data.map(fromDbRow);
+            const filtered = parsed.filter(eq => {
+              const user = (eq['Usuario'] || '').toLowerCase();
+              return user.includes(usuarioNombre.toLowerCase());
+            });
+            setEquipos(filtered);
+          }
         }
       } catch (err) {
         console.error("Error cargando info de QR:", err);
