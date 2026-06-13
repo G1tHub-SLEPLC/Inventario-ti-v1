@@ -552,7 +552,8 @@ export default function UsuariosAdminPage() {
                         <li 
                           key={i} 
                           className="px-3 py-2 hover:bg-blue-50 cursor-pointer text-sm"
-                          onClick={() => {
+                          onMouseDown={(e) => {
+                            e.preventDefault(); // Evita que el input pierda el foco y lance onBlur
                             setFormData({...formData, subdireccion: opt});
                             setShowSubdirSug(false);
                           }}
