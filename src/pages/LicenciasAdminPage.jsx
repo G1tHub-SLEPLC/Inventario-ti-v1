@@ -162,6 +162,18 @@ export default function LicenciasAdminPage() {
     return pool;
   }, [asignaciones, selectedFunc, licGlobalSearch]);
 
+  const flatAsignaciones = useMemo(() => {
+    return funcionarioAsignaciones.map(a => ({
+      ...a,
+      software: a.licencias?.software,
+      tipo: a.licencias?.tipo,
+      tiene_respaldo: a.licencias?.tiene_respaldo,
+    }));
+  }, [funcionarioAsignaciones]);
+
+  const { sorted: sortedDisponibles, sortKey: dispSortKey, sortDir: dispSortDir, handleSort: handleDispSort } = useSort(disponiblesLicencias);
+  const { sorted: sortedAsignaciones, sortKey: asigSortKey, sortDir: asigSortDir, handleSort: handleAsigSort } = useSort(flatAsignaciones);
+
   const selectedLic = useMemo(() => {
     return licencias.find(l => l.id === selectedLicId) || null;
   }, [licencias, selectedLicId]);
@@ -178,6 +190,16 @@ export default function LicenciasAdminPage() {
     }
     return pool;
   }, [asignaciones, selectedLicId, licGlobalSearch]);
+
+  const flatLicenciaAsignaciones = useMemo(() => {
+    return licenciaAsignaciones.map(a => ({
+      ...a,
+      nombre: a.perfiles?.nombre || a.usuarios?.nombre,
+      email: a.perfiles?.email || a.usuarios?.email
+    }));
+  }, [licenciaAsignaciones]);
+
+  const { sorted: sortedLicenciaAsignaciones, sortKey: licAsigSortKey, sortDir: licAsigSortDir, handleSort: handleLicAsigSort } = useSort(flatLicenciaAsignaciones);
 
   const funcSuggestions = useMemo(() => {
     const q = funcSearch.toLowerCase().trim();
@@ -385,15 +407,20 @@ export default function LicenciasAdminPage() {
     }
   };
 
-  const asignacionesDeLicencia = viewLicencia
-    ? asignaciones
-      .filter(a => a.licencia_id === viewLicencia.id)
-      .sort((a, b) => {
-        const nameA = (a.perfiles?.nombre || a.perfiles?.email || '').toLowerCase();
-        const nameB = (b.perfiles?.nombre || b.perfiles?.email || '').toLowerCase();
-        return nameA.localeCompare(nameB);
-      })
-    : [];
+  const asignacionesDeLicencia = useMemo(() => {
+    if (!viewLicencia) return [];
+    return asignaciones.filter(a => a.licencia_id === viewLicencia.id);
+  }, [asignaciones, viewLicencia]);
+
+  const flatAsignacionesDeLicencia = useMemo(() => {
+    return asignacionesDeLicencia.map(a => ({
+      ...a,
+      nombre: a.perfiles?.nombre || a.usuarios?.nombre,
+      email: a.perfiles?.email || a.usuarios?.email
+    }));
+  }, [asignacionesDeLicencia]);
+
+  const { sorted: sortedAsignacionesDeLicencia, sortKey: modalAsigSortKey, sortDir: modalAsigSortDir, handleSort: handleModalAsigSort } = useSort(flatAsignacionesDeLicencia);
 
   const handleFile = (e) => {
     const file = e.target.files[0];
@@ -787,23 +814,23 @@ export default function LicenciasAdminPage() {
                 <thead>
                   <tr>
                     <th className="px-3 py-3 w-16 font-bold text-white text-left">Logo</th>
-                    <th className="px-3 py-3 font-bold text-white text-left">Nombre</th>
-                    <th className="px-3 py-3 font-bold text-white text-left">Respaldo</th>
+                    <SortableHeader label="Nombre" sortKey="software" currentKey={dispSortKey} currentDir={dispSortDir} onSort={handleDispSort} className="text-white text-left" />
+                    <SortableHeader label="Respaldo" sortKey="tiene_respaldo" currentKey={dispSortKey} currentDir={dispSortDir} onSort={handleDispSort} className="text-white text-left" />
                     <th className="px-3 py-3 text-center font-bold text-white">Disponibles</th>
-                    <th className="px-3 py-3 text-center font-bold text-white">Total</th>
+                    <SortableHeader label="Total" sortKey="cantidad_total" currentKey={dispSortKey} currentDir={dispSortDir} onSort={handleDispSort} className="text-white text-center" />
                     <th className="px-3 py-3 text-center font-bold text-white">% Restante</th>
-                    <th className="px-3 py-3 text-center font-bold text-white">Estado</th>
-                    <th className="px-3 py-3 text-center font-bold text-white">Expiración</th>
+                    <SortableHeader label="Estado" sortKey="estado" currentKey={dispSortKey} currentDir={dispSortDir} onSort={handleDispSort} className="text-white text-center" />
+                    <SortableHeader label="Expiración" sortKey="fecha_expiracion" currentKey={dispSortKey} currentDir={dispSortDir} onSort={handleDispSort} className="text-white text-center" />
                     <th className="px-3 py-3 text-center font-bold text-white">Acciones</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                   {loading ? (
                     <tr><td colSpan="9" className="px-6 py-8 text-center text-gray-500">Cargando licencias...</td></tr>
-                  ) : disponiblesLicencias.length === 0 ? (
+                  ) : sortedDisponibles.length === 0 ? (
                     <tr><td colSpan="9" className="px-6 py-8 text-center text-gray-500">No hay licencias disponibles.</td></tr>
                   ) : (
-                    disponiblesLicencias.map((lic) => {
+                    sortedDisponibles.map((lic) => {
                       const asignadas = getAsignacionesCount(lic.id);
                       const disponibles = lic.cantidad_total - asignadas;
                       const hasStock = disponibles > 0;
@@ -1051,22 +1078,22 @@ export default function LicenciasAdminPage() {
                     <thead>
                       <tr>
                         <th className="px-3 py-3 w-16 font-bold text-white text-left">Logo</th>
-                        <th className="px-3 py-3 font-bold text-white text-left">Software</th>
-                        <th className="px-3 py-3 font-bold text-white text-left">Tipo</th>
-                        <th className="px-3 py-3 font-bold text-white text-left">Fecha Asignación</th>
-                        <th className="px-3 py-3 font-bold text-white text-left">Respaldo</th>
+                        <SortableHeader label="Software" sortKey="software" currentKey={asigSortKey} currentDir={asigSortDir} onSort={handleAsigSort} className="text-white text-left" />
+                        <SortableHeader label="Tipo" sortKey="tipo" currentKey={asigSortKey} currentDir={asigSortDir} onSort={handleAsigSort} className="text-white text-left" />
+                        <SortableHeader label="Fecha Asignación" sortKey="created_at" currentKey={asigSortKey} currentDir={asigSortDir} onSort={handleAsigSort} className="text-white text-left" />
+                        <SortableHeader label="Respaldo" sortKey="tiene_respaldo" currentKey={asigSortKey} currentDir={asigSortDir} onSort={handleAsigSort} className="text-white text-left" />
                         <th className="px-3 py-3 text-center font-bold text-white">Acciones</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200">
-                      {funcionarioAsignaciones.length === 0 ? (
+                      {sortedAsignaciones.length === 0 ? (
                         <tr>
                           <td colSpan="6" className="px-6 py-8 text-center text-gray-500">
                             No hay licencias asignadas a este funcionario.
                           </td>
                         </tr>
                       ) : (
-                        funcionarioAsignaciones.map((asig) => {
+                        sortedAsignaciones.map((asig) => {
                           const licDetail = licencias.find(l => l.id === asig.licencia_id) || {};
                           
                           const handleRevocarClick = async () => {
@@ -1221,21 +1248,21 @@ export default function LicenciasAdminPage() {
                     <table className="min-w-full text-sm text-left whitespace-nowrap">
                       <thead>
                         <tr>
-                          <th className="px-3 py-3 font-bold text-white text-left">Funcionario</th>
-                          <th className="px-3 py-3 font-bold text-white text-left">Correo Electrónico</th>
-                          <th className="px-3 py-3 font-bold text-white text-left">Fecha Asignación</th>
+                          <SortableHeader label="Funcionario" sortKey="nombre" currentKey={licAsigSortKey} currentDir={licAsigSortDir} onSort={handleLicAsigSort} className="text-white text-left" />
+                          <SortableHeader label="Correo Electrónico" sortKey="email" currentKey={licAsigSortKey} currentDir={licAsigSortDir} onSort={handleLicAsigSort} className="text-white text-left" />
+                          <SortableHeader label="Fecha Asignación" sortKey="created_at" currentKey={licAsigSortKey} currentDir={licAsigSortDir} onSort={handleLicAsigSort} className="text-white text-left" />
                           <th className="px-3 py-3 text-center font-bold text-white">Acciones</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-200">
-                        {licenciaAsignaciones.length === 0 ? (
+                        {sortedLicenciaAsignaciones.length === 0 ? (
                           <tr>
                             <td colSpan="4" className="px-6 py-8 text-center text-gray-500">
                               Nadie tiene asignada esta licencia aún.
                             </td>
                           </tr>
                         ) : (
-                          licenciaAsignaciones.map((asig) => {
+                          sortedLicenciaAsignaciones.map((asig) => {
                             const handleRevocarClick = async () => {
                               const softwareName = selectedLic?.software || 'Software';
                               const uName = asig.perfiles?.nombre || asig.perfiles?.email || 'Funcionario';
@@ -1654,14 +1681,14 @@ export default function LicenciasAdminPage() {
                   <table className="min-w-full text-xs text-left whitespace-nowrap border-collapse">
                     <thead>
                       <tr className="bg-slate-900 text-white font-bold uppercase tracking-wider text-[10px]">
-                        <th className="px-3 py-1.5">Funcionario</th>
-                        <th className="px-3 py-1.5">Correo Electrónico</th>
-                        <th className="px-3 py-1.5">Fecha Asignación</th>
+                        <SortableHeader label="Funcionario" sortKey="nombre" currentKey={modalAsigSortKey} currentDir={modalAsigSortDir} onSort={handleModalAsigSort} className="text-white text-left px-3 py-1.5 hover:bg-slate-800" />
+                        <SortableHeader label="Correo Electrónico" sortKey="email" currentKey={modalAsigSortKey} currentDir={modalAsigSortDir} onSort={handleModalAsigSort} className="text-white text-left px-3 py-1.5 hover:bg-slate-800" />
+                        <SortableHeader label="Fecha Asignación" sortKey="created_at" currentKey={modalAsigSortKey} currentDir={modalAsigSortDir} onSort={handleModalAsigSort} className="text-white text-left px-3 py-1.5 hover:bg-slate-800" />
                         <th className="px-3 py-1.5 text-center w-24">Acción</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-150 bg-white">
-                      {asignacionesDeLicencia.map(a => {
+                      {sortedAsignacionesDeLicencia.map(a => {
                         const uName = a.perfiles?.nombre || 'Sin nombre';
                         const uEmail = a.perfiles?.email || 'Sin correo';
                         const dateStr = formatLocalDate(a.fecha_asignacion);

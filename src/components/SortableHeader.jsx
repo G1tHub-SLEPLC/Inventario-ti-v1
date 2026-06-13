@@ -5,7 +5,7 @@ export function SortableHeader({ label, sortKey, currentKey, currentDir, onSort,
   const isActive = currentKey === sortKey;
   return (
     <th
-      className={`cursor-pointer select-none group py-3 px-4 text-xs font-bold uppercase tracking-wider transition-colors hover:bg-slate-100 ${className}`}
+      className={`sortable group py-3 px-4 text-xs font-bold uppercase tracking-wider ${className}`}
       onClick={() => onSort(sortKey)}
     >
       <div className="flex items-center gap-1">
