@@ -160,7 +160,24 @@ export default function EditarEquipoModal({ equipo, onClose }) {
 
   const isQRSupported = () => {
     const desc = (formData['Descripción del Bien'] || '').toLowerCase();
-    return desc.includes('notebook') || desc.includes('aio') || desc.includes('tablet') || desc.includes('all in one') || desc.includes('todo en uno');
+    return (
+      desc.includes('notebook') ||
+      desc.includes('aio') ||
+      desc.includes('tablet') ||
+      desc.includes('all in one') ||
+      desc.includes('todo en uno') ||
+      desc.includes('impresora') ||
+      desc.includes('switch') ||
+      desc.includes('router') ||
+      desc.includes('monitor') ||
+      desc.includes('proyector') ||
+      desc.includes('dron') ||
+      desc.includes('drone') ||
+      desc.includes('dock') ||
+      desc.includes('camara') ||
+      desc.includes('cámara') ||
+      desc.includes('tv')
+    );
   };
 
   const handleDownloadQR = () => {

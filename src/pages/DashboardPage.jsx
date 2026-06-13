@@ -109,7 +109,24 @@ function getInitials(name) {
 
 const isQRSupported = (tipo) => {
   const t = (tipo || '').toLowerCase();
-  return t.includes('notebook') || t.includes('aio') || t.includes('tablet') || t.includes('all in one') || t.includes('todo en uno');
+  return (
+    t.includes('notebook') ||
+    t.includes('aio') ||
+    t.includes('tablet') ||
+    t.includes('all in one') ||
+    t.includes('todo en uno') ||
+    t.includes('impresora') ||
+    t.includes('switch') ||
+    t.includes('router') ||
+    t.includes('monitor') ||
+    t.includes('proyector') ||
+    t.includes('dron') ||
+    t.includes('drone') ||
+    t.includes('dock') ||
+    t.includes('camara') ||
+    t.includes('cámara') ||
+    t.includes('tv')
+  );
 };
 
 export default function DashboardPage() {
