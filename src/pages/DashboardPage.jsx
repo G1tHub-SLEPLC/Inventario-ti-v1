@@ -1498,7 +1498,7 @@ export default function DashboardPage() {
               <div className="bg-slate-50 border border-slate-200 p-3 rounded-xl shadow-inner flex items-center justify-center">
                 <QRCodeSVG
                   id="qr-code-svg"
-                  value={`${window.location.origin}/qr-info?search=${encodeURIComponent(qrModalData['Nº de serie'] || '')}`}
+                  value={`${window.location.origin}/qr-info?equipo=${qrModalData.id}`}
                   size={180}
                   level="H"
                   includeMargin={true}

@@ -622,7 +622,7 @@ export default function EditarEquipoModal({ equipo, onClose }) {
                   <div className="bg-slate-50 border border-slate-200 p-2 rounded-xl flex items-center justify-center shadow-inner">
                       <QRCodeSVG
                         id="edit-qr-code-svg"
-                        value={`${window.location.origin}/qr-info/${originalEquipo?.id}`}
+                        value={`${window.location.origin}/qr-info?equipo=${originalEquipo?.id}`}
                         size={110}
                       level="H"
                       includeMargin={true}
