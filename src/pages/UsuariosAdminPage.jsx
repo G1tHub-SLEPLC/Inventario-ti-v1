@@ -5,6 +5,8 @@ import { PlusCircle, Edit2, Trash2, Users, UploadCloud, XCircle, CheckCircle, Qr
 import { QRCodeSVG } from 'qrcode.react';
 import * as XLSX from 'xlsx';
 import { logAuditoria } from '../utils/auditoria';
+import { useSort } from '../hooks/useSort';
+import { SortableHeader } from '../components/SortableHeader';
 
 const formatEmailName = (email) => {
   if (!email) return '';
@@ -24,6 +26,7 @@ function getInitials(name) {
 export default function UsuariosAdminPage() {
   const { showToast, equipos } = useInventario();
   const [usuarios, setUsuarios] = useState([]);
+  const { sorted: sortedUsuarios, sortKey: uSortKey, sortDir: uSortDir, handleSort: handleUSort } = useSort(usuarios);
   const [loading, setLoading] = useState(true);
   
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -109,14 +112,57 @@ export default function UsuariosAdminPage() {
         
         const uName = user.nombre || formatEmailName(user.email);
         ctx.fillStyle = "#0f172a";
-        ctx.font = "bold 13px 'Segoe UI', sans-serif";
-        ctx.fillText(uName, baseWidth / 2, boxY + (boxH / 2));
         
-        ctx.font = "bold 10px 'Segoe UI', sans-serif";
-        ctx.fillText(getSubdireccionUser(user), baseWidth / 2, 225);
-        
+        // Auto-fit name: reduce font size until text fits within the box width
+        const maxWidth = baseWidth - 34; // 17px padding on each side
+        let nameFontSize = 13;
+        ctx.font = `bold ${nameFontSize}px 'Segoe UI', sans-serif`;
+        while (ctx.measureText(uName).width > maxWidth && nameFontSize > 7) {
+          nameFontSize -= 0.5;
+          ctx.font = `bold ${nameFontSize}px 'Segoe UI', sans-serif`;
+        }
+
+        // If still too long, wrap into two lines
+        if (ctx.measureText(uName).width > maxWidth) {
+          const words = uName.split(' ');
+          let line1 = '';
+          let line2 = '';
+          let switched = false;
+          for (const word of words) {
+            const test = (switched ? line2 : line1) + (switched ? (line2 ? ' ' : '') : (line1 ? ' ' : '')) + word;
+            if (!switched && ctx.measureText(test).width > maxWidth) {
+              switched = true;
+              line2 = word;
+            } else if (switched) {
+              line2 += (line2 ? ' ' : '') + word;
+            } else {
+              line1 = test;
+            }
+          }
+          ctx.fillText(line1, baseWidth / 2, boxY + (boxH / 2) - 6);
+          ctx.fillText(line2, baseWidth / 2, boxY + (boxH / 2) + 6);
+        } else {
+          ctx.fillText(uName, baseWidth / 2, boxY + (boxH / 2));
+        }
+
+        // Subdirección
+        const subdir = getSubdireccionUser(user);
+        let subdirFontSize = 10;
+        ctx.font = `bold ${subdirFontSize}px 'Segoe UI', sans-serif`;
+        while (ctx.measureText(subdir).width > maxWidth && subdirFontSize > 7) {
+          subdirFontSize -= 0.5;
+          ctx.font = `bold ${subdirFontSize}px 'Segoe UI', sans-serif`;
+        }
+        ctx.fillText(subdir, baseWidth / 2, 225);
+
+        // Email
         ctx.fillStyle = "#475569";
-        ctx.font = "9px 'Segoe UI', sans-serif";
+        let emailFontSize = 9;
+        ctx.font = `${emailFontSize}px 'Segoe UI', sans-serif`;
+        while (ctx.measureText(user.email).width > maxWidth && emailFontSize > 6) {
+          emailFontSize -= 0.5;
+          ctx.font = `${emailFontSize}px 'Segoe UI', sans-serif`;
+        }
         ctx.fillText(user.email, baseWidth / 2, 240);
         
         URL.revokeObjectURL(blobURL);
@@ -398,10 +444,10 @@ export default function UsuariosAdminPage() {
         <table className="min-w-full text-sm text-left whitespace-nowrap">
           <thead className="uppercase text-xs border-b border-gray-200">
             <tr>
-              <th className="px-6 py-3">Nombre</th>
-              <th className="px-6 py-3">Correo Electrónico</th>
-              <th className="px-6 py-3">Subdirección</th>
-              <th className="px-6 py-3">Rol</th>
+              <SortableHeader label="Nombre" sortKey="nombre" currentKey={uSortKey} currentDir={uSortDir} onSort={handleUSort} className="px-6 py-3" />
+              <SortableHeader label="Correo Electrónico" sortKey="email" currentKey={uSortKey} currentDir={uSortDir} onSort={handleUSort} className="px-6 py-3" />
+              <SortableHeader label="Subdirección" sortKey="subdireccion" currentKey={uSortKey} currentDir={uSortDir} onSort={handleUSort} className="px-6 py-3" />
+              <SortableHeader label="Rol" sortKey="rol" currentKey={uSortKey} currentDir={uSortDir} onSort={handleUSort} className="px-6 py-3" />
               <th className="px-6 py-3 text-center">Acciones</th>
             </tr>
           </thead>
@@ -411,7 +457,7 @@ export default function UsuariosAdminPage() {
             ) : usuarios.length === 0 ? (
               <tr><td colSpan="4" className="px-6 py-8 text-center text-gray-500">No hay usuarios registrados en la tabla perfiles.</td></tr>
             ) : (
-              usuarios.map((user) => (
+              sortedUsuarios.map((user) => (
                 <tr key={user.id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-800 p-0.5 pr-2.5 rounded-full text-[12px] font-bold border border-blue-200 shadow-sm">

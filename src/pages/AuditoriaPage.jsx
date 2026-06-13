@@ -4,6 +4,8 @@ import { exportToExcelAndPDF } from '../utils/exportUtils';
 import { Download, Printer, Search, ShieldCheck, AlertTriangle, Trash2 } from 'lucide-react';
 import { useInventario } from '../context/InventarioContext';
 import { useAuth } from '../context/AuthContext';
+import { useSort } from '../hooks/useSort';
+import { SortableHeader } from '../components/SortableHeader';
 
 function getInitials(name) {
   if (!name || name === '—' || name === '-') return '??';
@@ -19,6 +21,7 @@ export default function AuditoriaPage() {
   const [loading, setLoading] = useState(true);
   const [filtroModulo, setFiltroModulo] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const { sorted: sortedLogs, sortKey: audSortKey, sortDir: audSortDir, handleSort: handleAudSort } = useSort(logs);
   
   const [isClearModalOpen, setIsClearModalOpen] = useState(false);
   const [adminPassword, setAdminPassword] = useState('');
@@ -128,7 +131,7 @@ export default function AuditoriaPage() {
     setLoading(false);
   };
 
-  const filteredLogs = logs.filter(log => {
+  const filteredLogs = (sortedLogs || logs).filter(log => {
     const matchModulo = filtroModulo ? log.modulo === filtroModulo : true;
     const searchString = `${log.usuario_nombre} ${log.accion} ${log.detalles}`.toLowerCase();
     const matchSearch = searchTerm ? searchString.includes(searchTerm.toLowerCase()) : true;
@@ -228,11 +231,11 @@ export default function AuditoriaPage() {
           <table className="min-w-full text-sm text-left whitespace-nowrap">
             <thead className="bg-slate-50 text-slate-700 font-semibold uppercase text-xs border-b border-gray-200">
               <tr>
-                <th className="px-6 py-3">Fecha y Hora</th>
-                <th className="px-6 py-3">Módulo</th>
-                <th className="px-6 py-3">Usuario que ejecutó</th>
-                <th className="px-6 py-3">Usuario Modificado</th>
-                <th className="px-6 py-3">Acción</th>
+                <SortableHeader label="Fecha y Hora" sortKey="created_at" currentKey={audSortKey} currentDir={audSortDir} onSort={handleAudSort} className="px-6 py-3" />
+                <SortableHeader label="Módulo" sortKey="modulo" currentKey={audSortKey} currentDir={audSortDir} onSort={handleAudSort} className="px-6 py-3" />
+                <SortableHeader label="Usuario que ejecutó" sortKey="usuario_nombre" currentKey={audSortKey} currentDir={audSortDir} onSort={handleAudSort} className="px-6 py-3" />
+                <SortableHeader label="Usuario Modificado" sortKey="usuario_afectado" currentKey={audSortKey} currentDir={audSortDir} onSort={handleAudSort} className="px-6 py-3" />
+                <SortableHeader label="Acción" sortKey="accion" currentKey={audSortKey} currentDir={audSortDir} onSort={handleAudSort} className="px-6 py-3" />
                 <th className="px-6 py-3">Detalles</th>
                 <th className="px-6 py-3">Observaciones</th>
               </tr>
@@ -243,7 +246,7 @@ export default function AuditoriaPage() {
               ) : filteredLogs.length === 0 ? (
                 <tr><td colSpan="7" className="px-6 py-8 text-center text-gray-500 italic">No hay registros de auditoría que coincidan con la búsqueda.</td></tr>
               ) : (
-                filteredLogs.map((log) => {
+              filteredLogs.map((log) => {
                   let mainText = log.detalles || '—';
                   let diffText = null;
 

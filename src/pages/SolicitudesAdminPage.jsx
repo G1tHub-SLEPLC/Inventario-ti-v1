@@ -7,11 +7,14 @@ import { logAuditoria } from '../utils/auditoria';
 import { exportToExcelAndPDF } from '../utils/exportUtils';
 import { sendInsumoAprobadoEmail } from '../utils/emailUtils';
 import { useAuth } from '../context/AuthContext';
+import { useSort } from '../hooks/useSort';
+import { SortableHeader } from '../components/SortableHeader';
 
 export default function SolicitudesAdminPage() {
   const { solicitudes, updateEstadoSolicitud } = useSolicitudes();
   const { equipos, showToast } = useInventario();
   const { perfil } = useAuth();
+  const { sorted: sortedSolicitudes, sortKey: solSortKey, sortDir: solSortDir, handleSort: handleSolSort } = useSort(solicitudes);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedSolicitud, setSelectedSolicitud] = useState(null);
   const [observaciones, setObservaciones] = useState('');
@@ -165,11 +168,11 @@ export default function SolicitudesAdminPage() {
         <table className="min-w-full text-sm text-left whitespace-nowrap">
           <thead className="uppercase text-xs border-b border-gray-200">
             <tr>
-              <th className="px-6 py-3">Fecha</th>
-              <th className="px-6 py-3">Usuario</th>
-              <th className="px-6 py-3">Tipo</th>
+              <SortableHeader label="Fecha" sortKey="created_at" currentKey={solSortKey} currentDir={solSortDir} onSort={handleSolSort} className="px-6 py-3" />
+              <SortableHeader label="Usuario" sortKey="perfil" currentKey={solSortKey} currentDir={solSortDir} onSort={handleSolSort} className="px-6 py-3" />
+              <SortableHeader label="Tipo" sortKey="tipo" currentKey={solSortKey} currentDir={solSortDir} onSort={handleSolSort} className="px-6 py-3" />
               <th className="px-6 py-3">Detalle</th>
-              <th className="px-6 py-3">Estado</th>
+              <SortableHeader label="Estado" sortKey="estado" currentKey={solSortKey} currentDir={solSortDir} onSort={handleSolSort} className="px-6 py-3" />
               <th className="px-6 py-3">Observaciones</th>
               <th className="px-6 py-3 text-center">Acciones</th>
             </tr>
@@ -180,7 +183,7 @@ export default function SolicitudesAdminPage() {
                 <td colSpan="7" className="px-6 py-4 text-center text-gray-500">No hay solicitudes recientes.</td>
               </tr>
             ) : (
-              solicitudes.map((sol) => (
+              sortedSolicitudes.map((sol) => (
                 <tr key={sol.id} className="hover:bg-slate-50 transition-colors border-b border-gray-100 last:border-none">
                   <td className="px-6 py-4 text-gray-500">{new Date(sol.created_at).toLocaleDateString()}</td>
                   <td className="px-6 py-4 font-medium text-gray-900">{sol.perfil?.nombre || sol.perfil?.correo || 'Usuario'}</td>

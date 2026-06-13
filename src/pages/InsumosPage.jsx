@@ -7,6 +7,8 @@ import { PlusCircle, Edit2, Trash2, UserPlus, History, Package, Upload, Download
 import * as XLSX from 'xlsx';
 import { logAuditoria, getDiffString } from '../utils/auditoria';
 import { exportToExcelAndPDF } from '../utils/exportUtils';
+import { useSort } from '../hooks/useSort';
+import { SortableHeader } from '../components/SortableHeader';
 
 function getInitials(name) {
   if (!name || name === '—') return '??';
@@ -19,6 +21,7 @@ export default function InsumosPage() {
   const { insumos } = useSolicitudes();
   const { showToast } = useInventario();
   const { session } = useAuth();
+  const { sorted: sortedInsumos, sortKey: insSortKey, sortDir: insSortDir, handleSort: handleInsSort } = useSort(insumos);
   
   const [activeTab, setActiveTab] = useState('insumos'); // 'insumos' o 'historial'
   const [historial, setHistorial] = useState([]);
@@ -444,11 +447,11 @@ export default function InsumosPage() {
             <table className="min-w-full text-sm text-left whitespace-nowrap">
               <thead className="bg-slate-50 text-slate-700 font-semibold uppercase text-xs border-b border-gray-200">
                 <tr>
-                  <th className="px-6 py-3">Nombre</th>
-                  <th className="px-6 py-3">Tipo</th>
-                  <th className="px-6 py-3">Marca</th>
-                  <th className="px-6 py-3">Modelo</th>
-                  <th className="px-6 py-3 text-center">Cantidad</th>
+                  <SortableHeader label="Nombre" sortKey="nombre" currentKey={insSortKey} currentDir={insSortDir} onSort={handleInsSort} className="px-6 py-3" />
+                  <SortableHeader label="Tipo" sortKey="tipo" currentKey={insSortKey} currentDir={insSortDir} onSort={handleInsSort} className="px-6 py-3" />
+                  <SortableHeader label="Marca" sortKey="marca" currentKey={insSortKey} currentDir={insSortDir} onSort={handleInsSort} className="px-6 py-3" />
+                  <SortableHeader label="Modelo" sortKey="modelo" currentKey={insSortKey} currentDir={insSortDir} onSort={handleInsSort} className="px-6 py-3" />
+                  <SortableHeader label="Cantidad" sortKey="cantidad_disponible" currentKey={insSortKey} currentDir={insSortDir} onSort={handleInsSort} className="px-6 py-3 text-center" />
                   <th className="px-6 py-3 text-center w-32">Acciones</th>
                 </tr>
               </thead>
@@ -458,7 +461,7 @@ export default function InsumosPage() {
                     <td colSpan="6" className="px-6 py-8 text-center text-gray-500 italic">No hay insumos registrados.</td>
                   </tr>
                 ) : (
-                  insumos.map((insumo) => (
+                  sortedInsumos.map((insumo) => (
                     <tr key={insumo.id} className="hover:bg-blue-50 transition-colors">
                       <td className="px-6 py-3 font-medium text-gray-900">{insumo.nombre}</td>
                       <td className="px-6 py-3 text-gray-600">{insumo.tipo || '—'}</td>
