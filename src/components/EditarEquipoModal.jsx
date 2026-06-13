@@ -208,156 +208,121 @@ export default function EditarEquipoModal({ equipo, onClose }) {
     return `SLEPLC-${prefix}-${sequentialStr}`;
   };
 
-  const handleDownloadQR = () => {
-    const svgElement = document.getElementById("edit-qr-code-svg");
-    if (!svgElement) return;
-    const svgString = new XMLSerializer().serializeToString(svgElement);
-    const svgBlob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" });
-    const URL = window.URL || window.webkitURL || window;
-    const blobURL = URL.createObjectURL(svgBlob);
-    const image = new Image();
-    image.onload = () => {
-      const canvas = document.createElement("canvas");
-      canvas.width = 300;
-      canvas.height = 300;
-      const context = canvas.getContext("2d");
-      context.fillStyle = "#FFFFFF";
-      context.fillRect(0, 0, 300, 300);
-      context.drawImage(image, 10, 10, 280, 280);
-      const png = canvas.toDataURL("image/png");
-      const downloadLink = document.createElement("a");
-      downloadLink.href = png;
-      downloadLink.download = `QR_${formData['Nº de serie'] || 'equipo'}.png`;
-      document.body.appendChild(downloadLink);
-      downloadLink.click();
-      document.body.removeChild(downloadLink);
-      URL.revokeObjectURL(blobURL);
-    };
-    image.src = blobURL;
+  const generateStickerCanvas = (svgElement) => {
+    return new Promise((resolve) => {
+      const svgString = new XMLSerializer().serializeToString(svgElement);
+      const svgBlob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" });
+      const URL = window.URL || window.webkitURL || window;
+      const blobURL = URL.createObjectURL(svgBlob);
+      const image = new Image();
+      image.onload = () => {
+        const canvas = document.createElement("canvas");
+        // Escala alta para mejor resolución (x3)
+        const scale = 3;
+        // Dimensiones proporcionales a 5.5cm x 8cm (aprox 208x302 en px a 96dpi)
+        const baseWidth = 208;
+        const baseHeight = 302;
+        
+        canvas.width = baseWidth * scale;
+        canvas.height = baseHeight * scale;
+        const ctx = canvas.getContext("2d");
+        ctx.scale(scale, scale);
+        
+        // Fondo blanco
+        ctx.fillStyle = "#FFFFFF";
+        ctx.fillRect(0, 0, baseWidth, baseHeight);
+        
+        // Cabecera SLEP
+        ctx.fillStyle = "#1e293b";
+        ctx.fillRect(10, 10, baseWidth - 20, 24);
+        ctx.fillStyle = "#FFFFFF";
+        ctx.font = "bold 11px 'Segoe UI', sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText("SLEP LOS COPIHUES", baseWidth / 2, 22);
+        
+        // QR Code
+        const qrSize = 130;
+        const qrX = (baseWidth - qrSize) / 2;
+        ctx.drawImage(image, qrX, 45, qrSize, qrSize);
+        
+        // Caja del código
+        const boxY = 185;
+        const boxH = 26;
+        ctx.fillStyle = "#f1f5f9";
+        ctx.strokeStyle = "#cbd5e1";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.roundRect(15, boxY, baseWidth - 30, boxH, 4);
+        ctx.fill();
+        ctx.stroke();
+        
+        // Texto del código
+        const codigoInventario = generarCodigoInventario();
+        ctx.fillStyle = "#0f172a";
+        ctx.font = "bold 13px 'Segoe UI', sans-serif";
+        ctx.fillText(codigoInventario, baseWidth / 2, boxY + (boxH / 2));
+        
+        // Descripción
+        const descripcionCompleta = `${formData['Descripción del Bien'] || ''} ${formData['Marca'] || ''} ${formData['Modelo'] || ''}`.trim();
+        ctx.font = "bold 10px 'Segoe UI', sans-serif";
+        ctx.fillText(descripcionCompleta, baseWidth / 2, 225);
+        
+        // S/N
+        const serialText = formData['Nº de serie'] ? `S/N: ${formData['Nº de serie']}` : '';
+        ctx.fillStyle = "#475569";
+        ctx.font = "9px 'Segoe UI', sans-serif";
+        ctx.fillText(serialText, baseWidth / 2, 240);
+        
+        URL.revokeObjectURL(blobURL);
+        resolve(canvas.toDataURL("image/png"));
+      };
+      image.src = blobURL;
+    });
   };
 
-  const handlePrintQR = () => {
+  const handleDownloadQR = async () => {
     const svgElement = document.getElementById("edit-qr-code-svg");
     if (!svgElement) return;
-    const svgHtml = svgElement.outerHTML;
-    const printWindow = window.open('', '_blank', 'width=600,height=600');
-    
-    const codigoInventario = generarCodigoInventario();
-    const descripcionCompleta = `${formData['Descripción del Bien'] || ''} ${formData['Marca'] || ''} ${formData['Modelo'] || ''}`.trim();
-    const serialText = formData['Nº de serie'] ? `S/N: ${formData['Nº de serie']}` : '';
+    const pngDataUrl = await generateStickerCanvas(svgElement);
+    const downloadLink = document.createElement("a");
+    downloadLink.href = pngDataUrl;
+    downloadLink.download = `QR_${formData['Nº de serie'] || 'equipo'}.png`;
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
+  };
 
+  const handlePrintQR = async () => {
+    const svgElement = document.getElementById("edit-qr-code-svg");
+    if (!svgElement) return;
+    const pngDataUrl = await generateStickerCanvas(svgElement);
+    const printWindow = window.open('', '_blank', 'width=400,height=600');
     printWindow.document.write(`
       <html>
         <head>
-          <title>Imprimir Código QR</title>
+          <title>Imprimir Etiqueta QR</title>
           <style>
             body {
-              font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-              display: flex;
-              flex-direction: column;
-              align-items: center;
-              justify-content: center;
-              height: 100vh;
               margin: 0;
-              background-color: #fff;
-              color: #000;
-            }
-            .sticker-container {
-              width: 5.5cm;
-              height: 8cm;
               display: flex;
-              flex-direction: column;
+              justify-content: center;
               align-items: center;
-              justify-content: flex-start;
-              box-sizing: border-box;
+              height: 100vh;
               background: #fff;
             }
-            .header {
-              background-color: #1e293b;
-              color: white;
-              width: 100%;
-              text-align: center;
-              font-weight: 700;
-              font-size: 11px;
-              padding: 6px 0;
-              letter-spacing: 0.5px;
-              border-radius: 4px;
-              margin-bottom: 12px;
-            }
-            .qr-wrapper {
-              margin-bottom: 15px;
-            }
-            .qr-wrapper svg {
-              width: 130px;
-              height: 130px;
-            }
-            .code-label-container {
-              background-color: #f1f5f9;
-              border: 1px solid #cbd5e1;
-              border-radius: 6px;
-              width: 90%;
-              text-align: center;
-              padding: 6px 0;
-              margin-bottom: 8px;
-            }
-            .code-value {
-              font-size: 13px;
-              font-weight: 700;
-              color: #0f172a;
-              letter-spacing: 0.5px;
-            }
-            .desc-value {
-              font-size: 10px;
-              font-weight: 600;
-              color: #0f172a;
-              text-align: center;
-              margin-bottom: 3px;
-              width: 95%;
-              white-space: nowrap;
-              overflow: hidden;
-              text-overflow: ellipsis;
-            }
-            .serial-value {
-              font-size: 9px;
-              color: #475569;
+            img {
+              width: 5.5cm;
+              height: auto;
+              max-width: 100%;
             }
             @media print {
-              body {
-                height: auto;
-                align-items: flex-start;
-                justify-content: flex-start;
-                margin: 0;
-                padding: 0;
-              }
-              .header {
-                -webkit-print-color-adjust: exact;
-                color-adjust: exact;
-              }
-              .code-label-container {
-                -webkit-print-color-adjust: exact;
-                color-adjust: exact;
-              }
+              body { align-items: flex-start; justify-content: flex-start; }
             }
           </style>
         </head>
         <body>
-          <div class="sticker-container">
-            <div class="header">SLEP LOS COPIHUES</div>
-            <div class="qr-wrapper">
-              ${svgHtml}
-            </div>
-            <div class="code-label-container">
-              <div class="code-value">${codigoInventario}</div>
-            </div>
-            <div class="desc-value">${descripcionCompleta}</div>
-            <div class="serial-value">${serialText}</div>
-          </div>
-          <script>
-            window.onload = function() {
-              window.print();
-              setTimeout(function() { window.close(); }, 500);
-            };
-          </script>
+          <img src="${pngDataUrl}" onload="window.print(); setTimeout(() => window.close(), 500);" />
         </body>
       </html>
     `);

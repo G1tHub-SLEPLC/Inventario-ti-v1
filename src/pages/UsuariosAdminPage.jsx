@@ -22,7 +22,7 @@ function getInitials(name) {
 }
 
 export default function UsuariosAdminPage() {
-  const { showToast } = useInventario();
+  const { showToast, equipos } = useInventario();
   const [usuarios, setUsuarios] = useState([]);
   const [loading, setLoading] = useState(true);
   
@@ -52,152 +52,122 @@ export default function UsuariosAdminPage() {
     setLoading(false);
   };
 
-  const handleDownloadQR = (user) => {
-    const svgElement = document.getElementById("user-qr-code-svg");
-    if (!svgElement) return;
-    const svgString = new XMLSerializer().serializeToString(svgElement);
-    const svgBlob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" });
-    const URL = window.URL || window.webkitURL || window;
-    const blobURL = URL.createObjectURL(svgBlob);
-    const image = new Image();
-    image.onload = () => {
-      const canvas = document.createElement("canvas");
-      canvas.width = 300;
-      canvas.height = 300;
-      const context = canvas.getContext("2d");
-      context.fillStyle = "#FFFFFF";
-      context.fillRect(0, 0, 300, 300);
-      context.drawImage(image, 10, 10, 280, 280);
-      const png = canvas.toDataURL("image/png");
-      const downloadLink = document.createElement("a");
-      downloadLink.href = png;
-      downloadLink.download = `QR_Usuario_${user.nombre || formatEmailName(user.email)}.png`;
-      document.body.appendChild(downloadLink);
-      downloadLink.click();
-      document.body.removeChild(downloadLink);
-      URL.revokeObjectURL(blobURL);
-    };
-    image.src = blobURL;
+  const getSubdireccionUser = (user) => {
+    if (!equipos || equipos.length === 0) return 'Sin Subdirección';
+    const uName = user.nombre || formatEmailName(user.email);
+    const eqUser = equipos.find(eq => 
+      eq['Usuario'] && 
+      eq['Usuario'].trim().toLowerCase() === uName.trim().toLowerCase() && 
+      eq['SubDirección'] && 
+      eq['SubDirección'].trim() !== '—'
+    );
+    return eqUser ? eqUser['SubDirección'] : 'Sin Subdirección';
   };
 
-  const handlePrintQR = (user) => {
+  const generateStickerCanvas = (svgElement, user) => {
+    return new Promise((resolve) => {
+      const svgString = new XMLSerializer().serializeToString(svgElement);
+      const svgBlob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" });
+      const URL = window.URL || window.webkitURL || window;
+      const blobURL = URL.createObjectURL(svgBlob);
+      const image = new Image();
+      image.onload = () => {
+        const canvas = document.createElement("canvas");
+        const scale = 3;
+        const baseWidth = 208;
+        const baseHeight = 302;
+        
+        canvas.width = baseWidth * scale;
+        canvas.height = baseHeight * scale;
+        const ctx = canvas.getContext("2d");
+        ctx.scale(scale, scale);
+        
+        ctx.fillStyle = "#FFFFFF";
+        ctx.fillRect(0, 0, baseWidth, baseHeight);
+        
+        ctx.fillStyle = "#1e293b";
+        ctx.fillRect(10, 10, baseWidth - 20, 24);
+        ctx.fillStyle = "#FFFFFF";
+        ctx.font = "bold 11px 'Segoe UI', sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText("SLEP LOS COPIHUES", baseWidth / 2, 22);
+        
+        const qrSize = 130;
+        const qrX = (baseWidth - qrSize) / 2;
+        ctx.drawImage(image, qrX, 45, qrSize, qrSize);
+        
+        const boxY = 185;
+        const boxH = 26;
+        ctx.fillStyle = "#f1f5f9";
+        ctx.strokeStyle = "#cbd5e1";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.roundRect(15, boxY, baseWidth - 30, boxH, 4);
+        ctx.fill();
+        ctx.stroke();
+        
+        const uName = user.nombre || formatEmailName(user.email);
+        ctx.fillStyle = "#0f172a";
+        ctx.font = "bold 13px 'Segoe UI', sans-serif";
+        ctx.fillText(uName, baseWidth / 2, boxY + (boxH / 2));
+        
+        ctx.font = "bold 10px 'Segoe UI', sans-serif";
+        ctx.fillText(getSubdireccionUser(user), baseWidth / 2, 225);
+        
+        ctx.fillStyle = "#475569";
+        ctx.font = "9px 'Segoe UI', sans-serif";
+        ctx.fillText(user.email, baseWidth / 2, 240);
+        
+        URL.revokeObjectURL(blobURL);
+        resolve(canvas.toDataURL("image/png"));
+      };
+      image.src = blobURL;
+    });
+  };
+
+  const handleDownloadQR = async (user) => {
     const svgElement = document.getElementById("user-qr-code-svg");
     if (!svgElement) return;
-    const svgHtml = svgElement.outerHTML;
-    const printWindow = window.open('', '_blank', 'width=600,height=600');
-    const uName = user.nombre || formatEmailName(user.email);
+    const pngDataUrl = await generateStickerCanvas(svgElement, user);
+    const downloadLink = document.createElement("a");
+    downloadLink.href = pngDataUrl;
+    downloadLink.download = `QR_Usuario_${user.nombre || formatEmailName(user.email)}.png`;
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
+  };
+
+  const handlePrintQR = async (user) => {
+    const svgElement = document.getElementById("user-qr-code-svg");
+    if (!svgElement) return;
+    const pngDataUrl = await generateStickerCanvas(svgElement, user);
+    const printWindow = window.open('', '_blank', 'width=400,height=600');
     printWindow.document.write(`
       <html>
         <head>
-          <title>Imprimir Código QR Funcionario</title>
+          <title>Imprimir Etiqueta Funcionario</title>
           <style>
             body {
-              font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-              display: flex;
-              flex-direction: column;
-              align-items: center;
-              justify-content: center;
-              height: 100vh;
               margin: 0;
-              background-color: #fff;
-              color: #000;
-            }
-            .sticker-container {
-              width: 5.5cm;
-              height: 8cm;
               display: flex;
-              flex-direction: column;
+              justify-content: center;
               align-items: center;
-              justify-content: flex-start;
-              box-sizing: border-box;
+              height: 100vh;
               background: #fff;
             }
-            .header {
-              background-color: #1e293b;
-              color: white;
-              width: 100%;
-              text-align: center;
-              font-weight: 700;
-              font-size: 11px;
-              padding: 6px 0;
-              letter-spacing: 0.5px;
-              border-radius: 4px;
-              margin-bottom: 12px;
-            }
-            .qr-wrapper {
-              margin-bottom: 15px;
-            }
-            .qr-wrapper svg {
-              width: 130px;
-              height: 130px;
-            }
-            .code-label-container {
-              background-color: #f1f5f9;
-              border: 1px solid #cbd5e1;
-              border-radius: 6px;
-              width: 90%;
-              text-align: center;
-              padding: 6px 0;
-              margin-bottom: 8px;
-            }
-            .code-value {
-              font-size: 13px;
-              font-weight: 700;
-              color: #0f172a;
-              letter-spacing: 0.5px;
-            }
-            .desc-value {
-              font-size: 10px;
-              font-weight: 600;
-              color: #0f172a;
-              text-align: center;
-              margin-bottom: 3px;
-              width: 95%;
-              white-space: nowrap;
-              overflow: hidden;
-              text-overflow: ellipsis;
-            }
-            .serial-value {
-              font-size: 9px;
-              color: #475569;
+            img {
+              width: 5.5cm;
+              height: auto;
+              max-width: 100%;
             }
             @media print {
-              body {
-                height: auto;
-                align-items: flex-start;
-                justify-content: flex-start;
-                margin: 0;
-                padding: 0;
-              }
-              .header {
-                -webkit-print-color-adjust: exact;
-                color-adjust: exact;
-              }
-              .code-label-container {
-                -webkit-print-color-adjust: exact;
-                color-adjust: exact;
-              }
+              body { align-items: flex-start; justify-content: flex-start; }
             }
           </style>
         </head>
         <body>
-          <div class="sticker-container">
-            <div class="header">SLEP LOS COPIHUES</div>
-            <div class="qr-wrapper">
-              ${svgHtml}
-            </div>
-            <div class="code-label-container">
-              <div class="code-value">${uName}</div>
-            </div>
-            <div class="desc-value">Equipos Asignados</div>
-            <div class="serial-value">${user.email}</div>
-          </div>
-          <script>
-            window.onload = function() {
-              window.print();
-              setTimeout(function() { window.close(); }, 500);
-            };
-          </script>
+          <img src="${pngDataUrl}" onload="window.print(); setTimeout(() => window.close(), 500);" />
         </body>
       </html>
     `);
