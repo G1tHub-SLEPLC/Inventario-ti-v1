@@ -879,7 +879,7 @@ export default function DashboardPage() {
       </section>
 
       {/* Tabs & Controls */}
-      <section className="bg-white rounded-xl shadow-sm overflow-hidden">
+      <section className="bg-white rounded-xl shadow-sm">
         <div className="flex flex-col xl:flex-row justify-between items-stretch xl:items-center border-b border-gray-200">
           <nav className="flex flex-wrap w-full xl:w-auto">
             <button onClick={() => setActiveTab('disp')} className={`px-4 py-3 text-sm font-medium border-b-2 flex items-center gap-2 transition-colors ${activeTab === 'disp' ? 'border-[#25306B] bg-[#25306B] text-white' : 'border-transparent text-gray-600 hover:bg-gray-50'}`}>
