@@ -24,9 +24,16 @@ function getInitials(name) {
 }
 
 export default function UsuariosAdminPage() {
-  const { showToast, equipos, opcionesMapeadas } = useInventario();
+  const { showToast, equipos } = useInventario();
   const [usuarios, setUsuarios] = useState([]);
   const { sorted: sortedUsuarios, sortKey: uSortKey, sortDir: uSortDir, handleSort: handleUSort } = useSort(usuarios);
+  
+  // Unique list of subdirecciones from existing users
+  const subdirecciones = useMemo(() => {
+    const list = usuarios.map(u => u.subdireccion).filter(Boolean);
+    return [...new Set(list)].sort((a, b) => a.localeCompare(b));
+  }, [usuarios]);
+
   const [loading, setLoading] = useState(true);
   
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -544,9 +551,9 @@ export default function UsuariosAdminPage() {
                   className="w-full rounded-lg border-gray-300 shadow-sm border p-2.5 focus:border-[#006BB9] focus:ring-[#006BB9]" 
                   placeholder="Ej: Administración y Finanzas"
                 />
-                {showSubdirSug && opcionesMapeadas?.SubDirección && (
+                {showSubdirSug && subdirecciones.length > 0 && (
                   <ul className="absolute z-10 w-full bg-white border border-gray-200 mt-1 rounded-md shadow-lg max-h-40 overflow-auto sug-list">
-                    {opcionesMapeadas.SubDirección
+                    {subdirecciones
                       .filter(opt => opt.toLowerCase().includes(formData.subdireccion.toLowerCase()))
                       .map((opt, i) => (
                         <li 
