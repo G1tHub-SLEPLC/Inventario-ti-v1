@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { useInventario } from '../context/InventarioContext';
-import { PlusCircle, Edit2, Trash2, Users, UploadCloud, XCircle, CheckCircle } from 'lucide-react';
+import { PlusCircle, Edit2, Trash2, Users, UploadCloud, XCircle, CheckCircle, QrCode, Download, Printer } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
 import * as XLSX from 'xlsx';
 import { logAuditoria } from '../utils/auditoria';
 
@@ -33,6 +34,7 @@ export default function UsuariosAdminPage() {
   const [isMasivaModalOpen, setIsMasivaModalOpen] = useState(false);
   const [masivaStatus, setMasivaStatus] = useState({ type: 'idle', message: '' }); // idle, loading, success, error, results
   const [masivaResults, setMasivaResults] = useState(null);
+  const [qrModalUser, setQrModalUser] = useState(null);
 
   useEffect(() => {
     fetchUsuarios();
@@ -48,6 +50,114 @@ export default function UsuariosAdminPage() {
       setUsuarios(data || []);
     }
     setLoading(false);
+  };
+
+  const handleDownloadQR = (user) => {
+    const svgElement = document.getElementById("user-qr-code-svg");
+    if (!svgElement) return;
+    const svgString = new XMLSerializer().serializeToString(svgElement);
+    const svgBlob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" });
+    const URL = window.URL || window.webkitURL || window;
+    const blobURL = URL.createObjectURL(svgBlob);
+    const image = new Image();
+    image.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = 300;
+      canvas.height = 300;
+      const context = canvas.getContext("2d");
+      context.fillStyle = "#FFFFFF";
+      context.fillRect(0, 0, 300, 300);
+      context.drawImage(image, 10, 10, 280, 280);
+      const png = canvas.toDataURL("image/png");
+      const downloadLink = document.createElement("a");
+      downloadLink.href = png;
+      downloadLink.download = `QR_Usuario_${user.nombre || formatEmailName(user.email)}.png`;
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      document.body.removeChild(downloadLink);
+      URL.revokeObjectURL(blobURL);
+    };
+    image.src = blobURL;
+  };
+
+  const handlePrintQR = (user) => {
+    const svgElement = document.getElementById("user-qr-code-svg");
+    if (!svgElement) return;
+    const svgHtml = svgElement.outerHTML;
+    const printWindow = window.open('', '_blank', 'width=600,height=600');
+    const uName = user.nombre || formatEmailName(user.email);
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Imprimir Código QR</title>
+          <style>
+            body {
+              font-family: system-ui, -apple-system, sans-serif;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+              height: 100vh;
+              margin: 0;
+              background-color: #fff;
+              color: #333;
+            }
+            .container {
+              text-align: center;
+              border: 1px solid #ccc;
+              padding: 20px;
+              border-radius: 10px;
+              width: 250px;
+            }
+            svg {
+              width: 200px;
+              height: 200px;
+              margin-bottom: 15px;
+            }
+            .label-info {
+              font-size: 11px;
+              line-height: 1.4;
+              text-align: left;
+              margin: 0 auto;
+              width: 200px;
+            }
+            .label-info div {
+              margin-bottom: 4px;
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
+            }
+            @media print {
+              body {
+                height: auto;
+              }
+              .container {
+                border: none;
+                padding: 0;
+                width: 100%;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            \${svgHtml}
+            <div class="label-info">
+              <div><strong>Funcionario:</strong> \${uName}</div>
+              <div><strong>Correo:</strong> \${user.email}</div>
+              <div><strong>Rol:</strong> \${user.rol === 'admin_ti' ? 'Administrador' : 'Funcionario'}</div>
+            </div>
+          </div>
+          <script>
+            window.onload = function() {
+              window.print();
+              setTimeout(function() { window.close(); }, 500);
+            };
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
   };
 
   const handleOpenModal = (user = null) => {
@@ -305,6 +415,9 @@ export default function UsuariosAdminPage() {
                     </span>
                   </td>
                   <td className="px-6 py-4 text-center">
+                    <button onClick={() => setQrModalUser(user)} className="text-emerald-600 hover:text-emerald-800 mr-4" title="Generar QR de Funcionario">
+                      <QrCode size={18} />
+                    </button>
                     <button onClick={() => handleOpenModal(user)} className="text-blue-600 hover:text-blue-800 mr-4" title="Editar Usuario">
                       <Edit2 size={18} />
                     </button>
@@ -512,6 +625,72 @@ export default function UsuariosAdminPage() {
               >
                 Cerrar
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Modal QR Code de Usuario */}
+      {qrModalUser && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-2xl w-full max-w-sm flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            {/* Header */}
+            <div className="flex justify-between items-center px-4 py-3 bg-[#25306B] text-white">
+              <h2 className="text-sm font-bold flex items-center gap-1.5">
+                <QrCode size={16} /> Código QR del Funcionario
+              </h2>
+              <button
+                onClick={() => setQrModalUser(null)}
+                className="text-white/80 hover:text-white hover:bg-white/10 px-2 py-0.5 rounded-lg transition-colors cursor-pointer text-lg font-bold"
+              >
+                &times;
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-5 flex flex-col items-center gap-4 text-xs">
+              <div className="bg-slate-50 border border-slate-200 p-3 rounded-xl shadow-inner flex items-center justify-center">
+                <QRCodeSVG
+                  id="user-qr-code-svg"
+                  value={`${window.location.origin}/qr-info?user=${qrModalUser.id}`}
+                  size={180}
+                  level="H"
+                  includeMargin={true}
+                />
+              </div>
+
+              {/* Detalles */}
+              <div className="w-full bg-slate-50 border border-gray-150 p-3 rounded-xl space-y-1.5">
+                <div>
+                  <span className="font-bold text-[#25306B]">Funcionario:</span>{' '}
+                  <span className="text-gray-700 font-medium">{qrModalUser.nombre || formatEmailName(qrModalUser.email)}</span>
+                </div>
+                <div>
+                  <span className="font-bold text-[#25306B]">Correo Electrónico:</span>{' '}
+                  <span className="text-gray-700 font-medium">{qrModalUser.email}</span>
+                </div>
+                <div>
+                  <span className="font-bold text-[#25306B]">Rol:</span>{' '}
+                  <span className="text-gray-700 font-medium">
+                    {qrModalUser.rol === 'admin_ti' ? 'Administrador' : 'Funcionario'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Botones de acción */}
+              <div className="flex gap-2 w-full mt-1">
+                <button
+                  onClick={() => handleDownloadQR(qrModalUser)}
+                  className="flex-1 py-2 bg-slate-100 hover:bg-slate-200 text-gray-700 font-bold rounded-xl border border-gray-300 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <Download size={14} /> Descargar PNG
+                </button>
+                <button
+                  onClick={() => handlePrintQR(qrModalUser)}
+                  className="flex-1 py-2 bg-[#006BB9] hover:bg-[#25306B] text-white font-bold rounded-xl flex items-center justify-center gap-1.5 transition-colors shadow-sm cursor-pointer"
+                >
+                  <Printer size={14} /> Imprimir
+                </button>
+              </div>
             </div>
           </div>
         </div>
