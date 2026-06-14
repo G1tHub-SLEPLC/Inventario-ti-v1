@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useInventario } from '../context/InventarioContext';
 import { Save, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -17,6 +17,18 @@ export default function NuevoEquipoPage() {
   const { equipos, addEquipo, addMasivo, showToast } = useInventario();
   const navigate = useNavigate();
   const [formData, setFormData] = useState({ estado: 'DISPONIBLE', usuario_asignado_id: '' });
+  const [selectDescVal, setSelectDescVal] = useState('');
+  const [selectMarcaVal, setSelectMarcaVal] = useState('');
+
+  const uniqueDescripciones = useMemo(() => {
+    const list = equipos.map(eq => eq['Descripción del Bien']).filter(v => v && v.trim() !== '');
+    return [...new Set(list)].sort();
+  }, [equipos]);
+
+  const uniqueMarcas = useMemo(() => {
+    const list = equipos.map(eq => eq['Marca']).filter(v => v && v.trim() !== '');
+    return [...new Set(list)].sort();
+  }, [equipos]);
   const [isMultiMode, setIsMultiMode] = useState(false);
   const [facturaFile, setFacturaFile] = useState(null);
   const [ocFile, setOcFile] = useState(null);
@@ -342,6 +354,46 @@ export default function NuevoEquipoPage() {
                       placeholder={`Ingrese ${col.toLowerCase()}`}
                     />
                   </div>
+                ) : (col === 'Descripción del Bien' || col === 'Marca') ? (
+                  (() => {
+                    const uniqueOptions = col === 'Descripción del Bien' ? uniqueDescripciones : uniqueMarcas;
+                    const selectVal = col === 'Descripción del Bien' ? selectDescVal : selectMarcaVal;
+                    const setSelectVal = col === 'Descripción del Bien' ? setSelectDescVal : setSelectMarcaVal;
+                    
+                    return (
+                      <div className="space-y-2">
+                        <select
+                          value={selectVal}
+                          onChange={e => {
+                            setSelectVal(e.target.value);
+                            if (e.target.value !== 'Otro') {
+                              setFormData({ ...formData, [col]: e.target.value });
+                            } else {
+                              setFormData({ ...formData, [col]: '' });
+                            }
+                          }}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#006BB9] focus:outline-none shadow-sm transition-shadow bg-white font-medium"
+                        >
+                          <option value="">-- Seleccionar --</option>
+                          {uniqueOptions.map(opt => (
+                            <option key={opt} value={opt}>{opt}</option>
+                          ))}
+                          <option value="Otro">Otro...</option>
+                        </select>
+                        {selectVal === 'Otro' && (
+                          <input
+                            type="text"
+                            name={col}
+                            value={formData[col] || ''}
+                            onChange={handleChange}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#006BB9] focus:outline-none shadow-sm transition-shadow"
+                            placeholder={`Ingrese nueva ${col.toLowerCase()}`}
+                            required={col === 'Descripción del Bien'}
+                          />
+                        )}
+                      </div>
+                    );
+                  })()
                 ) : (
                   <input
                     type="text"

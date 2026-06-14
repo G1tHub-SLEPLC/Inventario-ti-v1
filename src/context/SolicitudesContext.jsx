@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from './AuthContext';
 import { useInventario } from './InventarioContext';
@@ -18,7 +18,7 @@ export function SolicitudesProvider({ children }) {
   const [solicitudes, setSolicitudes] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  const loadData = useCallback(async () => {
     if (!session) {
       setInsumos([]);
       setSolicitudes([]);
@@ -26,50 +26,50 @@ export function SolicitudesProvider({ children }) {
       return;
     }
 
-    async function loadData() {
-      setSolicitudes(current => {
-        if (current.length === 0) {
-          setLoading(true);
-        }
-        return current;
-      });
-      
-      // Load Insumos
-      const { data: insumosData, error: insumosError } = await supabase.from('insumos').select('*');
-      if (insumosError) console.error('Error cargando insumos:', insumosError);
-      else setInsumos(insumosData || []);
-
-      // Load Solicitudes
-      let query = supabase.from('solicitudes').select('*, insumo:insumos(nombre), perfil:perfiles(nombre, email)');
-      // Si no es admin, solo carga las suyas
-      if (!isAdmin) {
-        query = query.eq('usuario_id', session.user.id);
+    setSolicitudes(current => {
+      if (current.length === 0) {
+        setLoading(true);
       }
-      
-      const { data: solsData, error: solsError } = await query.order('created_at', { ascending: false });
-      
-      if (solsError) {
-        console.error('Error cargando solicitudes:', solsError);
-        return;
-      }
-      
-      // Fetch perfiles to map them manually since FK join might be missing or failing
-      const { data: perfilesData, error: perfilesError } = await supabase.from('perfiles').select('*');
-      if (perfilesError) console.error('Error cargando perfiles:', perfilesError);
-      
-      const solicitudesCompletas = (solsData || []).map(sol => {
-        // Encontrar el perfil usando el usuario_id
-        const perfil = (perfilesData || []).find(p => p.id === sol.usuario_id);
-        return {
-          ...sol,
-          perfil: perfil ? { nombre: perfil.nombre, correo: perfil.email } : sol.perfil // Fallback a lo que haya traido Supabase
-        };
-      });
+      return current;
+    });
+    
+    // Load Insumos
+    const { data: insumosData, error: insumosError } = await supabase.from('insumos').select('*');
+    if (insumosError) console.error('Error cargando insumos:', insumosError);
+    else setInsumos(insumosData || []);
 
-      setSolicitudes(solicitudesCompletas);
-      setLoading(false);
+    // Load Solicitudes
+    let query = supabase.from('solicitudes').select('*, insumo:insumos(nombre), perfil:perfiles(nombre, email)');
+    // Si no es admin, solo carga las suyas
+    if (!isAdmin) {
+      query = query.eq('usuario_id', session.user.id);
     }
+    
+    const { data: solsData, error: solsError } = await query.order('created_at', { ascending: false });
+    
+    if (solsError) {
+      console.error('Error cargando solicitudes:', solsError);
+      return;
+    }
+    
+    // Fetch perfiles to map them manually since FK join might be missing or failing
+    const { data: perfilesData, error: perfilesError } = await supabase.from('perfiles').select('*');
+    if (perfilesError) console.error('Error cargando perfiles:', perfilesError);
+    
+    const solicitudesCompletas = (solsData || []).map(sol => {
+      // Encontrar el perfil usando el usuario_id
+      const perfil = (perfilesData || []).find(p => p.id === sol.usuario_id);
+      return {
+        ...sol,
+        perfil: perfil ? { nombre: perfil.nombre, correo: perfil.email } : sol.perfil // Fallback a lo que haya traido Supabase
+      };
+    });
 
+    setSolicitudes(solicitudesCompletas);
+    setLoading(false);
+  }, [session, isAdmin]);
+
+  useEffect(() => {
     loadData();
 
     // Listen to real-time changes in solicitudes
@@ -94,7 +94,7 @@ export function SolicitudesProvider({ children }) {
       supabase.removeChannel(solicitudesChannel);
       supabase.removeChannel(insumosChannel);
     };
-  }, [session, isAdmin]);
+  }, [loadData, isAdmin, showToast]);
 
   const solicitarPrestamo = async (equipo_id, fecha_inicio, fecha_fin, hora_inicio, hora_fin, motivo) => {
     const { error } = await supabase.from('solicitudes').insert({
@@ -125,6 +125,7 @@ export function SolicitudesProvider({ children }) {
     });
 
     showToast('Éxito', 'Solicitud de préstamo enviada correctamente.', 'success');
+    await loadData();
   };
 
   const solicitarInsumo = async (insumo_id, cantidad) => {
@@ -139,6 +140,7 @@ export function SolicitudesProvider({ children }) {
       throw error;
     }
     showToast('Éxito', 'Solicitud de insumo enviada correctamente.', 'success');
+    await loadData();
   };
 
   const updateEstadoSolicitud = async (id, estado, observaciones_admin) => {
@@ -158,6 +160,7 @@ export function SolicitudesProvider({ children }) {
     ));
     
     showToast('Éxito', `Solicitud ${estado} correctamente.`, 'success');
+    await loadData();
   };
 
   return (
@@ -167,7 +170,8 @@ export function SolicitudesProvider({ children }) {
       loading,
       solicitarPrestamo,
       solicitarInsumo,
-      updateEstadoSolicitud
+      updateEstadoSolicitud,
+      refetch: loadData
     }}>
       {children}
     </SolicitudesContext.Provider>

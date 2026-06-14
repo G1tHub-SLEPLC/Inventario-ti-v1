@@ -13,6 +13,18 @@ export default function EditarEquipoModal({ equipo, onClose }) {
   const equipIndex = equipos.findIndex(eq => eq.id === originalEquipo?.id);
 
   const [formData, setFormData] = useState({});
+  const [selectDescVal, setSelectDescVal] = useState('');
+  const [selectMarcaVal, setSelectMarcaVal] = useState('');
+
+  const uniqueDescripciones = useMemo(() => {
+    const list = equipos.map(eq => eq['Descripción del Bien']).filter(v => v && v.trim() !== '');
+    return [...new Set(list)].sort();
+  }, [equipos]);
+
+  const uniqueMarcas = useMemo(() => {
+    const list = equipos.map(eq => eq['Marca']).filter(v => v && v.trim() !== '');
+    return [...new Set(list)].sort();
+  }, [equipos]);
   const [facturaFile, setFacturaFile] = useState(null);
   const [ocFile, setOcFile] = useState(null);
   const [fileTooltip, setFileTooltip] = useState({ visible: false, x: 0, y: 0, type: '' });
@@ -65,8 +77,13 @@ export default function EditarEquipoModal({ equipo, onClose }) {
         ...originalEquipo,
         estado: initialEstado
       });
+      // Sincronizar selectores de estado
+      const curDesc = originalEquipo['Descripción del Bien'] || '';
+      const curMarca = originalEquipo['Marca'] || '';
+      setSelectDescVal(uniqueDescripciones.includes(curDesc) ? curDesc : (curDesc ? 'Otro' : ''));
+      setSelectMarcaVal(uniqueMarcas.includes(curMarca) ? curMarca : (curMarca ? 'Otro' : ''));
     }
-  }, [originalEquipo]);
+  }, [originalEquipo, uniqueDescripciones, uniqueMarcas]);
 
   const showEnPrestamoWarning = useMemo(() => {
     if (formData.estado !== 'EN PRESTAMO') return false;
@@ -514,15 +531,35 @@ export default function EditarEquipoModal({ equipo, onClose }) {
                 <label className="block text-[10px] font-bold text-[#25306B] uppercase tracking-wide">
                   Descripción del Bien <span className="text-red-500 font-bold">*</span>
                 </label>
-                <input
-                  type="text"
-                  name="Descripción del Bien"
-                  value={formData['Descripción del Bien'] || ''}
-                  onChange={handleChange}
+                <select
+                  value={selectDescVal}
+                  onChange={e => {
+                    setSelectDescVal(e.target.value);
+                    if (e.target.value !== 'Otro') {
+                      setFormData({ ...formData, 'Descripción del Bien': e.target.value });
+                    } else {
+                      setFormData({ ...formData, 'Descripción del Bien': '' });
+                    }
+                  }}
                   className="w-full px-2 py-1 border border-gray-300 rounded-lg text-xs focus:ring-1.5 focus:ring-[#006BB9] focus:outline-none shadow-xs bg-white font-medium"
-                  placeholder="Descripción"
-                  required
-                />
+                >
+                  <option value="">-- Seleccionar --</option>
+                  {uniqueDescripciones.map(opt => (
+                    <option key={opt} value={opt}>{opt}</option>
+                  ))}
+                  <option value="Otro">Otro...</option>
+                </select>
+                {selectDescVal === 'Otro' && (
+                  <input
+                    type="text"
+                    name="Descripción del Bien"
+                    value={formData['Descripción del Bien'] || ''}
+                    onChange={handleChange}
+                    className="w-full mt-1 px-2 py-1 border border-gray-300 rounded-lg text-xs focus:ring-1.5 focus:ring-[#006BB9] focus:outline-none shadow-xs bg-white font-medium animate-fade-in"
+                    placeholder="Descripción"
+                    required
+                  />
+                )}
               </div>
 
               {/* Marca & Modelo */}
@@ -531,14 +568,34 @@ export default function EditarEquipoModal({ equipo, onClose }) {
                   <label className="block text-[10px] font-bold text-[#25306B] uppercase tracking-wide">
                     Marca
                   </label>
-                  <input
-                    type="text"
-                    name="Marca"
-                    value={formData['Marca'] || ''}
-                    onChange={handleChange}
+                  <select
+                    value={selectMarcaVal}
+                    onChange={e => {
+                      setSelectMarcaVal(e.target.value);
+                      if (e.target.value !== 'Otro') {
+                        setFormData({ ...formData, 'Marca': e.target.value });
+                      } else {
+                        setFormData({ ...formData, 'Marca': '' });
+                      }
+                    }}
                     className="w-full px-2 py-1 border border-gray-300 rounded-lg text-xs focus:ring-1.5 focus:ring-[#006BB9] focus:outline-none shadow-xs bg-white font-medium"
-                    placeholder="Marca"
-                  />
+                  >
+                    <option value="">-- Seleccionar --</option>
+                    {uniqueMarcas.map(opt => (
+                      <option key={opt} value={opt}>{opt}</option>
+                    ))}
+                    <option value="Otro">Otro...</option>
+                  </select>
+                  {selectMarcaVal === 'Otro' && (
+                    <input
+                      type="text"
+                      name="Marca"
+                      value={formData['Marca'] || ''}
+                      onChange={handleChange}
+                      className="w-full mt-1 px-2 py-1 border border-gray-300 rounded-lg text-xs focus:ring-1.5 focus:ring-[#006BB9] focus:outline-none shadow-xs bg-white font-medium animate-fade-in"
+                      placeholder="Marca"
+                    />
+                  )}
                 </div>
                 <div className="space-y-0.5">
                   <label className="block text-[10px] font-bold text-[#25306B] uppercase tracking-wide">

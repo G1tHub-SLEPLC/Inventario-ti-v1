@@ -11,8 +11,8 @@ import { useSort } from '../hooks/useSort';
 import { SortableHeader } from '../components/SortableHeader';
 
 export default function SolicitudesAdminPage() {
-  const { solicitudes, updateEstadoSolicitud } = useSolicitudes();
-  const { equipos, showToast } = useInventario();
+  const { solicitudes, updateEstadoSolicitud, refetch: refetchSolicitudes } = useSolicitudes();
+  const { equipos, showToast, refetch: refetchInventario } = useInventario();
   const { perfil } = useAuth();
   const { sorted: sortedSolicitudes, sortKey: solSortKey, sortDir: solSortDir, handleSort: handleSolSort } = useSort(solicitudes);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -58,6 +58,7 @@ export default function SolicitudesAdminPage() {
             .eq('id', selectedSolicitud.insumo_id);
             
           if (updError) throw updError;
+          await refetchSolicitudes();
 
           // Send Email
           const userName = selectedSolicitud.perfil?.nombre || selectedSolicitud.perfil?.correo || 'Usuario';
@@ -88,6 +89,7 @@ export default function SolicitudesAdminPage() {
                .eq('id', equipoReal.id);
                
              if (eqError) throw eqError;
+             await refetchInventario();
           }
         }
       }

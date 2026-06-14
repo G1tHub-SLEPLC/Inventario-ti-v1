@@ -73,6 +73,16 @@ export default function LicenciasAdminPage() {
     fecha_inicio: '', fecha_termino: '', factura: '', orden_compra: '', has_factura_file: false, has_oc_file: false
   });
 
+  const [selectLicTipoVal, setSelectLicTipoVal] = useState('');
+
+  const dynamicLicTipos = useMemo(() => {
+    const defaultLicTipos = [
+      'SAAS', 'Perpetua', 'SW Propietario', 'SW Libre (Open Source)', 'Freemium / Shareware', 'PAAS (Plataforma como Servicio)', 'IAAS (Infraestructura como Servicio)'
+    ];
+    const dbLicTipos = licencias.map(l => l.tipo).filter(t => t && t.trim() !== '' && !defaultLicTipos.includes(t));
+    return [...new Set([...defaultLicTipos, ...dbLicTipos])].sort();
+  }, [licencias]);
+
   const [facturaFile, setFacturaFile] = useState(null);
   const [ocFile, setOcFile] = useState(null);
 
@@ -106,11 +116,13 @@ export default function LicenciasAdminPage() {
         factura: lic.factura || '', orden_compra: lic.orden_compra || '',
         has_factura_file: lic.has_factura_file || false, has_oc_file: lic.has_oc_file || false
       });
+      setSelectLicTipoVal(lic.tipo || 'SAAS');
     } else {
       setFormData({
         id: null, software: '', version: 'Suscripción Anual', tipo: 'SAAS', descripcion: '', cantidad_total: 1,
         fecha_inicio: '', fecha_termino: '', factura: '', orden_compra: '', has_factura_file: false, has_oc_file: false
       });
+      setSelectLicTipoVal('SAAS');
     }
     setFacturaFile(null);
     setOcFile(null);
@@ -258,6 +270,10 @@ export default function LicenciasAdminPage() {
 
   const handleTipoChange = (e) => {
     const newTipo = e.target.value;
+    handleTipoChangeCustom(newTipo);
+  };
+
+  const handleTipoChangeCustom = (newTipo) => {
     const isSaasLike = newTipo === 'SAAS' || newTipo === 'PAAS (Plataforma como Servicio)' || newTipo === 'IAAS (Infraestructura como Servicio)';
     setFormData({
       ...formData,
@@ -1340,12 +1356,31 @@ export default function LicenciasAdminPage() {
                 <div className="col-span-1 md:col-span-2">
                   <label className="block text-xs font-semibold text-gray-700 mb-1">Tipo de Licencia</label>
                   <select
-                    value={formData.tipo}
-                    onChange={handleTipoChange}
-                    className="w-full rounded-lg border-gray-300 shadow-sm border p-2 text-sm focus:border-[#006BB9] focus:ring-[#006BB9]"
+                    value={selectLicTipoVal}
+                    onChange={e => {
+                      setSelectLicTipoVal(e.target.value);
+                      if (e.target.value !== 'Otro') {
+                        handleTipoChangeCustom(e.target.value);
+                      } else {
+                        setFormData({ ...formData, tipo: '' });
+                      }
+                    }}
+                    className="w-full rounded-lg border-gray-300 shadow-sm border p-2 text-sm focus:border-[#006BB9] focus:ring-[#006BB9] bg-white font-medium"
                   >
-                    {TIPOS_LICENCIA.map(t => <option key={t} value={t}>{t}</option>)}
+                    <option value="">Seleccionar...</option>
+                    {dynamicLicTipos.map(t => <option key={t} value={t}>{t}</option>)}
+                    <option value="Otro">Otro...</option>
                   </select>
+                  {selectLicTipoVal === 'Otro' && (
+                    <input
+                      required
+                      type="text"
+                      value={formData.tipo}
+                      onChange={e => setFormData({ ...formData, tipo: e.target.value })}
+                      placeholder="Especifique otro tipo de licencia"
+                      className="mt-2 w-full rounded-lg border-gray-300 shadow-sm border p-2 text-sm focus:border-[#006BB9] focus:ring-[#006BB9]"
+                    />
+                  )}
                 </div>
                 <div className="col-span-1 md:col-span-1">
                   <label className="block text-xs font-semibold text-gray-700 mb-1">Versión</label>

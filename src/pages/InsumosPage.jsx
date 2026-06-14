@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { useSolicitudes } from '../context/SolicitudesContext';
 import { supabase } from '../lib/supabaseClient';
 import { useInventario } from '../context/InventarioContext';
@@ -18,7 +18,7 @@ function getInitials(name) {
 }
 
 export default function InsumosPage() {
-  const { insumos } = useSolicitudes();
+  const { insumos, refetch } = useSolicitudes();
   const { showToast } = useInventario();
   const { session } = useAuth();
   const { sorted: sortedInsumos, sortKey: insSortKey, sortDir: insSortDir, handleSort: handleInsSort } = useSort(insumos);
@@ -30,6 +30,13 @@ export default function InsumosPage() {
   // Modals state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState({ id: null, nombre: '', descripcion: '', categoria: '', tipo: '', marca: '', modelo: '', cantidad_disponible: 0 });
+  const [selectTipoVal, setSelectTipoVal] = useState('');
+
+  const dynamicTipos = useMemo(() => {
+    const defaultTipos = ["Tóner", "Tinta", "Tambor", "Mouse", "Teclado", "Pilas"];
+    const dbTipos = insumos.map(i => i.tipo).filter(t => t && t.trim() !== '' && !defaultTipos.includes(t));
+    return [...new Set([...defaultTipos, ...dbTipos])].sort();
+  }, [insumos]);
   
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const [assignData, setAssignData] = useState({ insumo_id: null, insumo_nombre: '', usuario_id: '', cantidad: 1, stock_actual: 0, observaciones: '' });
@@ -52,30 +59,31 @@ export default function InsumosPage() {
     loadUsuarios();
   }, []);
 
+  const fetchHistorial = async () => {
+    const { data: sols } = await supabase
+      .from('solicitudes')
+      .select('id, cantidad, created_at, usuario_id, observaciones_admin, insumos(nombre, tipo, marca, modelo)')
+      .eq('tipo', 'insumo')
+      .eq('estado', 'aprobado')
+      .order('created_at', { ascending: false });
+      
+    if (sols) {
+      const { data: perfs } = await supabase.from('perfiles').select('id, nombre, email');
+      const hist = sols.map(s => {
+        const user = perfs?.find(p => p.id === s.usuario_id);
+        return {
+          ...s,
+          usuario_nombre: user?.nombre || user?.email || 'Desconocido'
+        };
+      });
+      setHistorial(hist);
+    }
+  };
+
   // Load historial
   useEffect(() => {
     if (activeTab === 'historial') {
-      const loadHistorial = async () => {
-        const { data: sols } = await supabase
-          .from('solicitudes')
-          .select('id, cantidad, created_at, usuario_id, observaciones_admin, insumos(nombre, tipo, marca, modelo)')
-          .eq('tipo', 'insumo')
-          .eq('estado', 'aprobado')
-          .order('created_at', { ascending: false });
-          
-        if (sols) {
-          const { data: perfs } = await supabase.from('perfiles').select('id, nombre, email');
-          const hist = sols.map(s => {
-            const user = perfs?.find(p => p.id === s.usuario_id);
-            return {
-              ...s,
-              usuario_nombre: user?.nombre || user?.email || 'Desconocido'
-            };
-          });
-          setHistorial(hist);
-        }
-      };
-      loadHistorial();
+      fetchHistorial();
     }
   }, [activeTab]);
 
@@ -107,8 +115,10 @@ export default function InsumosPage() {
   const handleOpenModal = (insumo = null) => {
     if (insumo) {
       setFormData(insumo);
+      setSelectTipoVal(insumo.tipo || '');
     } else {
       setFormData({ id: null, nombre: '', descripcion: '', categoria: '', tipo: '', marca: '', modelo: '', cantidad_disponible: 0 });
+      setSelectTipoVal('');
     }
     setIsModalOpen(true);
   };
@@ -136,6 +146,7 @@ export default function InsumosPage() {
         showToast('Insumo creado', 'El insumo se ha creado correctamente.', 'success');
       }
       setIsModalOpen(false);
+      await refetch();
     } catch (error) {
       console.error(error);
       showToast('Error', 'Hubo un error al guardar el insumo.', 'error');
@@ -150,7 +161,8 @@ export default function InsumosPage() {
         showToast('Error', 'No se pudo eliminar el insumo.', 'error');
       } else {
         await logAuditoria('insumos', 'Eliminar Insumo', `Eliminó el insumo: ${insumoItem?.nombre} (${insumoItem?.marca} - ${insumoItem?.modelo})`);
-        showToast('Eliminado', 'Insumo eliminado correctamente.', 'success');
+        showToast('Insumo eliminado', 'El insumo se eliminó del catálogo.', 'success');
+        await refetch();
       }
     }
   };
@@ -185,6 +197,7 @@ export default function InsumosPage() {
           if (!error) count++;
         }
         
+        await refetch();
         setStatus({ type: 'success', message: `Se importaron ${count} insumos exitosamente.` });
         showToast('Carga completada', `Se importaron ${count} insumos exitosamente.`, 'success');
         
@@ -251,6 +264,8 @@ export default function InsumosPage() {
 
       showToast('Asignación exitosa', `Se han asignado ${assignData.cantidad} unidades a la cuenta seleccionada.`, 'success');
       setIsAssignModalOpen(false);
+      await refetch();
+      await fetchHistorial();
     } catch (err) {
       console.error(err);
       showToast('Error', 'Hubo un error en la asignación.', 'error');
@@ -277,8 +292,8 @@ export default function InsumosPage() {
       await logAuditoria('insumos', 'Revertir Entrega', `Se eliminó entrega de ${histItem.cantidad}x ${histItem.insumos?.nombre}. Stock restaurado.`, histItem.usuario_nombre);
       
       showToast('Reversión exitosa', 'La entrega fue eliminada y el stock restaurado.', 'success');
-      // Update UI manually or reload
-      setHistorial(prev => prev.filter(h => h.id !== histItem.id));
+      await refetch();
+      await fetchHistorial();
     } catch (err) {
       console.error(err);
       showToast('Error', 'Hubo un error al intentar revertir la entrega.', 'error');
@@ -341,14 +356,9 @@ export default function InsumosPage() {
       
       showToast('Actualizado', 'La entrega ha sido actualizada correctamente.', 'success');
       
-      // Update UI manually
-      setHistorial(prev => prev.map(h => {
-        if (h.id === editHistData.id) {
-          return { ...h, cantidad: editHistData.cantidad_nueva, observaciones_admin: editHistData.observaciones };
-        }
-        return h;
-      }));
       setIsEditHistModalOpen(false);
+      await refetch();
+      await fetchHistorial();
     } catch (err) {
       console.error(err);
       showToast('Error', 'Hubo un error al editar la entrega.', 'error');
@@ -571,16 +581,35 @@ export default function InsumosPage() {
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">Tipo *</label>
-                  <select required value={formData.tipo} onChange={e => setFormData({...formData, tipo: e.target.value})} className="w-full rounded-lg border-gray-300 shadow-sm border p-2.5 text-sm focus:border-blue-500 focus:ring-blue-500 bg-white">
+                  <select
+                    required
+                    value={selectTipoVal}
+                    onChange={e => {
+                      setSelectTipoVal(e.target.value);
+                      if (e.target.value !== 'Otro') {
+                        setFormData({ ...formData, tipo: e.target.value });
+                      } else {
+                        setFormData({ ...formData, tipo: '' });
+                      }
+                    }}
+                    className="w-full rounded-lg border-gray-300 shadow-sm border p-2.5 text-sm focus:border-blue-500 focus:ring-blue-500 bg-white"
+                  >
                     <option value="">Seleccionar...</option>
-                    <option value="Tóner">Tóner</option>
-                    <option value="Tinta">Tinta</option>
-                    <option value="Tambor">Tambor</option>
-                    <option value="Mouse">Mouse</option>
-                    <option value="Teclado">Teclado</option>
-                    <option value="Pilas">Pilas</option>
-                    <option value="Otro">Otro</option>
+                    {dynamicTipos.map(t => (
+                      <option key={t} value={t}>{t}</option>
+                    ))}
+                    <option value="Otro">Otro...</option>
                   </select>
+                  {selectTipoVal === 'Otro' && (
+                    <input
+                      required
+                      type="text"
+                      value={formData.tipo}
+                      onChange={e => setFormData({ ...formData, tipo: e.target.value })}
+                      placeholder="Escriba el nuevo tipo de insumo"
+                      className="mt-2 w-full rounded-lg border-gray-300 shadow-sm border p-2.5 text-sm focus:border-blue-500 focus:ring-blue-500"
+                    />
+                  )}
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">Stock Disponible *</label>

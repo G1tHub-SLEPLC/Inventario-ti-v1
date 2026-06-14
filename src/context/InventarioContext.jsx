@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { logAuditoria } from '../utils/auditoria';
 
@@ -90,41 +90,41 @@ export function InventarioProvider({ children }) {
     }, duration);
   };
 
+  const loadData = useCallback(async () => {
+    // First check if user is logged in
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      setLoading(false);
+      return;
+    }
+
+    const { data: equiposData, error: equiposError } = await supabase.from('equipos').select('*');
+    if (equiposError) {
+      console.error('Error al cargar inventario desde Supabase:', equiposError);
+    } else if (equiposData) {
+      const { data: perfilesData, error: perfilesError } = await supabase.from('perfiles').select('id, nombre, email, subdireccion');
+      
+      const perfilesMap = {};
+      if (!perfilesError && perfilesData) {
+        perfilesData.forEach(p => { perfilesMap[p.id] = p; });
+      }
+
+      const parsed = equiposData.map(dbRow => {
+        const rowWithProfile = { ...dbRow };
+        if (dbRow.usuario_asignado_id && perfilesMap[dbRow.usuario_asignado_id]) {
+          rowWithProfile.perfiles = perfilesMap[dbRow.usuario_asignado_id];
+        }
+        return fromDbRow(rowWithProfile);
+      });
+      
+      const consolidated = consolidateFileStatuses(parsed);
+      setEquipos(consolidated);
+    }
+    setLoading(false);
+  }, []);
+
   // Cargar datos de Supabase
   useEffect(() => {
-    async function loadData() {
-      // First check if user is logged in
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        setLoading(false);
-        return;
-      }
-
-      const { data: equiposData, error: equiposError } = await supabase.from('equipos').select('*');
-      if (equiposError) {
-        console.error('Error al cargar inventario desde Supabase:', equiposError);
-      } else if (equiposData) {
-        const { data: perfilesData, error: perfilesError } = await supabase.from('perfiles').select('id, nombre, email, subdireccion');
-        
-        const perfilesMap = {};
-        if (!perfilesError && perfilesData) {
-          perfilesData.forEach(p => { perfilesMap[p.id] = p; });
-        }
-
-        const parsed = equiposData.map(dbRow => {
-          const rowWithProfile = { ...dbRow };
-          if (dbRow.usuario_asignado_id && perfilesMap[dbRow.usuario_asignado_id]) {
-            rowWithProfile.perfiles = perfilesMap[dbRow.usuario_asignado_id];
-          }
-          return fromDbRow(rowWithProfile);
-        });
-        
-        const consolidated = consolidateFileStatuses(parsed);
-        setEquipos(consolidated);
-      }
-      setLoading(false);
-    }
-    
     loadData();
 
     // Tiempo real: Escuchar cambios en la tabla
@@ -158,7 +158,7 @@ export function InventarioProvider({ children }) {
       supabase.removeChannel(channel);
       authListener.subscription.unsubscribe();
     };
-  }, []);
+  }, [loadData]);
 
   const addMasivo = async (nuevosEquipos) => {
     const merged = [...equipos];
@@ -191,6 +191,7 @@ export function InventarioProvider({ children }) {
       console.error('Error addMasivo:', error);
     } else {
       await logAuditoria('equipos', 'Carga Masiva', `Se cargaron/actualizaron masivamente ${nuevosEquipos.length} equipos por Excel.`);
+      await loadData();
     }
   };
 
@@ -207,6 +208,7 @@ export function InventarioProvider({ children }) {
       console.error('Error addEquipo:', error);
     } else {
       await logAuditoria('equipos', 'Crear Equipo', `Se registró un nuevo equipo: ${equipo['Descripción del Bien']} (S/N: ${serial})`);
+      await loadData();
     }
   };
 
@@ -223,6 +225,7 @@ export function InventarioProvider({ children }) {
       console.error('Error updateEquipo:', error);
     } else {
       await logAuditoria('equipos', 'Actualizar Equipo', `Se actualizó el equipo: ${updated['Descripción del Bien']} (ID: ${updated.id} / S/N: ${updated['Nº de serie']}). Estado: ${updated.estado}`);
+      await loadData();
     }
   };
 
@@ -243,6 +246,7 @@ export function InventarioProvider({ children }) {
         console.error('Error updateEquipoBySerial:', error);
       } else {
         await logAuditoria('equipos', 'Actualizar Equipo por S/N', `Se actualizó el equipo: ${updatedEquipo['Descripción del Bien']} (S/N: ${serial}). Estado: ${updatedEquipo.estado}`);
+        await loadData();
       }
     }
   };
@@ -267,6 +271,7 @@ export function InventarioProvider({ children }) {
       console.error('Error updateEquiposMasivo:', error);
     } else {
       await logAuditoria('equipos', 'Actualización Múltiple', `Se actualizaron masivamente ${equiposActualizados.length} equipos relacionados.`);
+      await loadData();
     }
   };
 
@@ -302,6 +307,7 @@ export function InventarioProvider({ children }) {
 
     if (updatedRows.length > 0) {
       await logAuditoria('equipos', 'Archivo Subido', `Se subió documento (${type}) para el equipo: ${updatedRows[0]['Descripción del Bien']} (ID: ${id})`);
+      await loadData();
     }
   };
 
@@ -313,6 +319,7 @@ export function InventarioProvider({ children }) {
         console.error('Error clearInventario:', error);
       } else {
         await logAuditoria('equipos', 'Borrado Masivo', `¡Peligro! Se eliminó masivamente todo el inventario de equipos.`);
+        await loadData();
       }
     }
   };
@@ -330,7 +337,8 @@ export function InventarioProvider({ children }) {
       updateEquipoBySerial, 
       updateEquiposMasivo,
       setFileStatus, 
-      clearInventario 
+      clearInventario,
+      refetch: loadData
     }}>
       {children}
     </InventarioContext.Provider>
