@@ -109,10 +109,10 @@ export default function AppShell() {
                 className="fixed inset-0 z-40"
                 onClick={() => setIsDropdownOpen(false)}
               ></div>
-              <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50 animate-fade-in">
+              <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-1.5 z-50 animate-fade-in">
                 <button
                   onClick={handleLogout}
-                  className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors font-medium"
+                  className="w-full flex items-center gap-2 px-4 py-2 text-[10px] xl:text-[11px] font-semibold tracking-wide uppercase text-red-600 hover:bg-red-50 transition-colors"
                 >
                   <LogOut size={12} /> Cerrar Sesión
                 </button>
