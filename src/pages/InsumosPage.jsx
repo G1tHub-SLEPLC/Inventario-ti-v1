@@ -3,7 +3,7 @@ import { useSolicitudes } from '../context/SolicitudesContext';
 import { supabase } from '../lib/supabaseClient';
 import { useInventario } from '../context/InventarioContext';
 import { useAuth } from '../context/AuthContext';
-import { PlusCircle, Edit2, Trash2, UserPlus, History, Package, Upload, Download, Printer, UploadCloud, AlertCircle, CheckCircle, AlertTriangle } from 'lucide-react';
+import { PlusCircle, Edit2, Trash2, UserPlus, History, Package, Upload, Download, Printer, UploadCloud, AlertCircle, CheckCircle, AlertTriangle, Eye } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { logAuditoria, getDiffString } from '../utils/auditoria';
 import { exportToExcelAndPDF } from '../utils/exportUtils';
@@ -27,6 +27,29 @@ export default function InsumosPage() {
   const [activeTab, setActiveTab] = useState('insumos'); // 'insumos' o 'historial'
   const [historial, setHistorial] = useState([]);
   const [usuariosSlep, setUsuariosSlep] = useState([]);
+
+  const [histGlobalSearch, setHistGlobalSearch] = useState('');
+  
+  const filteredHistorial = useMemo(() => {
+    if (!histGlobalSearch) return historial;
+    const q = histGlobalSearch.toLowerCase().trim();
+    return historial.filter(hist => 
+      (hist.usuario_nombre || '').toLowerCase().includes(q) ||
+      (hist.insumos?.nombre || '').toLowerCase().includes(q) ||
+      (hist.insumos?.marca || '').toLowerCase().includes(q) ||
+      (hist.insumos?.modelo || '').toLowerCase().includes(q)
+    );
+  }, [historial, histGlobalSearch]);
+
+  const histSearchOptions = useMemo(() => {
+    const opts = [];
+    const userNames = [...new Set(historial.map(h => h.usuario_nombre).filter(Boolean))];
+    const insumoNames = [...new Set(historial.map(h => h.insumos?.nombre).filter(Boolean))];
+    
+    userNames.forEach(u => opts.push({ label: u, value: u, sublabel: 'Funcionario' }));
+    insumoNames.forEach(i => opts.push({ label: i, value: i, sublabel: 'Insumo' }));
+    return opts;
+  }, [historial]);
   
   // Modals state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -43,6 +66,23 @@ export default function InsumosPage() {
   const [assignData, setAssignData] = useState({ insumo_id: null, insumo_nombre: '', usuario_id: '', cantidad: 1, stock_actual: 0, observaciones: '' });
   const [userSearchTerm, setUserSearchTerm] = useState('');
   const [entregasPrevias, setEntregasPrevias] = useState(null);
+  const [isMultiAssign, setIsMultiAssign] = useState(false);
+  const [selectedUsuarios, setSelectedUsuarios] = useState([]);
+
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [viewInsumo, setViewInsumo] = useState(null);
+  const [viewInsumoAsignaciones, setViewInsumoAsignaciones] = useState([]);
+  const [isViewModalLoading, setIsViewModalLoading] = useState(false);
+
+  const flatViewAsignaciones = useMemo(() => {
+    return viewInsumoAsignaciones.map(a => ({
+      ...a,
+      nombre: a.perfiles?.nombre || '',
+      email: a.perfiles?.email || ''
+    }));
+  }, [viewInsumoAsignaciones]);
+
+  const { sorted: sortedViewAsignaciones, sortKey: vAsigSortKey, sortDir: vAsigSortDir, handleSort: handleVAsigSort } = useSort(flatViewAsignaciones, 'created_at', 'desc');
 
   const [isEditHistModalOpen, setIsEditHistModalOpen] = useState(false);
   const [editHistData, setEditHistData] = useState({ id: null, insumo_id: null, insumo_nombre: '', usuario_nombre: '', cantidad_original: 0, cantidad_nueva: 0, observaciones_original: '', observaciones: '' });
@@ -113,6 +153,64 @@ export default function InsumosPage() {
       setEntregasPrevias(null);
     }
   }, [assignData.usuario_id, assignData.insumo_id, isAssignModalOpen]);
+
+  const handleOpenViewModal = async (insumo) => {
+    setViewInsumo(insumo);
+    setIsViewModalOpen(true);
+    setIsViewModalLoading(true);
+
+    const { data: sols } = await supabase
+      .from('solicitudes')
+      .select('id, cantidad, created_at, usuario_id, observaciones_admin, insumos(nombre, tipo, marca, modelo)')
+      .eq('tipo', 'insumo')
+      .eq('insumo_id', insumo.id)
+      .eq('estado', 'aprobado')
+      .order('created_at', { ascending: false });
+      
+    if (sols) {
+      const { data: perfs } = await supabase.from('perfiles').select('id, nombre, email');
+      const hist = sols.map(s => {
+        const user = perfs?.find(p => p.id === s.usuario_id);
+        return {
+          ...s,
+          insumo_id: insumo.id,
+          perfiles: user || null,
+          usuario_nombre: user?.nombre || user?.email || 'Desconocido'
+        };
+      });
+      setViewInsumoAsignaciones(hist);
+    } else {
+      setViewInsumoAsignaciones([]);
+    }
+    setIsViewModalLoading(false);
+  };
+
+  const handleRevocarDesdeModal = async (histItem) => {
+    if (!confirm(`¿Estás seguro de que deseas eliminar esta entrega de ${histItem.cantidad}x ${histItem.insumos?.nombre}? Esto devolverá la cantidad al stock disponible.`)) return;
+
+    try {
+      const { error: delError } = await supabase.from('solicitudes').delete().eq('id', histItem.id);
+      if (delError) throw delError;
+
+      if (histItem.insumo_id) {
+        const { data: currentInsumo } = await supabase.from('insumos').select('cantidad_disponible').eq('id', histItem.insumo_id).single();
+        if (currentInsumo) {
+          await supabase.from('insumos').update({ cantidad_disponible: currentInsumo.cantidad_disponible + histItem.cantidad }).eq('id', histItem.insumo_id);
+        }
+      }
+
+      await logAuditoria('insumos', 'Revertir Entrega', `Se eliminó entrega de ${histItem.cantidad}x ${histItem.insumos?.nombre}. Stock restaurado.`, histItem.usuario_nombre);
+      
+      showToast('Reversión exitosa', 'La entrega fue eliminada y el stock restaurado.', 'success');
+      await refetch();
+      await fetchHistorial();
+      
+      setViewInsumoAsignaciones(prev => prev.filter(a => a.id !== histItem.id));
+    } catch (err) {
+      console.error(err);
+      showToast('Error', 'Hubo un error al intentar revertir la entrega.', 'error');
+    }
+  };
 
   const handleOpenModal = (insumo = null) => {
     if (insumo) {
@@ -494,13 +592,24 @@ export default function InsumosPage() {
             </button>
           </div>
         ) : (
-          <div className="flex gap-2">
-            <button onClick={() => exportHistorial('xlsx')} className="flex items-center gap-2 bg-green-200 text-green-800 px-3 py-1.5 rounded-lg hover:bg-green-300 shadow-sm font-medium transition-colors text-sm">
-              <Download size={14} /> Excel
-            </button>
-            <button onClick={() => exportHistorial('pdf')} className="flex items-center gap-2 bg-rose-200 text-rose-800 px-3 py-1.5 rounded-lg hover:bg-rose-300 shadow-sm font-medium transition-colors text-sm">
-              <Printer size={14} /> PDF
-            </button>
+          <div className="flex gap-4 items-center">
+            <div className="w-72">
+              <AutocompleteInput
+                value={histGlobalSearch}
+                onChange={(e) => setHistGlobalSearch(e.target.value)}
+                options={histSearchOptions}
+                placeholder="Buscar por funcionario o insumo..."
+                className="w-full rounded-lg border-gray-300 shadow-sm border px-3 py-2 text-sm focus:border-blue-500 focus:ring-blue-500"
+              />
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => exportHistorial('xlsx')} className="flex items-center gap-2 bg-green-200 text-green-800 px-3 py-1.5 rounded-lg hover:bg-green-300 shadow-sm font-medium transition-colors text-sm">
+                <Download size={14} /> Excel
+              </button>
+              <button onClick={() => exportHistorial('pdf')} className="flex items-center gap-2 bg-rose-200 text-rose-800 px-3 py-1.5 rounded-lg hover:bg-rose-300 shadow-sm font-medium transition-colors text-sm">
+                <Printer size={14} /> PDF
+              </button>
+            </div>
           </div>
         )}
       </div>
@@ -555,6 +664,9 @@ export default function InsumosPage() {
                       </td>
                       <td className="px-6 py-3">
                         <div className="flex items-center justify-center gap-2">
+                          <button onClick={() => handleOpenViewModal(insumo)} title="Ver Asignaciones" className="p-1.5 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded transition-colors">
+                            <Eye size={16} />
+                          </button>
                           <button onClick={() => openAssignModal(insumo)} title="Asignar a funcionario" className="p-1.5 text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded transition-colors">
                             <UserPlus size={16} />
                           </button>
@@ -586,12 +698,12 @@ export default function InsumosPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {historial.length === 0 ? (
+                {filteredHistorial.length === 0 ? (
                   <tr>
-                    <td colSpan="5" className="px-6 py-8 text-center text-gray-500 italic">No hay historial de entregas.</td>
+                    <td colSpan="6" className="px-6 py-8 text-center text-gray-500 italic">No se encontraron entregas en el historial.</td>
                   </tr>
                 ) : (
-                  historial.map((hist) => (
+                  filteredHistorial.map((hist) => (
                     <tr key={hist.id} className="hover:bg-slate-50 transition-colors">
                       <td className="px-6 py-3 text-gray-600">{new Date(hist.created_at).toLocaleDateString()} {new Date(hist.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
                       <td className="px-6 py-3 whitespace-nowrap">
@@ -994,6 +1106,114 @@ export default function InsumosPage() {
                   <span className="font-medium leading-tight">{status.message}</span>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal para Ver Asignaciones */}
+      {isViewModalOpen && viewInsumo && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white p-6 rounded-xl shadow-2xl w-full max-w-4xl max-h-[85vh] flex flex-col animate-fade-in relative overflow-hidden">
+            
+            {/* Header del modal */}
+            <div className="flex items-center gap-4 mb-6 pb-4 border-b border-gray-100">
+              <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                <Package size={24} className="stroke-[1.5]" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                  Asignaciones de Insumo
+                </h2>
+                <div className="flex items-center gap-3 mt-1 text-sm text-gray-500 font-medium">
+                  <span className="text-blue-600">{viewInsumo.nombre}</span>
+                  <span className="w-1.5 h-1.5 rounded-full bg-gray-300"></span>
+                  <span>{viewInsumo.tipo}</span>
+                  <span className="w-1.5 h-1.5 rounded-full bg-gray-300"></span>
+                  <span>{viewInsumoAsignaciones.reduce((acc, curr) => acc + (curr.cantidad || 0), 0)} unidades entregadas</span>
+                </div>
+              </div>
+              <button 
+                onClick={() => setIsViewModalOpen(false)} 
+                className="ml-auto w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 hover:text-gray-700 transition-colors"
+              >
+                <span className="text-lg leading-none">&times;</span>
+              </button>
+            </div>
+
+            <div className="overflow-y-auto flex-1 overflow-x-auto min-h-0">
+              {isViewModalLoading ? (
+                <div className="flex flex-col items-center justify-center py-12 text-gray-400">
+                  <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mb-3"></div>
+                  <p className="text-sm font-medium">Cargando asignaciones...</p>
+                </div>
+              ) : viewInsumoAsignaciones.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-gray-400 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                  <Package size={32} className="mb-3 opacity-20" />
+                  <p className="text-sm font-medium">No hay entregas registradas para este insumo aún.</p>
+                </div>
+              ) : (
+                <div className="border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+                  <table className="min-w-full text-xs text-left whitespace-nowrap border-collapse bg-white">
+                    <thead>
+                      <tr className="bg-slate-900 text-white font-bold uppercase tracking-wider text-[10px]">
+                        <SortableHeader label="Funcionario" sortKey="nombre" currentKey={vAsigSortKey} currentDir={vAsigSortDir} onSort={handleVAsigSort} className="text-white text-left px-4 py-2 hover:bg-slate-800" />
+                        <SortableHeader label="Correo Electrónico" sortKey="email" currentKey={vAsigSortKey} currentDir={vAsigSortDir} onSort={handleVAsigSort} className="text-white text-left px-4 py-2 hover:bg-slate-800" />
+                        <SortableHeader label="Fecha Entrega" sortKey="created_at" currentKey={vAsigSortKey} currentDir={vAsigSortDir} onSort={handleVAsigSort} className="text-white text-left px-4 py-2 hover:bg-slate-800" />
+                        <SortableHeader label="Cantidad" sortKey="cantidad" currentKey={vAsigSortKey} currentDir={vAsigSortDir} onSort={handleVAsigSort} className="text-white text-center px-4 py-2 hover:bg-slate-800" />
+                        <th className="px-4 py-2 text-center w-24 border-l border-slate-800/50">Acciones</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-150">
+                      {sortedViewAsignaciones.map(a => {
+                        const uName = a.perfiles?.nombre || a.usuario_nombre || 'Sin nombre';
+                        const uEmail = a.perfiles?.email || 'Sin correo';
+                        const dateStr = new Date(a.created_at).toLocaleDateString() + ' ' + new Date(a.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                        const initials = uName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'U';
+                        
+                        return (
+                          <tr key={a.id} className="hover:bg-slate-50 transition-colors group">
+                            <td className="px-4 py-2">
+                              <div className="flex items-center gap-3">
+                                <span className="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-[9px] font-black uppercase shrink-0 shadow-sm">
+                                  {initials}
+                               </span>
+                                <span className="font-semibold text-slate-700">{uName}</span>
+                              </div>
+                            </td>
+                            <td className="px-4 py-2 text-slate-500 font-medium">{uEmail}</td>
+                            <td className="px-4 py-2 text-slate-500">{dateStr}</td>
+                            <td className="px-4 py-2 text-center">
+                              <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-full bg-gray-100 text-gray-700 font-bold border border-gray-200">
+                                {a.cantidad}
+                              </span>
+                            </td>
+                            <td className="px-4 py-2 text-center">
+                              <button
+                                onClick={() => handleRevocarDesdeModal(a)}
+                                className="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 p-1.5 rounded-lg transition-colors border border-red-100 inline-flex items-center justify-center shrink-0 cursor-pointer opacity-0 group-hover:opacity-100"
+                                title="Revocar Entrega (Devolver Stock)"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+            
+            <div className="flex justify-end gap-3 pt-4 border-t border-gray-100 mt-6 shrink-0">
+              <button 
+                type="button" 
+                onClick={() => setIsViewModalOpen(false)} 
+                className="px-6 py-2 bg-slate-900 text-white font-bold rounded-lg hover:bg-slate-800 transition-colors shadow-sm text-sm"
+              >
+                Cerrar
+              </button>
             </div>
           </div>
         </div>
