@@ -870,45 +870,8 @@ export default function EditarEquipoModal({ equipo, onClose }) {
                 })()}
               </div>
 
-              {/* Subdirección & Estado */}
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-0.5">
-                  <label className="block text-[10px] font-bold text-[#25306B] uppercase tracking-wide">
-                    Subdirección
-                  </label>
-                  {formData['SubDirección'] ? (
-                    <div className="flex items-center justify-between p-1 bg-blue-50 border border-blue-200 rounded-lg shadow-xs w-full">
-                      <span className="text-[10px] leading-tight font-bold text-[#25306B] truncate flex-1 min-w-0 pr-1">
-                        {formData['SubDirección']}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setFormData({ ...formData, 'SubDirección': '' });
-                          setSubdireccionSearchTerm('');
-                        }}
-                        className="text-red-500 hover:text-red-705 hover:bg-red-55 px-1 rounded font-bold text-xs"
-                        title="Eliminar Subdirección"
-                      >
-                        &times;
-                      </button>
-                    </div>
-                  ) : (
-                    <AutocompleteInput
-                      name="SubDirección"
-                      value={subdireccionSearchTerm}
-                      onChange={(e) => setSubdireccionSearchTerm(e.target.value)}
-                      options={subdireccionesOptions}
-                      onSelectOption={(opt) => {
-                        setFormData({ ...formData, 'SubDirección': opt.value });
-                        setSubdireccionSearchTerm('');
-                      }}
-                      className="w-full px-2 py-1 border border-gray-300 rounded-lg text-xs focus:ring-1.5 focus:ring-[#006BB9] focus:outline-none shadow-xs bg-white font-medium"
-                      placeholder="Subdirección..."
-                    />
-                  )}
-                </div>
-
+              {/* Estado */}
+              <div className="grid grid-cols-1 gap-2">
                 <div className="space-y-0.5 relative">
                   <label className="block text-[10px] font-bold text-[#25306B] uppercase tracking-wide">
                     Estado

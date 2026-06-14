@@ -427,7 +427,7 @@ export default function NuevoEquipoPage() {
 
           <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-200 mb-8 relative">
             <h2 className="text-xl font-bold mb-6 text-[#25306B] border-b pb-2 flex items-center gap-2">
-              <UserCheck className="text-[#006BB9]" /> Asignación, Subdirección y Estado
+              <UserCheck className="text-[#006BB9]" /> Asignación y Estado
             </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
@@ -512,44 +512,7 @@ export default function NuevoEquipoPage() {
               })()}
             </div>
 
-            <div className="space-y-1 relative">
-              <label className="block text-xs font-semibold text-[#25306B] uppercase tracking-wide mb-1">
-                Subdirección
-              </label>
-              {formData['SubDirección'] ? (
-                <div className="flex items-center justify-between p-2.5 bg-blue-50 border border-blue-200 rounded-lg shadow-sm w-full">
-                  <span className="text-[11px] leading-tight font-bold text-[#25306B] truncate flex-1 min-w-0 pr-2">
-                    {formData['SubDirección']}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setFormData({ ...formData, 'SubDirección': '' });
-                      setSubdireccionSearchTerm('');
-                    }}
-                    className="text-red-500 hover:text-red-700 hover:bg-red-50 px-2 py-1 rounded-md transition-colors font-bold flex items-center justify-center shrink-0"
-                    title="Eliminar Subdirección"
-                  >
-                    &times;
-                  </button>
-                </div>
-              ) : (
-                <div className="relative w-full">
-                  <AutocompleteInput
-                    name="SubDirección"
-                    value={subdireccionSearchTerm}
-                    onChange={(e) => setSubdireccionSearchTerm(e.target.value)}
-                    options={subdireccionesOptions}
-                    onSelectOption={(opt) => {
-                      setFormData({ ...formData, 'SubDirección': opt.value });
-                      setSubdireccionSearchTerm('');
-                    }}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#006BB9] focus:outline-none shadow-sm transition-shadow bg-white"
-                    placeholder="Buscar o escribir subdirección..."
-                  />
-                </div>
-              )}
-            </div>
+
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">

@@ -57,6 +57,12 @@ function fromDbRow(dbRow) {
     delete detalles['Codigo Compra Agil / Licitación / Codigo Convenio Marco'];
   }
 
+  // Inject user data if joined
+  if (dbRow.perfiles) {
+    detalles['Usuario'] = dbRow.perfiles.nombre || dbRow.perfiles.email || 'Usuario';
+    detalles['SubDirección'] = dbRow.perfiles.subdireccion || '';
+  }
+
   return {
     id: dbRow.id,
     'Nº de serie': dbRow.serial,
@@ -94,7 +100,7 @@ export function InventarioProvider({ children }) {
         return;
       }
 
-      const { data, error } = await supabase.from('equipos').select('*');
+      const { data, error } = await supabase.from('equipos').select('*, perfiles(id, nombre, email, subdireccion)');
       if (error) {
         console.error('Error al cargar inventario desde Supabase:', error);
       } else if (data) {
