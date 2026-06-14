@@ -775,7 +775,7 @@ export default function LicenciasAdminPage() {
       </section>
 
       {/* Tabs & Controls */}
-      <section className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden no-print-interactive">
+      <section className="bg-white rounded-xl shadow-sm border border-gray-200 no-print-interactive">
         <div className="flex flex-col xl:flex-row justify-between items-stretch xl:items-center border-b border-gray-200">
           <nav className="flex flex-wrap w-full xl:w-auto">
             <button 
@@ -1054,6 +1054,13 @@ export default function LicenciasAdminPage() {
                         }
                       }}
                       onFocus={() => setShowFuncSug(true)}
+                      onClick={() => {
+                        if (selectedFunc) {
+                          setFuncSearch('');
+                          setSelectedFunc(null);
+                          setShowFuncSug(true);
+                        }
+                      }}
                       onBlur={() => setTimeout(() => { setShowFuncSug(false); setFocusedFuncIndex(-1); }, 200)}
                       placeholder="Buscar funcionario..." 
                       className="w-full pl-9 pr-4 py-1.5 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#006BB9] focus:outline-none shadow-sm transition-all"
@@ -1312,9 +1319,10 @@ export default function LicenciasAdminPage() {
                                 <td className="px-3 py-2.5 text-center">
                                   <button 
                                     onClick={handleRevocarClick}
-                                    className="text-[11px] font-bold bg-white border border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 px-3 py-1.5 rounded transition-colors shadow-sm"
+                                    className="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 p-1.5 rounded-lg transition-colors border border-red-100 inline-flex items-center justify-center shrink-0 cursor-pointer"
+                                    title="Revocar Asignación"
                                   >
-                                    Revocar
+                                    <Trash2 size={14} />
                                   </button>
                                 </td>
                               </tr>
@@ -1721,7 +1729,7 @@ export default function LicenciasAdminPage() {
                         <SortableHeader label="Funcionario" sortKey="nombre" currentKey={modalAsigSortKey} currentDir={modalAsigSortDir} onSort={handleModalAsigSort} className="text-white text-left px-3 py-1.5 hover:bg-slate-800" />
                         <SortableHeader label="Correo Electrónico" sortKey="email" currentKey={modalAsigSortKey} currentDir={modalAsigSortDir} onSort={handleModalAsigSort} className="text-white text-left px-3 py-1.5 hover:bg-slate-800" />
                         <SortableHeader label="Fecha Asignación" sortKey="created_at" currentKey={modalAsigSortKey} currentDir={modalAsigSortDir} onSort={handleModalAsigSort} className="text-white text-left px-3 py-1.5 hover:bg-slate-800" />
-                        <th className="px-3 py-1.5 text-center w-24">Acción</th>
+                        <th className="px-3 py-1.5 text-center w-24">Acciones</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-150 bg-white">
@@ -1744,10 +1752,10 @@ export default function LicenciasAdminPage() {
                             <td className="px-3 py-1 text-center">
                               <button
                                 onClick={() => handleRevocar(a)}
-                                className="text-red-650 hover:text-red-800 bg-red-50 hover:bg-red-100 p-1 rounded-lg transition-colors border border-red-100 inline-flex items-center justify-center shrink-0 cursor-pointer"
+                                className="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 p-1.5 rounded-lg transition-colors border border-red-100 inline-flex items-center justify-center shrink-0 cursor-pointer"
                                 title="Revocar Asignación"
                               >
-                                <Trash2 size={13} />
+                                <Trash2 size={14} />
                               </button>
                             </td>
                           </tr>

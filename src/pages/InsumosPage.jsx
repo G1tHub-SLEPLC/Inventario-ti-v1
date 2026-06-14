@@ -563,7 +563,7 @@ export default function InsumosPage() {
         )}
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200">
         <div className="flex border-b border-gray-200 bg-gray-50">
           <button 
             onClick={() => { setActiveTab('insumos'); setFuncSearch(''); setSelectedFunc(null); setSelectedInsumoId(''); setInsumoGlobalSearch(''); }}
@@ -678,6 +678,13 @@ export default function InsumosPage() {
                       }
                     }}
                     onFocus={() => setShowFuncSug(true)}
+                    onClick={() => {
+                      if (selectedFunc) {
+                        setFuncSearch('');
+                        setSelectedFunc(null);
+                        setShowFuncSug(true);
+                      }
+                    }}
                     onBlur={() => setTimeout(() => { setShowFuncSug(false); setFocusedFuncIndex(-1); }, 200)}
                     placeholder="Buscar funcionario..." 
                     className="w-full pl-9 pr-4 py-1.5 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#006BB9] focus:outline-none shadow-sm transition-all"

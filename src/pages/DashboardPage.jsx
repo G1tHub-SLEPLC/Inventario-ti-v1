@@ -998,6 +998,13 @@ export default function DashboardPage() {
                       }
                     }}
                     onFocus={() => setShowFuncSug(true)}
+                    onClick={() => {
+                      if (selectedFunc) {
+                        setFuncSearch('');
+                        setSelectedFunc('');
+                        setShowFuncSug(true);
+                      }
+                    }}
                     onBlur={() => setTimeout(() => { setShowFuncSug(false); setFocusedIndex(-1); }, 200)}
                     placeholder="Buscar funcionario..."
                     className="w-full pl-9 pr-4 py-2.5 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#006BB9] focus:outline-none shadow-sm transition-all"
