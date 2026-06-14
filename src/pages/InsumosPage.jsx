@@ -3,7 +3,7 @@ import { useSolicitudes } from '../context/SolicitudesContext';
 import { supabase } from '../lib/supabaseClient';
 import { useInventario } from '../context/InventarioContext';
 import { useAuth } from '../context/AuthContext';
-import { PlusCircle, Edit2, Trash2, UserPlus, History, Package, Upload, Download, Printer, UploadCloud, AlertCircle, CheckCircle, AlertTriangle, Eye } from 'lucide-react';
+import { PlusCircle, Edit2, Trash2, UserPlus, History, Package, Upload, Download, Printer, UploadCloud, AlertCircle, CheckCircle, AlertTriangle, Eye, Users, Search, Box } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { logAuditoria, getDiffString } from '../utils/auditoria';
 import { exportToExcelAndPDF } from '../utils/exportUtils';
@@ -24,32 +24,50 @@ export default function InsumosPage() {
   const { session } = useAuth();
   const { sorted: sortedInsumos, sortKey: insSortKey, sortDir: insSortDir, handleSort: handleInsSort } = useSort(insumos);
   
-  const [activeTab, setActiveTab] = useState('insumos'); // 'insumos' o 'historial'
+  const [activeTab, setActiveTab] = useState('insumos'); // 'insumos' | 'func' | 'insumo'
   const [historial, setHistorial] = useState([]);
   const [usuariosSlep, setUsuariosSlep] = useState([]);
 
-  const [histGlobalSearch, setHistGlobalSearch] = useState('');
-  
-  const filteredHistorial = useMemo(() => {
-    if (!histGlobalSearch) return historial;
-    const q = histGlobalSearch.toLowerCase().trim();
-    return historial.filter(hist => 
-      (hist.usuario_nombre || '').toLowerCase().includes(q) ||
-      (hist.insumos?.nombre || '').toLowerCase().includes(q) ||
-      (hist.insumos?.marca || '').toLowerCase().includes(q) ||
-      (hist.insumos?.modelo || '').toLowerCase().includes(q)
-    );
-  }, [historial, histGlobalSearch]);
+  const [funcSearch, setFuncSearch] = useState('');
+  const [showFuncSug, setShowFuncSug] = useState(false);
+  const [selectedFunc, setSelectedFunc] = useState(null);
+  const [focusedFuncIndex, setFocusedFuncIndex] = useState(-1);
 
-  const histSearchOptions = useMemo(() => {
-    const opts = [];
-    const userNames = [...new Set(historial.map(h => h.usuario_nombre).filter(Boolean))];
-    const insumoNames = [...new Set(historial.map(h => h.insumos?.nombre).filter(Boolean))];
-    
-    userNames.forEach(u => opts.push({ label: u, value: u, sublabel: 'Funcionario' }));
-    insumoNames.forEach(i => opts.push({ label: i, value: i, sublabel: 'Insumo' }));
-    return opts;
-  }, [historial]);
+  const [selectedInsumoId, setSelectedInsumoId] = useState('');
+  const [insumoGlobalSearch, setInsumoGlobalSearch] = useState('');
+
+  const funcSuggestions = useMemo(() => {
+    if (!funcSearch) return usuariosSlep;
+    const q = funcSearch.toLowerCase();
+    return usuariosSlep.filter(u => 
+      (u.nombre || '').toLowerCase().includes(q) || 
+      (u.email || '').toLowerCase().includes(q)
+    );
+  }, [usuariosSlep, funcSearch]);
+
+  const { sorted: sortedAsignacionesFunc, sortKey: asigFuncSortKey, sortDir: asigFuncSortDir, handleSort: handleAsigFuncSort } = useSort(
+    useMemo(() => historial.filter(a => a.usuario_id === selectedFunc?.id), [historial, selectedFunc])
+  );
+
+  const { sorted: sortedAsignacionesInsumo, sortKey: asigInsumoSortKey, sortDir: asigInsumoSortDir, handleSort: handleAsigInsumoSort } = useSort(
+    useMemo(() => {
+      let data = historial.filter(a => a.insumo_id === selectedInsumoId);
+      if (insumoGlobalSearch) {
+        const q = insumoGlobalSearch.toLowerCase();
+        data = data.filter(a => 
+          (a.usuario_nombre || '').toLowerCase().includes(q) ||
+          (a.perfiles?.email || '').toLowerCase().includes(q)
+        );
+      }
+      return data;
+    }, [historial, selectedInsumoId, insumoGlobalSearch])
+  );
+
+  const selectedInsumoData = useMemo(() => insumos.find(i => i.id === selectedInsumoId), [insumos, selectedInsumoId]);
+
+  const getAsignacionesCount = (insId) => {
+    return historial.filter(h => h.insumo_id === insId).reduce((acc, curr) => acc + (curr.cantidad || 0), 0);
+  };
   
   // Modals state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -84,9 +102,6 @@ export default function InsumosPage() {
 
   const { sorted: sortedViewAsignaciones, sortKey: vAsigSortKey, sortDir: vAsigSortDir, handleSort: handleVAsigSort } = useSort(flatViewAsignaciones, 'created_at', 'desc');
 
-  const [isEditHistModalOpen, setIsEditHistModalOpen] = useState(false);
-  const [editHistData, setEditHistData] = useState({ id: null, insumo_id: null, insumo_nombre: '', usuario_nombre: '', cantidad_original: 0, cantidad_nueva: 0, observaciones_original: '', observaciones: '' });
-
   const [isMasivaModalOpen, setIsMasivaModalOpen] = useState(false);
   const [status, setStatus] = useState({ type: 'idle', message: '' });
 
@@ -104,7 +119,7 @@ export default function InsumosPage() {
   const fetchHistorial = async () => {
     const { data: sols } = await supabase
       .from('solicitudes')
-      .select('id, cantidad, created_at, usuario_id, observaciones_admin, insumos(nombre, tipo, marca, modelo)')
+      .select('id, cantidad, created_at, usuario_id, insumo_id, observaciones_admin, insumos(id, nombre, tipo, marca, modelo)')
       .eq('tipo', 'insumo')
       .eq('estado', 'aprobado')
       .order('created_at', { ascending: false });
@@ -115,6 +130,7 @@ export default function InsumosPage() {
         const user = perfs?.find(p => p.id === s.usuario_id);
         return {
           ...s,
+          perfiles: user || null,
           usuario_nombre: user?.nombre || user?.email || 'Desconocido'
         };
       });
@@ -122,9 +138,9 @@ export default function InsumosPage() {
     }
   };
 
-  // Load historial
+  // Load historial based on tabs
   useEffect(() => {
-    if (activeTab === 'historial') {
+    if (activeTab === 'func' || activeTab === 'insumo') {
       fetchHistorial();
     }
   }, [activeTab]);
@@ -469,71 +485,6 @@ export default function InsumosPage() {
     }
   };
 
-  const openEditHistModal = (histItem) => {
-    setEditHistData({
-      id: histItem.id,
-      insumo_id: histItem.insumo_id,
-      insumo_nombre: histItem.insumos?.nombre,
-      usuario_nombre: histItem.usuario_nombre,
-      cantidad_original: histItem.cantidad,
-      cantidad_nueva: histItem.cantidad,
-      observaciones_original: histItem.observaciones_admin || '',
-      observaciones: histItem.observaciones_admin || ''
-    });
-    setIsEditHistModalOpen(true);
-  };
-
-  const handleEditHistorial = async (e) => {
-    e.preventDefault();
-    if (editHistData.cantidad_nueva < 1) {
-      showToast('Error', 'La cantidad debe ser al menos 1.', 'error');
-      return;
-    }
-
-    const diff = editHistData.cantidad_nueva - editHistData.cantidad_original;
-
-    try {
-      if (diff > 0 && editHistData.insumo_id) {
-        // Verificar si hay stock suficiente para aumentar la entrega
-        const { data: currentInsumo } = await supabase.from('insumos').select('cantidad_disponible').eq('id', editHistData.insumo_id).single();
-        if (!currentInsumo || currentInsumo.cantidad_disponible < diff) {
-          showToast('Stock insuficiente', `Solo hay ${currentInsumo?.cantidad_disponible || 0} en stock, no se puede aumentar la entrega en ${diff}.`, 'warning');
-          return;
-        }
-      }
-
-      // 1. Actualizar solicitud
-      const { error: updSolError } = await supabase.from('solicitudes')
-        .update({ cantidad: editHistData.cantidad_nueva, observaciones_admin: editHistData.observaciones })
-        .eq('id', editHistData.id);
-      
-      if (updSolError) throw updSolError;
-
-      // 2. Actualizar stock si hubo cambio en cantidad
-      if (diff !== 0 && editHistData.insumo_id) {
-        const { data: currentInsumo } = await supabase.from('insumos').select('cantidad_disponible').eq('id', editHistData.insumo_id).single();
-        if (currentInsumo) {
-          await supabase.from('insumos').update({ cantidad_disponible: currentInsumo.cantidad_disponible - diff }).eq('id', editHistData.insumo_id);
-        }
-      }
-
-      // 3. Log Auditoria
-      const oldVals = { cantidad: editHistData.cantidad_original, observaciones: editHistData.observaciones_original };
-      const newVals = { cantidad: editHistData.cantidad_nueva, observaciones: editHistData.observaciones };
-      const diffText = getDiffString(oldVals, newVals);
-      await logAuditoria('insumos', 'Editar Entrega', `Se modificó la entrega de ${editHistData.insumo_nombre}. Cambios detectados: ${diffText}`, editHistData.usuario_nombre);
-      
-      showToast('Actualizado', 'La entrega ha sido actualizada correctamente.', 'success');
-      
-      setIsEditHistModalOpen(false);
-      await refetch();
-      await fetchHistorial();
-    } catch (err) {
-      console.error(err);
-      showToast('Error', 'Hubo un error al editar la entrega.', 'error');
-    }
-  };
-
   const exportInsumos = (format) => {
     const cols = ['Nombre', 'Tipo', 'Marca', 'Modelo', 'Cantidad Disponible'];
     const title = 'Inventario de Insumos';
@@ -548,8 +499,15 @@ export default function InsumosPage() {
   };
 
   const exportHistorial = (format) => {
+    const dataToExport = activeTab === 'func' ? sortedAsignacionesFunc : sortedAsignacionesInsumo;
+    if (!dataToExport || dataToExport.length === 0) {
+      showToast('Sin datos', 'No hay datos para exportar en esta vista.', 'warning');
+      return;
+    }
     const cols = ['Fecha', 'Funcionario', 'Insumo', 'Marca/Modelo', 'Cantidad', 'Observaciones'];
-    const title = 'Historial de Entregas de Insumos';
+    const title = activeTab === 'func' 
+      ? `Insumos de ${selectedFunc?.nombre || selectedFunc?.email || 'Funcionario'}` 
+      : `Entregas de ${selectedInsumoData?.nombre || 'Insumo'}`;
     const formatter = (row) => ({
       'Fecha': new Date(row.created_at).toLocaleString(),
       'Funcionario': row.usuario_nombre,
@@ -558,7 +516,7 @@ export default function InsumosPage() {
       'Cantidad': row.cantidad,
       'Observaciones': row.observaciones_admin || '—'
     });
-    exportToExcelAndPDF(format, historial, cols, title, 'insumos_entregas', formatter);
+    exportToExcelAndPDF(format, dataToExport, cols, title, 'insumos_entregas', formatter);
   };
 
   return (
@@ -593,15 +551,6 @@ export default function InsumosPage() {
           </div>
         ) : (
           <div className="flex gap-4 items-center">
-            <div className="w-72">
-              <AutocompleteInput
-                value={histGlobalSearch}
-                onChange={(e) => setHistGlobalSearch(e.target.value)}
-                options={histSearchOptions}
-                placeholder="Buscar por funcionario o insumo..."
-                className="w-full rounded-lg border-gray-300 shadow-sm border px-3 py-2 text-sm focus:border-blue-500 focus:ring-blue-500"
-              />
-            </div>
             <div className="flex gap-2">
               <button onClick={() => exportHistorial('xlsx')} className="flex items-center gap-2 bg-green-200 text-green-800 px-3 py-1.5 rounded-lg hover:bg-green-300 shadow-sm font-medium transition-colors text-sm">
                 <Download size={14} /> Excel
@@ -617,18 +566,25 @@ export default function InsumosPage() {
       <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200">
         <div className="flex border-b border-gray-200 bg-gray-50">
           <button 
-            onClick={() => setActiveTab('insumos')}
+            onClick={() => { setActiveTab('insumos'); setFuncSearch(''); setSelectedFunc(null); setSelectedInsumoId(''); setInsumoGlobalSearch(''); }}
             className={`px-6 py-3 text-sm font-medium border-b-2 flex items-center gap-2 transition-colors ${activeTab === 'insumos' ? 'border-[#006BB9] bg-white text-[#006BB9]' : 'border-transparent text-gray-600 hover:text-gray-900'}`}
           >
             <Package size={18} />
             Inventario de Insumos
           </button>
           <button 
-            onClick={() => setActiveTab('historial')}
-            className={`px-6 py-3 text-sm font-medium border-b-2 flex items-center gap-2 transition-colors ${activeTab === 'historial' ? 'border-[#006BB9] bg-white text-[#006BB9]' : 'border-transparent text-gray-600 hover:text-gray-900'}`}
+            onClick={() => { setActiveTab('func'); setFuncSearch(''); setSelectedFunc(null); }}
+            className={`px-6 py-3 text-sm font-medium border-b-2 flex items-center gap-2 transition-colors ${activeTab === 'func' ? 'border-[#006BB9] bg-white text-[#006BB9]' : 'border-transparent text-gray-600 hover:text-gray-900'}`}
           >
-            <History size={18} />
-            Historial de Entregas
+            <Users size={18} />
+            Por Funcionario
+          </button>
+          <button 
+            onClick={() => { setActiveTab('insumo'); setInsumoGlobalSearch(''); setSelectedInsumoId(''); }}
+            className={`px-6 py-3 text-sm font-medium border-b-2 flex items-center gap-2 transition-colors ${activeTab === 'insumo' ? 'border-[#006BB9] bg-white text-[#006BB9]' : 'border-transparent text-gray-600 hover:text-gray-900'}`}
+          >
+            <Box size={18} />
+            Por Insumo
           </button>
         </div>
 
@@ -684,71 +640,239 @@ export default function InsumosPage() {
               </tbody>
             </table>
           </div>
-        ) : (
-          <div className="overflow-x-auto table-scroll">
-            <table className="min-w-full text-sm text-left whitespace-nowrap">
-              <thead className="bg-slate-50 text-slate-700 font-semibold uppercase text-xs border-b border-gray-200">
-                <tr>
-                  <th className="px-6 py-3">Fecha</th>
-                  <th className="px-6 py-3">Funcionario</th>
-                  <th className="px-6 py-3">Insumo Entregado</th>
-                  <th className="px-6 py-3 text-center">Cantidad</th>
-                  <th className="px-6 py-3">Observaciones</th>
-                  <th className="px-6 py-3 text-center w-24">Acciones</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {filteredHistorial.length === 0 ? (
-                  <tr>
-                    <td colSpan="6" className="px-6 py-8 text-center text-gray-500 italic">No se encontraron entregas en el historial.</td>
-                  </tr>
-                ) : (
-                  filteredHistorial.map((hist) => (
-                    <tr key={hist.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="px-6 py-3 text-gray-600">{new Date(hist.created_at).toLocaleDateString()} {new Date(hist.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
-                      <td className="px-6 py-3 whitespace-nowrap">
-                        <span className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-800 p-0.5 pr-2.5 rounded-full text-[12px] font-bold border border-blue-200 shadow-sm">
-                          <span className="w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center text-[9px] font-black uppercase shrink-0">
-                            {getInitials(hist.usuario_nombre)}
+        ) : activeTab === 'func' ? (
+          <div className="p-4 space-y-4">
+            <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-center justify-between no-print-interactive">
+              <div className="relative flex-1 sm:max-w-md">
+                <div className="relative flex items-center">
+                  <Search className="absolute left-3 w-4 h-4 text-gray-400 animate-none" style={{ top: '50%', transform: 'translateY(-50%)' }} />
+                  <input 
+                    type="text" 
+                    value={funcSearch}
+                    onChange={e => {
+                      setFuncSearch(e.target.value);
+                      setShowFuncSug(true);
+                      setFocusedFuncIndex(-1);
+                      if(!e.target.value) setSelectedFunc(null);
+                    }}
+                    onKeyDown={e => {
+                      if (!showFuncSug) return;
+                      if (e.key === 'ArrowDown') {
+                        e.preventDefault();
+                        setFocusedFuncIndex(prev => (prev < funcSuggestions.length - 1 ? prev + 1 : prev));
+                      } else if (e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        setFocusedFuncIndex(prev => (prev > 0 ? prev - 1 : 0));
+                      } else if (e.key === 'Enter') {
+                        e.preventDefault();
+                        if (focusedFuncIndex >= 0 && focusedFuncIndex < funcSuggestions.length) {
+                          const u = funcSuggestions[focusedFuncIndex];
+                          setSelectedFunc(u);
+                          setFuncSearch(u.nombre || u.email);
+                          setShowFuncSug(false);
+                          setFocusedFuncIndex(-1);
+                        }
+                      } else if (e.key === 'Escape') {
+                        setShowFuncSug(false);
+                        setFocusedFuncIndex(-1);
+                      }
+                    }}
+                    onFocus={() => setShowFuncSug(true)}
+                    onBlur={() => setTimeout(() => { setShowFuncSug(false); setFocusedFuncIndex(-1); }, 200)}
+                    placeholder="Buscar funcionario..." 
+                    className="w-full pl-9 pr-4 py-1.5 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#006BB9] focus:outline-none shadow-sm transition-all"
+                  />
+                </div>
+                {showFuncSug && (
+                  <div className="absolute z-50 w-full bg-white border border-gray-200 rounded-lg mt-1 max-h-60 overflow-y-auto shadow-xl">
+                    <div className="py-1">
+                      {funcSuggestions.length > 0 ? funcSuggestions.map((u, idx) => (
+                        <div 
+                          key={u.id} 
+                          onMouseDown={() => { setSelectedFunc(u); setFuncSearch(u.nombre || u.email); setShowFuncSug(false); setFocusedFuncIndex(-1); }} 
+                          className={`flex items-center gap-3 px-3 py-2 cursor-pointer transition-colors ${focusedFuncIndex === idx ? 'bg-blue-100' : 'hover:bg-slate-50'}`}
+                        >
+                          <span className="w-7 h-7 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px] font-black uppercase shrink-0 shadow-sm">
+                            {getInitials(u.nombre || u.email)}
                           </span>
-                          <span title={hist.usuario_nombre}>{hist.usuario_nombre}</span>
-                        </span>
-                      </td>
-                      <td className="px-6 py-3 text-gray-600">
-                        {hist.insumos?.nombre} 
-                        <span className="text-xs text-gray-400 ml-2">({hist.insumos?.marca} - {hist.insumos?.modelo})</span>
-                      </td>
-                      <td className="px-6 py-3 text-center font-bold text-[#25306B]">
-                        {hist.cantidad}
-                      </td>
-                      <td className="px-6 py-3 text-gray-500 italic max-w-xs truncate" title={hist.observaciones_admin}>
-                        {hist.observaciones_admin || '—'}
-                      </td>
-                      <td className="px-6 py-3 text-center">
-                        <div className="flex items-center justify-center gap-2">
-                          <button 
-                            onClick={() => openEditHistModal(hist)} 
-                            title="Editar entrega" 
-                            className="p-1.5 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded transition-colors"
-                          >
-                            <Edit2 size={16} />
-                          </button>
-                          <button 
-                            onClick={() => handleDeleteEntrega(hist)} 
-                            title="Revertir y eliminar entrega" 
-                            className="p-1.5 text-red-600 bg-red-50 hover:bg-red-100 rounded transition-colors"
-                          >
-                            <Trash2 size={16} />
-                          </button>
+                          <div className="flex flex-col">
+                            <span className="text-sm font-semibold text-gray-800">{u.nombre || 'Sin nombre'}</span>
+                            <span className="text-xs text-gray-500">{u.email}</span>
+                          </div>
                         </div>
-                      </td>
-                    </tr>
-                  ))
+                      )) : <div className="px-4 py-3 text-slate-500 italic text-center text-sm">Sin coincidencias...</div>}
+                    </div>
+                  </div>
                 )}
-              </tbody>
-            </table>
+              </div>
+              <div className="text-sm font-medium text-[#25306B] flex items-center gap-2">
+                {selectedFunc ? <><CheckCircle size={16} className="text-green-600" /> Mostrando insumos de {selectedFunc.nombre || selectedFunc.email}</> : 'Seleccione un funcionario'}
+              </div>
+            </div>
+
+            {!selectedFunc ? (
+              <div className="border border-gray-200 rounded-lg p-8 text-center text-gray-500 text-sm bg-slate-50">
+                Seleccione un funcionario para ver sus insumos entregados.
+              </div>
+            ) : (
+              <div className="table-scroll rounded-lg border border-gray-200 overflow-x-auto">
+                <table className="min-w-full text-sm text-left whitespace-nowrap">
+                  <thead>
+                    <tr>
+                      <SortableHeader label="Insumo" sortKey="insumos.nombre" currentKey={asigFuncSortKey} currentDir={asigFuncSortDir} onSort={handleAsigFuncSort} className="text-white bg-[#112A46] text-left" />
+                      <SortableHeader label="Marca" sortKey="insumos.marca" currentKey={asigFuncSortKey} currentDir={asigFuncSortDir} onSort={handleAsigFuncSort} className="text-white bg-[#112A46] text-left" />
+                      <SortableHeader label="Modelo" sortKey="insumos.modelo" currentKey={asigFuncSortKey} currentDir={asigFuncSortDir} onSort={handleAsigFuncSort} className="text-white bg-[#112A46] text-left" />
+                      <SortableHeader label="Fecha Entrega" sortKey="created_at" currentKey={asigFuncSortKey} currentDir={asigFuncSortDir} onSort={handleAsigFuncSort} className="text-white bg-[#112A46] text-left" />
+                      <SortableHeader label="Cantidad" sortKey="cantidad" currentKey={asigFuncSortKey} currentDir={asigFuncSortDir} onSort={handleAsigFuncSort} className="text-white bg-[#112A46] text-center" />
+                      <th className="px-3 py-3 text-center font-bold text-white bg-[#112A46]">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {sortedAsignacionesFunc.length === 0 ? (
+                      <tr>
+                        <td colSpan="6" className="px-6 py-8 text-center text-gray-500">
+                          No hay insumos entregados a este funcionario.
+                        </td>
+                      </tr>
+                    ) : (
+                      sortedAsignacionesFunc.map((asig) => (
+                        <tr key={asig.id} className="hover:bg-gray-50 transition-colors">
+                          <td className="px-3 py-2.5 font-bold text-[#112A46] text-[15px]">
+                            {asig.insumos?.nombre}
+                          </td>
+                          <td className="px-3 py-2.5 text-gray-600">
+                            {asig.insumos?.marca || '—'}
+                          </td>
+                          <td className="px-3 py-2.5 text-gray-600">
+                            {asig.insumos?.modelo || '—'}
+                          </td>
+                          <td className="px-3 py-2.5 text-gray-600 text-xs">
+                            {new Date(asig.created_at).toLocaleDateString()} {new Date(asig.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                          </td>
+                          <td className="px-3 py-2.5 text-center font-bold text-[#25306B]">
+                            {asig.cantidad}
+                          </td>
+                          <td className="px-3 py-2.5 text-center">
+                            <button 
+                              onClick={() => handleDeleteEntrega(asig)}
+                              className="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 p-1.5 rounded-lg transition-colors border border-red-100 inline-flex items-center justify-center shrink-0 cursor-pointer"
+                              title="Revocar Entrega (Devolver Stock)"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
-        )}
+        ) : activeTab === 'insumo' ? (
+          <div className="p-4 space-y-4">
+            <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-center justify-between no-print-interactive">
+              <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                <select 
+                  value={selectedInsumoId} 
+                  onChange={e => setSelectedInsumoId(e.target.value)}
+                  className="w-full sm:w-64 px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#006BB9] focus:outline-none shadow-sm bg-white"
+                >
+                  <option value="">— Seleccionar insumo —</option>
+                  {insumos.map(i => (
+                    <option key={i.id} value={i.id}>{i.nombre} {i.marca ? `(${i.marca})` : ''}</option>
+                  ))}
+                </select>
+
+                <div className="relative w-full sm:w-48">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input 
+                    type="text"
+                    value={insumoGlobalSearch}
+                    onChange={e => setInsumoGlobalSearch(e.target.value)}
+                    placeholder="Filtrar resultados..."
+                    className="w-full pl-9 pr-4 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#006BB9] focus:outline-none bg-white"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {!selectedInsumoId ? (
+              <div className="border border-gray-200 rounded-lg p-8 text-center text-gray-500 text-sm bg-slate-50">
+                Seleccione un insumo para ver sus entregas y estadísticas.
+              </div>
+            ) : (
+              <>
+                {selectedInsumoData && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                    <div className="bg-white rounded-lg p-4 border border-gray-200 border-l-4 shadow-sm" style={{borderColor:'var(--slep-primary)'}}>
+                      <div className="text-xs text-gray-500 uppercase font-semibold">Total Entregados</div>
+                      <div className="text-2xl font-bold text-[#25306B]">{getAsignacionesCount(selectedInsumoId)}</div>
+                    </div>
+                    <div className="bg-white rounded-lg p-4 border border-gray-200 border-l-4 shadow-sm" style={{borderColor:'var(--slep-green)'}}>
+                      <div className="text-xs text-gray-500 uppercase font-semibold">Stock Disponible</div>
+                      <div className="text-2xl font-bold text-[#90d039]">{selectedInsumoData.cantidad_disponible}</div>
+                    </div>
+                  </div>
+                )}
+
+                <div className="table-scroll rounded-lg border border-gray-200 overflow-x-auto">
+                  <table className="min-w-full text-sm text-left whitespace-nowrap">
+                    <thead>
+                      <tr>
+                        <SortableHeader label="Funcionario" sortKey="usuario_nombre" currentKey={asigInsumoSortKey} currentDir={asigInsumoSortDir} onSort={handleAsigInsumoSort} className="text-white bg-[#112A46] text-left" />
+                        <SortableHeader label="Correo Electrónico" sortKey="perfiles.email" currentKey={asigInsumoSortKey} currentDir={asigInsumoSortDir} onSort={handleAsigInsumoSort} className="text-white bg-[#112A46] text-left" />
+                        <SortableHeader label="Fecha Entrega" sortKey="created_at" currentKey={asigInsumoSortKey} currentDir={asigInsumoSortDir} onSort={handleAsigInsumoSort} className="text-white bg-[#112A46] text-left" />
+                        <SortableHeader label="Cantidad" sortKey="cantidad" currentKey={asigInsumoSortKey} currentDir={asigInsumoSortDir} onSort={handleAsigInsumoSort} className="text-white bg-[#112A46] text-center" />
+                        <th className="px-3 py-3 text-center font-bold text-white bg-[#112A46]">Acciones</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {sortedAsignacionesInsumo.length === 0 ? (
+                        <tr>
+                          <td colSpan="5" className="px-6 py-8 text-center text-gray-500">
+                            Nadie tiene asignado este insumo aún.
+                          </td>
+                        </tr>
+                      ) : (
+                        sortedAsignacionesInsumo.map((asig) => (
+                          <tr key={asig.id} className="hover:bg-gray-50 transition-colors">
+                            <td className="px-3 py-2.5">
+                              <div className="flex items-center gap-3">
+                                <span className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px] font-black uppercase shrink-0 shadow-sm">
+                                  {getInitials(asig.usuario_nombre)}
+                                </span>
+                                <span className="font-semibold text-gray-800">{asig.usuario_nombre}</span>
+                              </div>
+                            </td>
+                            <td className="px-3 py-2.5 text-gray-700">
+                              {asig.perfiles?.email || '—'}
+                            </td>
+                            <td className="px-3 py-2.5 text-gray-600 text-xs">
+                              {new Date(asig.created_at).toLocaleDateString()} {new Date(asig.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                            </td>
+                            <td className="px-3 py-2.5 text-center font-bold text-[#25306B]">
+                              {asig.cantidad}
+                            </td>
+                            <td className="px-3 py-2.5 text-center">
+                              <button 
+                                onClick={() => handleDeleteEntrega(asig)}
+                                className="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 p-1.5 rounded-lg transition-colors border border-red-100 inline-flex items-center justify-center shrink-0 cursor-pointer"
+                                title="Revocar Entrega (Devolver Stock)"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
+          </div>
+        ) : null}
       </div>
 
       {/* Modal Nuevo/Editar Insumo */}
@@ -1026,43 +1150,6 @@ export default function InsumosPage() {
         </div>
       )}
 
-      {/* Modal Editar Historial */}
-      {isEditHistModalOpen && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white p-6 rounded-xl shadow-2xl w-full max-w-md animate-scale-in border-t-4 border-blue-500">
-            <h2 className="text-xl font-bold mb-2 text-gray-800">Editar Entrega</h2>
-            <p className="text-sm text-gray-500 mb-5 border-b pb-3">Funcionario: <strong className="text-[#25306B]">{editHistData.usuario_nombre}</strong> <br/>Insumo: <strong className="text-[#25306B]">{editHistData.insumo_nombre}</strong></p>
-            
-            <form onSubmit={handleEditHistorial} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">Cantidad Entregada *</label>
-                <div className="flex items-center gap-3">
-                  <input required type="number" min="1" value={editHistData.cantidad_nueva} onChange={e => setEditHistData({...editHistData, cantidad_nueva: parseInt(e.target.value)})} className="w-full rounded-lg border-gray-300 shadow-sm border p-2.5 text-sm focus:border-blue-500 focus:ring-blue-500" />
-                  <span className="text-xs text-gray-500 whitespace-nowrap">(Original: {editHistData.cantidad_original})</span>
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">Observaciones / Notas (Opcional)</label>
-                <textarea 
-                  value={editHistData.observaciones} 
-                  onChange={e => setEditHistData({...editHistData, observaciones: e.target.value})} 
-                  className="w-full rounded-lg border-gray-300 shadow-sm border p-2.5 text-sm focus:border-blue-500 focus:ring-blue-500"
-                  rows="3"
-                  placeholder="Detalles sobre la entrega..."
-                ></textarea>
-              </div>
-              
-              <div className="flex justify-end gap-3 pt-4 border-t mt-4">
-                <button type="button" onClick={() => setIsEditHistModalOpen(false)} className="px-5 py-2 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition-colors">Cancelar</button>
-                <button type="submit" className="px-5 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors shadow-sm">
-                  Guardar Cambios
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
       {/* Modal Carga Masiva */}
       {isMasivaModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -1154,14 +1241,14 @@ export default function InsumosPage() {
                 </div>
               ) : (
                 <div className="border border-gray-200 rounded-lg overflow-hidden shadow-sm">
-                  <table className="min-w-full text-xs text-left whitespace-nowrap border-collapse bg-white">
+                  <table className="min-w-full text-xs text-left border-collapse bg-white">
                     <thead>
                       <tr className="bg-slate-900 text-white font-bold uppercase tracking-wider text-[10px]">
                         <SortableHeader label="Funcionario" sortKey="nombre" currentKey={vAsigSortKey} currentDir={vAsigSortDir} onSort={handleVAsigSort} className="text-white text-left px-4 py-2 hover:bg-slate-800" />
                         <SortableHeader label="Correo Electrónico" sortKey="email" currentKey={vAsigSortKey} currentDir={vAsigSortDir} onSort={handleVAsigSort} className="text-white text-left px-4 py-2 hover:bg-slate-800" />
-                        <SortableHeader label="Fecha Entrega" sortKey="created_at" currentKey={vAsigSortKey} currentDir={vAsigSortDir} onSort={handleVAsigSort} className="text-white text-left px-4 py-2 hover:bg-slate-800" />
-                        <SortableHeader label="Cantidad" sortKey="cantidad" currentKey={vAsigSortKey} currentDir={vAsigSortDir} onSort={handleVAsigSort} className="text-white text-center px-4 py-2 hover:bg-slate-800" />
-                        <th className="px-4 py-2 text-center w-24 border-l border-slate-800/50">Acciones</th>
+                        <SortableHeader label="Fecha Entrega" sortKey="created_at" currentKey={vAsigSortKey} currentDir={vAsigSortDir} onSort={handleVAsigSort} className="text-white text-left px-4 py-2 hover:bg-slate-800 whitespace-nowrap" />
+                        <SortableHeader label="Cantidad" sortKey="cantidad" currentKey={vAsigSortKey} currentDir={vAsigSortDir} onSort={handleVAsigSort} className="text-white text-center px-4 py-2 hover:bg-slate-800 whitespace-nowrap" />
+                        <th className="px-4 py-2 text-center w-24 border-l border-slate-800/50 whitespace-nowrap">Acciones</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-150">
@@ -1178,20 +1265,20 @@ export default function InsumosPage() {
                                 <span className="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-[9px] font-black uppercase shrink-0 shadow-sm">
                                   {initials}
                                </span>
-                                <span className="font-semibold text-slate-700">{uName}</span>
+                                <span className="font-semibold text-slate-700 break-words">{uName}</span>
                               </div>
                             </td>
-                            <td className="px-4 py-2 text-slate-500 font-medium">{uEmail}</td>
-                            <td className="px-4 py-2 text-slate-500">{dateStr}</td>
-                            <td className="px-4 py-2 text-center">
+                            <td className="px-4 py-2 text-slate-500 font-medium break-all whitespace-normal">{uEmail}</td>
+                            <td className="px-4 py-2 text-slate-500 whitespace-nowrap">{dateStr}</td>
+                            <td className="px-4 py-2 text-center whitespace-nowrap">
                               <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-full bg-gray-100 text-gray-700 font-bold border border-gray-200">
                                 {a.cantidad}
                               </span>
                             </td>
-                            <td className="px-4 py-2 text-center">
+                            <td className="px-4 py-2 text-center whitespace-nowrap">
                               <button
                                 onClick={() => handleRevocarDesdeModal(a)}
-                                className="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 p-1.5 rounded-lg transition-colors border border-red-100 inline-flex items-center justify-center shrink-0 cursor-pointer opacity-0 group-hover:opacity-100"
+                                className="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 p-1.5 rounded-lg transition-colors border border-red-100 inline-flex items-center justify-center shrink-0 cursor-pointer"
                                 title="Revocar Entrega (Devolver Stock)"
                               >
                                 <Trash2 size={14} />
