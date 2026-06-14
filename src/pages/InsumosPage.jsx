@@ -219,53 +219,121 @@ export default function InsumosPage() {
   const openAssignModal = (insumo) => {
     setAssignData({ insumo_id: insumo.id, insumo_nombre: insumo.nombre, usuario_id: '', cantidad: 1, stock_actual: insumo.cantidad_disponible, observaciones: '' });
     setUserSearchTerm('');
+    setIsMultiAssign(false);
+    setSelectedUsuarios([]);
     setIsAssignModalOpen(true);
   };
 
   const handleAssign = async (e) => {
     e.preventDefault();
-    if (assignData.cantidad > assignData.stock_actual) {
-      showToast('Stock insuficiente', 'La cantidad a asignar supera el stock disponible.', 'warning');
+    
+    const totalQuantity = assignData.cantidad * (isMultiAssign ? selectedUsuarios.length : 1);
+    if (totalQuantity > assignData.stock_actual) {
+      showToast('Stock insuficiente', 'La cantidad total a asignar supera el stock disponible.', 'warning');
       return;
     }
-    if (!assignData.usuario_id) {
+    
+    if (!isMultiAssign && !assignData.usuario_id) {
       showToast('Error', 'Debe seleccionar un funcionario.', 'error');
       return;
     }
 
-    // Explicit confirmation if the user already received this item previously
-    if (entregasPrevias > 0) {
-      const confirmacion = window.confirm(`ATENCIÓN: Este funcionario ya ha recibido ${entregasPrevias} unidad(es) de este insumo anteriormente.\\n\\n¿Estás seguro de que deseas asignarle otra unidad de forma duplicada?`);
-      if (!confirmacion) {
-        return; // Cancel the assignment
+    if (isMultiAssign && selectedUsuarios.length === 0) {
+      showToast('Error', 'Debe seleccionar al menos un funcionario.', 'error');
+      return;
+    }
+
+    const userIds = isMultiAssign ? selectedUsuarios.map(u => u.id) : [assignData.usuario_id];
+
+    // Verify previous assignments
+    try {
+      const { data: previousSols, error: prevError } = await supabase
+        .from('solicitudes')
+        .select('usuario_id, cantidad')
+        .in('usuario_id', userIds)
+        .eq('insumo_id', assignData.insumo_id)
+        .eq('estado', 'aprobado')
+        .eq('tipo', 'insumo');
+
+      if (prevError) throw prevError;
+
+      const counts = {};
+      if (previousSols) {
+        previousSols.forEach(s => {
+          counts[s.usuario_id] = (counts[s.usuario_id] || 0) + (s.cantidad || 0);
+        });
       }
+
+      const usersWithPrevious = [];
+      userIds.forEach(uid => {
+        if (counts[uid] > 0) {
+          const u = usuariosSlep.find(x => x.id === uid);
+          if (u) {
+            usersWithPrevious.push({
+              nombre: u.nombre || u.email || 'Desconocido',
+              cantidad: counts[uid]
+            });
+          }
+        }
+      });
+
+      if (usersWithPrevious.length > 0) {
+        const userListStr = usersWithPrevious.map(u => `- ${u.nombre} (ya tiene ${u.cantidad} unidad(es))`).join('\n');
+        const confirmacion = window.confirm(
+          `ATENCIÓN: Los siguientes funcionarios ya han recibido este insumo anteriormente:\n\n${userListStr}\n\n¿Estás seguro de que deseas continuar con la asignación para todos ellos?`
+        );
+        if (!confirmacion) {
+          return; // Cancel assignment
+        }
+      }
+    } catch (err) {
+      console.error('Error al verificar entregas previas:', err);
     }
 
     try {
       // 1. Descontar stock
       const { error: errorUpd } = await supabase.from('insumos')
-        .update({ cantidad_disponible: assignData.stock_actual - assignData.cantidad })
+        .update({ cantidad_disponible: assignData.stock_actual - totalQuantity })
         .eq('id', assignData.insumo_id);
       
       if (errorUpd) throw errorUpd;
 
       // 2. Registrar en solicitudes como entregado (aprobado)
-      const { error: errorSol } = await supabase.from('solicitudes').insert({
-        usuario_id: assignData.usuario_id,
-        tipo: 'insumo',
-        insumo_id: assignData.insumo_id,
-        cantidad: assignData.cantidad,
-        estado: 'aprobado',
-        observaciones_admin: assignData.observaciones ? `Entrega directa: ${assignData.observaciones}` : 'Entrega directa'
-      });
+      if (isMultiAssign) {
+        const inserts = selectedUsuarios.map(u => ({
+          usuario_id: u.id,
+          tipo: 'insumo',
+          insumo_id: assignData.insumo_id,
+          cantidad: assignData.cantidad,
+          estado: 'aprobado',
+          observaciones_admin: assignData.observaciones ? `Entrega directa (Múltiple): ${assignData.observaciones}` : 'Entrega directa (Múltiple)'
+        }));
+        const { error: errorSol } = await supabase.from('solicitudes').insert(inserts);
+        if (errorSol) throw errorSol;
 
-      if (errorSol) throw errorSol;
+        // 3. Log Auditoria
+        for (const u of selectedUsuarios) {
+          const uName = u.nombre || u.email || 'Funcionario';
+          await logAuditoria('insumos', 'Asignar Insumo', `Asignó ${assignData.cantidad}x ${assignData.insumo_nombre} (Asignación Múltiple). Observaciones: ${assignData.observaciones || 'Ninguna'}`, uName);
+        }
+        showToast('Asignación exitosa', `Se han asignado ${assignData.cantidad} unidades a ${selectedUsuarios.length} funcionarios.`, 'success');
+      } else {
+        const { error: errorSol } = await supabase.from('solicitudes').insert({
+          usuario_id: assignData.usuario_id,
+          tipo: 'insumo',
+          insumo_id: assignData.insumo_id,
+          cantidad: assignData.cantidad,
+          estado: 'aprobado',
+          observaciones_admin: assignData.observaciones ? `Entrega directa: ${assignData.observaciones}` : 'Entrega directa'
+        });
+        if (errorSol) throw errorSol;
 
-      // 3. Log Auditoria
-      const funcName = usuariosSlep.find(u => u.id === assignData.usuario_id)?.nombre || 'Funcionario';
-      await logAuditoria('insumos', 'Asignar Insumo', `Asignó ${assignData.cantidad}x ${assignData.insumo_nombre}. Observaciones: ${assignData.observaciones || 'Ninguna'}`, funcName);
+        // 3. Log Auditoria
+        const funcName = usuariosSlep.find(u => u.id === assignData.usuario_id)?.nombre || 'Funcionario';
+        await logAuditoria('insumos', 'Asignar Insumo', `Asignó ${assignData.cantidad}x ${assignData.insumo_nombre}. Observaciones: ${assignData.observaciones || 'Ninguna'}`, funcName);
+        showToast('Asignación exitosa', `Se han asignado ${assignData.cantidad} unidades al funcionario seleccionado.`, 'success');
+      }
 
-      showToast('Asignación exitosa', `Se han asignado ${assignData.cantidad} unidades a la cuenta seleccionada.`, 'success');
       setIsAssignModalOpen(false);
       await refetch();
       await fetchHistorial();
@@ -643,78 +711,179 @@ export default function InsumosPage() {
       {/* Modal Asignar Insumo */}
       {isAssignModalOpen && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white p-6 rounded-xl shadow-2xl w-full max-w-md animate-scale-in border-t-4 border-emerald-500">
+          <div className={`bg-white p-6 rounded-xl shadow-2xl w-full transition-all duration-350 animate-scale-in border-t-4 border-emerald-500 ${isMultiAssign ? 'max-w-xl' : 'max-w-md'}`}>
             <h2 className="text-xl font-bold mb-2 text-gray-800">Asignar Insumo</h2>
-            <p className="text-sm text-gray-500 mb-5 border-b pb-3">Entregando: <strong className="text-emerald-700">{assignData.insumo_nombre}</strong> (Stock: {assignData.stock_actual})</p>
+            <p className="text-sm text-gray-500 mb-4 border-b pb-3">
+              Entregando: <strong className="text-emerald-700">{assignData.insumo_nombre}</strong> (Stock: {assignData.stock_actual})
+            </p>
             
             <form onSubmit={handleAssign} className="space-y-4">
+              {/* Modo asignación múltiple toggle */}
+              <div className="flex items-center gap-2 mb-2 bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+                <input 
+                  type="checkbox" 
+                  id="multiAssignToggle" 
+                  checked={isMultiAssign} 
+                  onChange={(e) => {
+                    setIsMultiAssign(e.target.checked);
+                    setSelectedUsuarios([]);
+                    setAssignData(prev => ({ ...prev, usuario_id: '', cantidad: 1 }));
+                    setEntregasPrevias(null);
+                  }}
+                  className="rounded text-emerald-600 focus:ring-emerald-500 h-4 w-4 cursor-pointer"
+                />
+                <label htmlFor="multiAssignToggle" className="text-xs font-bold text-gray-700 select-none cursor-pointer">
+                  Activar modo asignaciones múltiples
+                </label>
+              </div>
+
               <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">Funcionario SLEP *</label>
-                {assignData.usuario_id ? (
-                  <div className="flex items-center justify-between p-2 bg-blue-50 border border-blue-200 rounded-lg shadow-sm w-full">
-                    <div className="flex items-center gap-2 overflow-hidden flex-1 min-w-0 pr-2">
-                      <div className="w-6 h-6 shrink-0 rounded-full bg-[#006BB9] text-white flex items-center justify-center text-xs font-bold">
-                        {getInitials(usuariosSlep.find(u => u.id === assignData.usuario_id)?.nombre)}
-                      </div>
-                      <div className="flex flex-col min-w-0 flex-1">
-                        <span className="text-xs leading-tight font-bold text-[#25306B] truncate">
-                          {usuariosSlep.find(u => u.id === assignData.usuario_id)?.nombre || 'Funcionario'}
-                        </span>
-                        <span className="text-[10px] text-gray-500 truncate">
-                          {usuariosSlep.find(u => u.id === assignData.usuario_id)?.email || ''}
-                        </span>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setAssignData({ ...assignData, usuario_id: '' });
-                        setEntregasPrevias(null);
+                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                  {isMultiAssign ? 'Buscar Funcionarios *' : 'Funcionario SLEP *'}
+                </label>
+
+                {isMultiAssign ? (
+                  <div className="space-y-3">
+                    <AutocompleteInput
+                      name="usuario_id"
+                      value={userSearchTerm}
+                      onChange={(e) => setUserSearchTerm(e.target.value)}
+                      options={usuariosSlep.map(u => ({ label: u.nombre || 'Sin nombre', value: u.id, sublabel: u.email }))}
+                      onSelectOption={(opt) => {
+                        const user = usuariosSlep.find(u => u.id === opt.value);
+                        if (user) {
+                          if (!selectedUsuarios.some(s => s.id === user.id)) {
+                            setSelectedUsuarios([...selectedUsuarios, user]);
+                          } else {
+                            showToast('Info', 'El usuario ya está en la lista.', 'info');
+                          }
+                        }
+                        setUserSearchTerm('');
                       }}
-                      className="text-red-500 hover:text-red-700 hover:bg-red-50 px-2 py-1 rounded-md transition-colors font-bold text-sm"
-                      title="Cambiar funcionario"
-                    >
-                      &times;
-                    </button>
-                  </div>
-                ) : (
-                  <AutocompleteInput
-                    name="usuario_id"
-                    value={userSearchTerm}
-                    onChange={(e) => setUserSearchTerm(e.target.value)}
-                    options={usuariosSlep.map(u => ({ label: u.nombre || 'Sin nombre', value: u.id, sublabel: u.email }))}
-                    onSelectOption={(opt) => {
-                      setAssignData({
-                        ...assignData,
-                        usuario_id: opt.value
-                      });
-                      setUserSearchTerm('');
-                    }}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none shadow-sm transition-shadow"
-                    placeholder="Buscar funcionario por nombre o correo..."
-                  />
-                )}
-                
-                {entregasPrevias !== null && (
-                  <div className={`mt-2 text-[11px] p-2.5 rounded-lg border ${entregasPrevias > 0 ? 'bg-amber-50 text-amber-800 border-amber-200' : 'bg-slate-50 text-slate-600 border-slate-200'}`}>
-                    {entregasPrevias > 0 ? (
-                      <p className="flex items-start gap-1.5">
-                        <span className="text-amber-500 mt-0.5">⚠️</span> 
-                        <span>Este funcionario ya ha recibido <strong>{entregasPrevias} unidad(es)</strong> de este insumo históricamente. Considere esto antes de asignar más.</span>
-                      </p>
-                    ) : (
-                      <p className="flex items-start gap-1.5">
-                        <span className="text-slate-400 mt-0.5">ℹ️</span> 
-                        <span>Primer registro: Este funcionario no ha recibido este insumo anteriormente.</span>
-                      </p>
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none shadow-sm transition-shadow"
+                      placeholder="Buscar funcionario por nombre o correo..."
+                    />
+
+                    {selectedUsuarios.length > 0 && (
+                      <div className="space-y-1.5 mt-2">
+                        <div className="flex justify-between items-center">
+                          <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider">
+                            Funcionarios por asignar ({selectedUsuarios.length})
+                          </label>
+                          <button 
+                            type="button" 
+                            onClick={() => setSelectedUsuarios([])} 
+                            className="text-[10px] text-red-500 hover:underline font-bold"
+                          >
+                            Limpiar todos
+                          </button>
+                        </div>
+                        <div className="border border-gray-200 rounded-lg p-2 bg-slate-50/50 max-h-36 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-1.5 custom-scrollbar">
+                          {selectedUsuarios.map(u => (
+                            <div key={u.id} className="bg-white border border-slate-250 rounded-md p-1.5 flex items-center justify-between shadow-sm">
+                              <div className="min-w-0 flex-1 pr-1.5">
+                                <div className="font-bold text-gray-800 text-[11px] leading-tight truncate">{u.nombre || 'Sin nombre'}</div>
+                                <div className="text-[9px] text-gray-500 truncate">{u.email}</div>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => setSelectedUsuarios(selectedUsuarios.filter(s => s.id !== u.id))}
+                                className="text-gray-400 hover:text-red-500 hover:bg-red-50 p-0.5 rounded transition-colors text-sm font-bold"
+                              >
+                                &times;
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
                     )}
                   </div>
+                ) : (
+                  <>
+                    {assignData.usuario_id ? (
+                      <div className="flex items-center justify-between p-2 bg-blue-50 border border-blue-200 rounded-lg shadow-sm w-full">
+                        <div className="flex items-center gap-2 overflow-hidden flex-1 min-w-0 pr-2">
+                          <div className="w-6 h-6 shrink-0 rounded-full bg-[#006BB9] text-white flex items-center justify-center text-xs font-bold">
+                            {getInitials(usuariosSlep.find(u => u.id === assignData.usuario_id)?.nombre)}
+                          </div>
+                          <div className="flex flex-col min-w-0 flex-1">
+                            <span className="text-xs leading-tight font-bold text-[#25306B] truncate">
+                              {usuariosSlep.find(u => u.id === assignData.usuario_id)?.nombre || 'Funcionario'}
+                            </span>
+                            <span className="text-[10px] text-gray-500 truncate">
+                              {usuariosSlep.find(u => u.id === assignData.usuario_id)?.email || ''}
+                            </span>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAssignData({ ...assignData, usuario_id: '' });
+                            setEntregasPrevias(null);
+                          }}
+                          className="text-red-500 hover:text-red-700 hover:bg-red-50 px-2 py-1 rounded-md transition-colors font-bold text-sm"
+                          title="Cambiar funcionario"
+                        >
+                          &times;
+                        </button>
+                      </div>
+                    ) : (
+                      <AutocompleteInput
+                        name="usuario_id"
+                        value={userSearchTerm}
+                        onChange={(e) => setUserSearchTerm(e.target.value)}
+                        options={usuariosSlep.map(u => ({ label: u.nombre || 'Sin nombre', value: u.id, sublabel: u.email }))}
+                        onSelectOption={(opt) => {
+                          setAssignData({
+                            ...assignData,
+                            usuario_id: opt.value
+                          });
+                          setUserSearchTerm('');
+                        }}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none shadow-sm transition-shadow"
+                        placeholder="Buscar funcionario por nombre o correo..."
+                      />
+                    )}
+
+                    {entregasPrevias !== null && (
+                      <div className={`mt-2 text-[11px] p-2.5 rounded-lg border ${entregasPrevias > 0 ? 'bg-amber-50 text-amber-800 border-amber-200' : 'bg-slate-50 text-slate-600 border-slate-200'}`}>
+                        {entregasPrevias > 0 ? (
+                          <p className="flex items-start gap-1.5">
+                            <span className="text-amber-500 mt-0.5">⚠️</span> 
+                            <span>Este funcionario ya ha recibido <strong>{entregasPrevias} unidad(es)</strong> de este insumo históricamente. Considere esto antes de asignar más.</span>
+                          </p>
+                        ) : (
+                          <p className="flex items-start gap-1.5">
+                            <span className="text-slate-400 mt-0.5">ℹ️</span> 
+                            <span>Primer registro: Este funcionario no ha recibido este insumo anteriormente.</span>
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
+
               <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">Cantidad a entregar *</label>
-                <input required type="number" min="1" max={assignData.stock_actual} value={assignData.cantidad} onChange={e => setAssignData({...assignData, cantidad: parseInt(e.target.value)})} className="w-full rounded-lg border-gray-300 shadow-sm border p-2.5 text-sm focus:border-emerald-500 focus:ring-emerald-500" />
+                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                  {isMultiAssign ? 'Cantidad por funcionario *' : 'Cantidad a entregar *'}
+                  {isMultiAssign && selectedUsuarios.length > 0 && (
+                    <span className="text-[10px] text-gray-500 lowercase font-normal ml-1">
+                      (Total: {assignData.cantidad * selectedUsuarios.length} uds, Stock disp: {assignData.stock_actual})
+                    </span>
+                  )}
+                </label>
+                <input 
+                  required 
+                  type="number" 
+                  min="1" 
+                  max={isMultiAssign && selectedUsuarios.length > 0 ? Math.floor(assignData.stock_actual / selectedUsuarios.length) : assignData.stock_actual} 
+                  value={assignData.cantidad} 
+                  onChange={e => setAssignData({...assignData, cantidad: parseInt(e.target.value) || 1})} 
+                  className="w-full rounded-lg border-gray-300 shadow-sm border p-2.5 text-sm focus:border-emerald-500 focus:ring-emerald-500" 
+                />
               </div>
+
               <div>
                 <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">Observaciones / Notas (Opcional)</label>
                 <textarea 
@@ -728,8 +897,16 @@ export default function InsumosPage() {
               
               <div className="flex justify-end gap-3 pt-4 border-t mt-4">
                 <button type="button" onClick={() => setIsAssignModalOpen(false)} className="px-5 py-2 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition-colors">Cancelar</button>
-                <button type="submit" disabled={assignData.stock_actual < 1} className="px-5 py-2 bg-emerald-600 text-white font-medium rounded-lg hover:bg-emerald-700 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">
-                  Confirmar Entrega
+                <button 
+                  type="submit" 
+                  disabled={
+                    (isMultiAssign ? selectedUsuarios.length === 0 : !assignData.usuario_id) || 
+                    assignData.cantidad < 1 || 
+                    (assignData.cantidad * (isMultiAssign ? selectedUsuarios.length : 1)) > assignData.stock_actual
+                  } 
+                  className="px-5 py-2 bg-emerald-600 text-white font-medium rounded-lg hover:bg-emerald-700 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed text-sm font-semibold"
+                >
+                  Confirmar Entrega {isMultiAssign && selectedUsuarios.length > 0 ? `(${assignData.cantidad * selectedUsuarios.length} uds)` : ''}
                 </button>
               </div>
             </form>
