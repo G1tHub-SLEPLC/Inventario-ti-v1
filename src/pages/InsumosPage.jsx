@@ -521,8 +521,16 @@ export default function InsumosPage() {
 
   return (
     <div className="p-6 max-w-[1920px] mx-auto space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <h1 className="text-2xl font-bold text-gray-800">Gestión de Insumos</h1>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 no-print-interactive">
+        <div className="flex items-center gap-3">
+          <div className="bg-[#112A46] p-2 rounded-lg text-white">
+            <Package size={24} />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-[#112A46] tracking-tight">Gestión de Insumos</h1>
+            <p className="text-sm text-gray-500 font-medium mt-0.5">Control y administración de inventario y consumibles</p>
+          </div>
+        </div>
         
         {activeTab === 'insumos' ? (
           <div className="flex gap-2">
