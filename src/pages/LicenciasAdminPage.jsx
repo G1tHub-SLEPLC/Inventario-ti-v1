@@ -755,24 +755,7 @@ export default function LicenciasAdminPage() {
         </div>
       </div>
 
-      {/* Global KPIs */}
-      <section className="grid grid-cols-1 sm:grid-cols-3 gap-4 no-print-interactive">
-        <div className="bg-white rounded-xl shadow-sm p-5 border-l-4" style={{ borderColor: 'var(--slep-primary)' }}>
-          <div className="text-xs uppercase tracking-wide text-gray-500 font-semibold">Total de Licencias</div>
-          <div className="text-4xl font-bold mt-2 text-[#25306B]">{totalLicencias}</div>
-          <div className="text-xs text-gray-500 mt-1">Licencias totales adquiridas</div>
-        </div>
-        <div className="bg-white rounded-xl shadow-sm p-5 border-l-4" style={{ borderColor: 'var(--slep-secondary)' }}>
-          <div className="text-xs uppercase tracking-wide text-gray-500 font-semibold">Licencias Asignadas</div>
-          <div className="text-4xl font-bold mt-2 text-[#006BB9]">{totalAsignadas}</div>
-          <div className="text-xs text-gray-500 mt-1">{totalLicencias ? ((totalAsignadas / totalLicencias) * 100).toFixed(1) : 0}% del total</div>
-        </div>
-        <div className="bg-white rounded-xl shadow-sm p-5 border-l-4" style={{ borderColor: 'var(--slep-green)' }}>
-          <div className="text-xs uppercase tracking-wide text-gray-500 font-semibold">Licencias Disponibles</div>
-          <div className="text-4xl font-bold mt-2 text-[#90d039]">{totalDisponibles}</div>
-          <div className="text-xs text-gray-500 mt-1">{totalLicencias ? ((totalDisponibles / totalLicencias) * 100).toFixed(1) : 0}% del total</div>
-        </div>
-      </section>
+
 
       {/* Tabs & Controls */}
       <section className="bg-white rounded-xl shadow-sm border border-gray-200 no-print-interactive">

@@ -909,24 +909,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Global KPIs */}
-      <section className="grid grid-cols-1 sm:grid-cols-3 gap-4 no-print-interactive">
-        <div className="bg-white rounded-xl shadow-sm p-5 border-l-4" style={{ borderColor: 'var(--slep-primary)' }}>
-          <div className="text-xs uppercase tracking-wide text-gray-500 font-semibold">Total de Equipos</div>
-          <div className="text-4xl font-bold mt-2 text-[#25306B]">{total}</div>
-          <div className="text-xs text-gray-500 mt-1">Registros en el inventario</div>
-        </div>
-        <div className="bg-white rounded-xl shadow-sm p-5 border-l-4" style={{ borderColor: 'var(--slep-secondary)' }}>
-          <div className="text-xs uppercase tracking-wide text-gray-500 font-semibold">Equipos Asignados</div>
-          <div className="text-4xl font-bold mt-2 text-[#006BB9]">{totalAsig}</div>
-          <div className="text-xs text-gray-500 mt-1">{total ? ((totalAsig / total) * 100).toFixed(1) : 0}% del total</div>
-        </div>
-        <div className="bg-white rounded-xl shadow-sm p-5 border-l-4" style={{ borderColor: 'var(--slep-green)' }}>
-          <div className="text-xs uppercase tracking-wide text-gray-500 font-semibold">Equipos Disponibles</div>
-          <div className="text-4xl font-bold mt-2 text-[#90d039]">{totalDisp}</div>
-          <div className="text-xs text-gray-500 mt-1">{total ? ((totalDisp / total) * 100).toFixed(1) : 0}% del total</div>
-        </div>
-      </section>
+
 
       {/* Tabs & Controls */}
       <section className="bg-white rounded-xl shadow-sm">
