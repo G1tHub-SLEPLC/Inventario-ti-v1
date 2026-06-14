@@ -56,7 +56,7 @@ export default function InsumosPage() {
   useEffect(() => {
     const loadUsuarios = async () => {
       const { data } = await supabase.from('perfiles').select('id, nombre, email, rol');
-      if (data) setUsuariosSlep(data.filter(u => u.rol === 'slep'));
+      if (data) setUsuariosSlep(data);
     };
     loadUsuarios();
   }, []);
