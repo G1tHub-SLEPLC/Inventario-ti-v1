@@ -248,6 +248,7 @@ export default function SlepDashboardPage() {
                 <thead>
                   <tr className="bg-gray-50 border-b border-gray-200 text-xs text-gray-600 uppercase">
                     <th className="px-4 py-3 font-semibold">Tipo</th>
+                    <th className="px-4 py-3 font-semibold">Nombre</th>
                     <th className="px-4 py-3 font-semibold">Marca</th>
                     <th className="px-4 py-3 font-semibold">Modelo</th>
                     <th className="px-4 py-3 font-semibold text-center w-24">Estado</th>
@@ -257,14 +258,15 @@ export default function SlepDashboardPage() {
                 <tbody className="divide-y divide-gray-200 text-sm text-gray-700">
                   {insumos.length === 0 ? (
                     <tr>
-                      <td colSpan="5" className="px-4 py-8 text-center text-gray-500 italic">No hay insumos en el catálogo.</td>
+                      <td colSpan="6" className="px-4 py-8 text-center text-gray-500 italic">No hay insumos en el catálogo.</td>
                     </tr>
                   ) : (
                     insumos.map((ins) => {
                       const disponible = ins.cantidad_disponible > 0;
                       return (
                         <tr key={ins.id} className="hover:bg-blue-50 even:bg-slate-50 transition-colors">
-                          <td className="px-4 py-3 font-medium">{ins.tipo || ins.nombre}</td>
+                          <td className="px-4 py-3">{ins.tipo || '—'}</td>
+                          <td className="px-4 py-3 font-medium whitespace-nowrap">{ins.nombre || '—'}</td>
                           <td className="px-4 py-3">{ins.marca || '—'}</td>
                           <td className="px-4 py-3">{ins.modelo || '—'}</td>
                           <td className="px-4 py-3 text-center">
