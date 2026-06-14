@@ -44,7 +44,7 @@ export const LicenciasProvider = ({ children }) => {
       .from('asignaciones_licencias')
       .select(`
         *,
-        licencias (software, version, tipo, descripcion, fecha_termino, estado)
+        licencias (software, version, tipo, descripcion, fecha_termino)
       `)
       .order('fecha_asignacion', { ascending: false });
       
