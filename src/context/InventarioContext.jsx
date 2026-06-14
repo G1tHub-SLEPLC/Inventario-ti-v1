@@ -100,11 +100,25 @@ export function InventarioProvider({ children }) {
         return;
       }
 
-      const { data, error } = await supabase.from('equipos').select('*, perfiles(id, nombre, email, subdireccion)');
-      if (error) {
-        console.error('Error al cargar inventario desde Supabase:', error);
-      } else if (data) {
-        const parsed = data.map(fromDbRow);
+      const { data: equiposData, error: equiposError } = await supabase.from('equipos').select('*');
+      if (equiposError) {
+        console.error('Error al cargar inventario desde Supabase:', equiposError);
+      } else if (equiposData) {
+        const { data: perfilesData, error: perfilesError } = await supabase.from('perfiles').select('id, nombre, email, subdireccion');
+        
+        const perfilesMap = {};
+        if (!perfilesError && perfilesData) {
+          perfilesData.forEach(p => { perfilesMap[p.id] = p; });
+        }
+
+        const parsed = equiposData.map(dbRow => {
+          const rowWithProfile = { ...dbRow };
+          if (dbRow.usuario_asignado_id && perfilesMap[dbRow.usuario_asignado_id]) {
+            rowWithProfile.perfiles = perfilesMap[dbRow.usuario_asignado_id];
+          }
+          return fromDbRow(rowWithProfile);
+        });
+        
         const consolidated = consolidateFileStatuses(parsed);
         setEquipos(consolidated);
       }
