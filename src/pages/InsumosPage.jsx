@@ -9,6 +9,7 @@ import { logAuditoria, getDiffString } from '../utils/auditoria';
 import { exportToExcelAndPDF } from '../utils/exportUtils';
 import { useSort } from '../hooks/useSort';
 import { SortableHeader } from '../components/SortableHeader';
+import AutocompleteInput from '../components/AutocompleteInput';
 
 function getInitials(name) {
   if (!name || name === '—') return '??';
@@ -40,6 +41,7 @@ export default function InsumosPage() {
   
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const [assignData, setAssignData] = useState({ insumo_id: null, insumo_nombre: '', usuario_id: '', cantidad: 1, stock_actual: 0, observaciones: '' });
+  const [userSearchTerm, setUserSearchTerm] = useState('');
   const [entregasPrevias, setEntregasPrevias] = useState(null);
 
   const [isEditHistModalOpen, setIsEditHistModalOpen] = useState(false);
@@ -216,6 +218,7 @@ export default function InsumosPage() {
 
   const openAssignModal = (insumo) => {
     setAssignData({ insumo_id: insumo.id, insumo_nombre: insumo.nombre, usuario_id: '', cantidad: 1, stock_actual: insumo.cantidad_disponible, observaciones: '' });
+    setUserSearchTerm('');
     setIsAssignModalOpen(true);
   };
 
@@ -647,12 +650,50 @@ export default function InsumosPage() {
             <form onSubmit={handleAssign} className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">Funcionario SLEP *</label>
-                <select required value={assignData.usuario_id} onChange={e => setAssignData({...assignData, usuario_id: e.target.value})} className="w-full rounded-lg border-gray-300 shadow-sm border p-2.5 text-sm focus:border-emerald-500 focus:ring-emerald-500 bg-white">
-                  <option value="">-- Seleccione un funcionario --</option>
-                  {usuariosSlep.map(u => (
-                    <option key={u.id} value={u.id}>{u.nombre || u.email}</option>
-                  ))}
-                </select>
+                {assignData.usuario_id ? (
+                  <div className="flex items-center justify-between p-2 bg-blue-50 border border-blue-200 rounded-lg shadow-sm w-full">
+                    <div className="flex items-center gap-2 overflow-hidden flex-1 min-w-0 pr-2">
+                      <div className="w-6 h-6 shrink-0 rounded-full bg-[#006BB9] text-white flex items-center justify-center text-xs font-bold">
+                        {getInitials(usuariosSlep.find(u => u.id === assignData.usuario_id)?.nombre)}
+                      </div>
+                      <div className="flex flex-col min-w-0 flex-1">
+                        <span className="text-xs leading-tight font-bold text-[#25306B] truncate">
+                          {usuariosSlep.find(u => u.id === assignData.usuario_id)?.nombre || 'Funcionario'}
+                        </span>
+                        <span className="text-[10px] text-gray-500 truncate">
+                          {usuariosSlep.find(u => u.id === assignData.usuario_id)?.email || ''}
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAssignData({ ...assignData, usuario_id: '' });
+                        setEntregasPrevias(null);
+                      }}
+                      className="text-red-500 hover:text-red-700 hover:bg-red-50 px-2 py-1 rounded-md transition-colors font-bold text-sm"
+                      title="Cambiar funcionario"
+                    >
+                      &times;
+                    </button>
+                  </div>
+                ) : (
+                  <AutocompleteInput
+                    name="usuario_id"
+                    value={userSearchTerm}
+                    onChange={(e) => setUserSearchTerm(e.target.value)}
+                    options={usuariosSlep.map(u => ({ label: u.nombre || 'Sin nombre', value: u.id, sublabel: u.email }))}
+                    onSelectOption={(opt) => {
+                      setAssignData({
+                        ...assignData,
+                        usuario_id: opt.value
+                      });
+                      setUserSearchTerm('');
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none shadow-sm transition-shadow"
+                    placeholder="Buscar funcionario por nombre o correo..."
+                  />
+                )}
                 
                 {entregasPrevias !== null && (
                   <div className={`mt-2 text-[11px] p-2.5 rounded-lg border ${entregasPrevias > 0 ? 'bg-amber-50 text-amber-800 border-amber-200' : 'bg-slate-50 text-slate-600 border-slate-200'}`}>
