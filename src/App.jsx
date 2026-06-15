@@ -4,6 +4,7 @@ import { InventarioProvider } from './context/InventarioContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { SolicitudesProvider } from './context/SolicitudesContext';
 import { LicenciasProvider } from './context/LicenciasContext';
+import { AlertProvider } from './context/AlertContext';
 
 // Lazy imports
 const AppShell        = lazy(() => import('./layouts/AppShell'));
@@ -70,9 +71,10 @@ function HomeRoute() {
 export default function App() {
   return (
     <AuthProvider>
-      <InventarioProvider>
-        <SolicitudesProvider>
-          <LicenciasProvider>
+      <AlertProvider>
+        <InventarioProvider>
+          <SolicitudesProvider>
+            <LicenciasProvider>
             <BrowserRouter>
             <Suspense fallback={<div className="flex items-center justify-center h-screen text-gray-400">Cargando…</div>}>
               <Routes>
@@ -116,9 +118,10 @@ export default function App() {
               </Routes>
             </Suspense>
             </BrowserRouter>
-          </LicenciasProvider>
-        </SolicitudesProvider>
-      </InventarioProvider>
+            </LicenciasProvider>
+          </SolicitudesProvider>
+        </InventarioProvider>
+      </AlertProvider>
     </AuthProvider>
   );
 }

@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useInventario } from '../context/InventarioContext';
+import { useAlert } from '../context/AlertContext';
 import { Save, AlertCircle, Eye, Clock, UserCheck, X, QrCode, Download, Printer } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { saveDocument, getDocument } from '../utils/db';
@@ -10,6 +11,7 @@ import { isSameUser } from '../utils/userUtils';
 
 export default function EditarEquipoModal({ equipo, onClose }) {
   const { equipos, updateEquipo, updateEquiposMasivo, showToast } = useInventario();
+  const { showAlertConfirm } = useAlert();
   const originalEquipo = equipo;
   const equipIndex = equipos.findIndex(eq => eq.id === originalEquipo?.id);
 
@@ -893,8 +895,8 @@ export default function EditarEquipoModal({ equipo, onClose }) {
                         </div>
                         <button
                           type="button"
-                          onClick={() => {
-                            if (window.confirm('¿Está seguro que desea eliminar este usuario del equipo?')) {
+                          onClick={async () => {
+                            if (await showAlertConfirm('Remover Usuario', '¿Está seguro que desea eliminar este usuario del equipo?')) {
                               setFormData({ ...formData, 'Usuario': '', 'SubDirección': '', usuario_asignado_id: '', estado: 'DISPONIBLE' });
                             }
                           }}
@@ -913,7 +915,7 @@ export default function EditarEquipoModal({ equipo, onClose }) {
                       value={userSearchTerm}
                       onChange={(e) => setUserSearchTerm(e.target.value)}
                       options={filteredAvailableUsuarios.map(u => ({ label: u.nombre || 'Sin nombre', value: u.id, sublabel: u.email }))}
-                      onSelectOption={(opt) => {
+                      onSelectOption={async (opt) => {
                         const currentDesc = formData['Descripción del Bien'];
                         if (currentDesc) {
                             const hasSameType = equipos.some(eq => 
@@ -923,7 +925,7 @@ export default function EditarEquipoModal({ equipo, onClose }) {
                             );
 
                           if (hasSameType) {
-                            if (!window.confirm(`El usuario ya tiene asignado un equipo del tipo "${currentDesc}". ¿Desea asignarlo de igual manera?`)) {
+                            if (!(await showAlertConfirm('Advertencia de Duplicidad', `El usuario ya tiene asignado un equipo del tipo "${currentDesc}". ¿Desea asignarlo de igual manera?`))) {
                               return; 
                             }
                           }

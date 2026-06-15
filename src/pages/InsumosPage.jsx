@@ -3,6 +3,7 @@ import { useSolicitudes } from '../context/SolicitudesContext';
 import { supabase } from '../lib/supabaseClient';
 import { useInventario } from '../context/InventarioContext';
 import { useAuth } from '../context/AuthContext';
+import { useAlert } from '../context/AlertContext';
 import { PlusCircle, Edit2, Trash2, UserPlus, History, Package, Upload, Download, Printer, UploadCloud, AlertCircle, CheckCircle, AlertTriangle, Eye, Users, Search, Box } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { logAuditoria, getDiffString } from '../utils/auditoria';
@@ -22,6 +23,7 @@ export default function InsumosPage() {
   const { insumos, refetch } = useSolicitudes();
   const { showToast } = useInventario();
   const { session } = useAuth();
+  const { showAlertConfirm } = useAlert();
   const { sorted: sortedInsumos, sortKey: insSortKey, sortDir: insSortDir, handleSort: handleInsSort } = useSort(insumos, 'nombre', 'asc');
   
   const [activeTab, setActiveTab] = useState('insumos'); // 'insumos' | 'func' | 'insumo'
@@ -219,7 +221,11 @@ export default function InsumosPage() {
   };
 
   const handleRevocarDesdeModal = async (histItem) => {
-    if (!confirm(`¿Estás seguro de que deseas eliminar esta entrega de ${histItem.cantidad}x ${histItem.insumos?.nombre}? Esto devolverá la cantidad al stock disponible.`)) return;
+    const confirmacion = await showAlertConfirm(
+      'Revertir Entrega',
+      `¿Estás seguro de que deseas eliminar esta entrega de <strong>${histItem.cantidad}x ${histItem.insumos?.nombre}</strong>?<br/><br/>Esta acción restaurará el stock y no se puede deshacer.`
+    );
+    if (!confirmacion) return;
 
     try {
       const { error: delError } = await supabase.from('solicitudes').delete().eq('id', histItem.id);
@@ -409,9 +415,15 @@ export default function InsumosPage() {
       });
 
       if (usersWithPrevious.length > 0) {
-        const userListStr = usersWithPrevious.map(u => `- ${u.nombre} (ya tiene ${u.cantidad} unidad(es))`).join('\n');
-        const confirmacion = window.confirm(
-          `ATENCIÓN: Los siguientes funcionarios ya han recibido este insumo anteriormente:\n\n${userListStr}\n\n¿Estás seguro de que deseas continuar con la asignación para todos ellos?`
+        if (!assignData.observaciones || assignData.observaciones.trim() === '') {
+          showToast('Observación Obligatoria', 'Se requiere ingresar una observación al asignar este insumo repetidas veces al mismo funcionario.', 'error');
+          return;
+        }
+
+        const userListStr = usersWithPrevious.map(u => `<li>${u.nombre} (ya tiene ${u.cantidad} unidad(es))</li>`).join('');
+        const confirmacion = await showAlertConfirm(
+          'Advertencia de Entregas Previas',
+          `ATENCIÓN: Los siguientes funcionarios ya han recibido este insumo anteriormente:<br/><br/><ul>${userListStr}</ul><br/>¿Estás seguro de que deseas continuar con la asignación para todos ellos?`
         );
         if (!confirmacion) {
           return; // Cancel assignment

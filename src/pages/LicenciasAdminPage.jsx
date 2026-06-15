@@ -10,6 +10,7 @@ import { exportToExcelAndPDF } from '../utils/exportUtils';
 import { useAuth } from '../context/AuthContext';
 import { useSort } from '../hooks/useSort';
 import { SortableHeader } from '../components/SortableHeader';
+import { useAlert } from '../context/AlertContext';
 
 const TIPOS_LICENCIA = [
   'SAAS', 'Perpetua', 'SW Propietario', 'SW Libre (Open Source)', 'Freemium / Shareware', 'PAAS (Plataforma como Servicio)', 'IAAS (Infraestructura como Servicio)'
@@ -34,6 +35,7 @@ export default function LicenciasAdminPage() {
   const { session } = useAuth();
   const { licencias, asignaciones, loading, addLicencia, updateLicencia, deleteLicencia, asignarLicencia, asignarLicenciasMultiples, revocarLicencia, getAsignacionesCount, addLicenciasMasivo, executeMasivoLicencias, saveLicenciaDocument, setLicenciaFileStatus } = useLicencias();
   const { showToast } = useInventario();
+  const { showAlertConfirm } = useAlert();
 
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = searchParams.get('tab') || 'disp';
@@ -417,12 +419,6 @@ export default function LicenciasAdminPage() {
       setDeleteError('Ocurrió un error al eliminar.');
     }
     setIsDeleting(false);
-  };
-
-  const handleRevocar = async (asignacion) => {
-    if (confirm(`¿Revocar el acceso a esta licencia para ${asignacion.perfiles?.nombre || asignacion.perfiles?.email}?`)) {
-      await revocarLicencia(asignacion.id, asignacion.licencias?.software, asignacion.perfiles?.nombre || asignacion.perfiles?.email);
-    }
   };
 
   const asignacionesDeLicencia = useMemo(() => {
@@ -1107,7 +1103,8 @@ export default function LicenciasAdminPage() {
                           const handleRevocarClick = async () => {
                             const softwareName = asig.licencias?.software || 'Software';
                             const uName = selectedFunc.nombre || selectedFunc.email || 'Funcionario';
-                            if (window.confirm(`¿Está seguro que desea revocar la licencia de "${softwareName}" para ${uName}?`)) {
+                            const confirmed = await showAlertConfirm('Revocar Licencia', `¿Está seguro que desea revocar la licencia de "<strong>${softwareName}</strong>" para <strong>${uName}</strong>?`);
+                            if (confirmed) {
                               try {
                                 await revocarLicencia(asig.id, softwareName, uName);
                               } catch (err) {
@@ -1274,7 +1271,8 @@ export default function LicenciasAdminPage() {
                             const handleRevocarClick = async () => {
                               const softwareName = selectedLic?.software || 'Software';
                               const uName = asig.perfiles?.nombre || asig.perfiles?.email || 'Funcionario';
-                              if (window.confirm(`¿Está seguro que desea revocar la licencia de "${softwareName}" para ${uName}?`)) {
+                              const confirmed = await showAlertConfirm('Revocar Licencia', `¿Está seguro que desea revocar la licencia de "<strong>${softwareName}</strong>" para <strong>${uName}</strong>?`);
+                              if (confirmed) {
                                 try {
                                   await revocarLicencia(asig.id, softwareName, uName);
                                 } catch (err) {

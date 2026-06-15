@@ -1,5 +1,7 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { useInventario } from '../context/InventarioContext';
+import { useAuth } from '../context/AuthContext';
+import { useAlert } from '../context/AlertContext';
 import * as XLSX from 'xlsx';
 import Papa from 'papaparse';
 import { Download, Search, Package, UserCircle, MonitorSmartphone, Printer, Eye, Upload, Pencil, CheckCircle, UploadCloud, AlertCircle, FileWarning, AlertTriangle, PlusCircle, UserPlus, QrCode } from 'lucide-react';
@@ -133,6 +135,8 @@ const isQRSupported = (tipo) => {
 
 export default function DashboardPage() {
   const { equipos, loading, setFileStatus, addMasivo, updateEquipo } = useInventario();
+  const { user } = useAuth();
+  const { showAlertConfirm, showAlertPrompt } = useAlert();
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = searchParams.get('tab') || 'disp';
   const setActiveTab = (tab) => {
@@ -1318,7 +1322,7 @@ export default function DashboardPage() {
                 Cancelar
               </button>
               <button
-                onClick={() => {
+                onClick={async () => {
                   const currentDesc = assignModalData['Descripción del Bien'];
                   const isDisp = isAvailable(assignUserName);
                   let obsData = '';
@@ -1359,11 +1363,18 @@ export default function DashboardPage() {
                     }
 
                     if (hasDuplicate) {
-                      if (!window.confirm(`El usuario ya tiene asignado un equipo de este tipo (${conflictDesc}). ¿Desea continuar y asignarlo de igual manera?`)) {
+                      const confirmed = await showAlertConfirm(
+                        'Advertencia de Duplicidad',
+                        `El usuario ya tiene asignado un equipo de este tipo (<strong>${conflictDesc}</strong>).<br/><br/>¿Desea continuar y asignarlo de igual manera?`
+                      );
+                      if (!confirmed) {
                         return;
                       }
                       
-                      const reason = window.prompt("Ingrese el motivo por el cual se asigna un equipo adicional a este usuario (OBLIGATORIO):");
+                      const reason = await showAlertPrompt(
+                        'Justificación de Asignación',
+                        'Ingrese el motivo por el cual se asigna un equipo adicional a este usuario (OBLIGATORIO):'
+                      );
                       if (!reason || !reason.trim()) {
                         showLocalToast('Cancelado', 'La asignación de equipo adicional requiere una observación obligatoria.', 'error');
                         return;

@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { useInventario } from '../context/InventarioContext';
-import { Save, AlertCircle } from 'lucide-react';
+import { useAlert } from '../context/AlertContext';
+import { Save, AlertCircle, UserCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { saveDocument } from '../utils/db';
 import { supabase } from '../lib/supabaseClient';
@@ -16,6 +17,7 @@ const COLUMNS = [
 
 export default function NuevoEquipoPage() {
   const { equipos, addEquipo, addMasivo, showToast, updateEquiposMasivo } = useInventario();
+  const { showAlertConfirm } = useAlert();
   const navigate = useNavigate();
   const [formData, setFormData] = useState({ estado: 'DISPONIBLE', usuario_asignado_id: '' });
   const [selectDescVal, setSelectDescVal] = useState('');
@@ -595,8 +597,9 @@ export default function NuevoEquipoPage() {
                       </div>
                       <button
                         type="button"
-                        onClick={() => {
-                          if (window.confirm('¿Está seguro que desea eliminar este usuario del equipo?')) {
+                        onClick={async () => {
+                          const confirmed = await showAlertConfirm('Remover Usuario', '¿Está seguro que desea eliminar este usuario del equipo?');
+                          if (confirmed) {
                             setFormData({ ...formData, usuario_asignado_id: '', 'Usuario': '' });
                           }
                         }}
@@ -616,7 +619,7 @@ export default function NuevoEquipoPage() {
                       value={userSearchTerm}
                       onChange={(e) => setUserSearchTerm(e.target.value)}
                       options={filteredAvailableUsuarios.map(u => ({ label: u.nombre || 'Sin nombre', value: u.id, sublabel: u.email }))}
-                      onSelectOption={(opt) => {
+                      onSelectOption={async (opt) => {
                         const currentDesc = formData['Descripción del Bien'];
                         if (currentDesc) {
                           const hasSameType = equipos.some(eq => 
@@ -625,7 +628,11 @@ export default function NuevoEquipoPage() {
                           );
 
                           if (hasSameType) {
-                            if (!window.confirm(`El usuario ya tiene asignado un equipo del tipo "${currentDesc}". ¿Desea asignarlo de igual manera?`)) {
+                            const confirmed = await showAlertConfirm(
+                              'Advertencia de Duplicidad',
+                              `El usuario ya tiene asignado un equipo del tipo "<strong>${currentDesc}</strong>".<br/><br/>¿Desea asignarlo de igual manera?`
+                            );
+                            if (!confirmed) {
                               return; 
                             }
                           }
