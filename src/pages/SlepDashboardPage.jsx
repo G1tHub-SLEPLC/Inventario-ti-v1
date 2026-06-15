@@ -12,7 +12,7 @@ export default function SlepDashboardPage() {
   const { insumos, solicitarInsumo, solicitarPrestamo, solicitudes } = useSolicitudes();
   const { asignaciones } = useLicencias();
   const [activeTab, setActiveTab] = useState('equipos'); // 'equipos', 'insumos', 'prestamos', 'licencias'
-  
+
   // Forms state
   const [selectedInsumo, setSelectedInsumo] = useState('');
   const [cantidadInsumo, setCantidadInsumo] = useState(1);
@@ -46,7 +46,7 @@ export default function SlepDashboardPage() {
   // Filtrar equipos
   const misEquipos = useMemo(() => {
     const userName = perfil?.nombre || formatEmailName(session?.user?.email);
-    
+
     const normalize = (str) => {
       if (!str) return '';
       return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
@@ -57,11 +57,11 @@ export default function SlepDashboardPage() {
       const n1 = normalize(name1);
       const n2 = normalize(name2);
       if (n1 === n2) return true;
-      
+
       const w1 = n1.split(/\s+/).filter(w => w.length > 2);
       const w2 = n2.split(/\s+/).filter(w => w.length > 2);
       if (w1.length === 0 || w2.length === 0) return false;
-      
+
       const [shorter, longer] = w1.length < w2.length ? [w1, w2] : [w2, w1];
       // Require at least 2 words to match (like first name and last name) to avoid generic single-word false positives,
       // unless the shorter name only has 1 valid word.
@@ -87,7 +87,7 @@ export default function SlepDashboardPage() {
   const getLogoUrl = (softwareName) => {
     if (!softwareName) return null;
     const name = softwareName.toLowerCase();
-    
+
     let domain = '';
     if (name.includes('office') || name.includes('microsoft 365') || name.includes('m365') || name.includes('excel') || name.includes('word') || name.includes('powerpoint') || name.includes('teams') || name.includes('outlook')) {
       domain = 'office.com';
@@ -109,7 +109,7 @@ export default function SlepDashboardPage() {
       const firstWord = softwareName.split(' ')[0].toLowerCase().replace(/[^a-z0-9]/g, '');
       domain = `${firstWord}.com`;
     }
-    
+
     return `https://logos.hunter.io/${domain}`;
   };
 
@@ -120,11 +120,11 @@ export default function SlepDashboardPage() {
     const entregasPrevias = solicitudes
       .filter(s => s.tipo === 'insumo' && String(s.insumo_id) === String(insumoId) && s.estado === 'aprobado')
       .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-    
+
     if (entregasPrevias.length > 0) {
       const ultima = entregasPrevias[0];
       const fecha = new Date(ultima.created_at).toLocaleDateString('es-CL', { day: '2-digit', month: 'long', year: 'numeric' });
-      
+
       // Mostrar el toast
       showToast('Atención', `Ya se te asignó este insumo anteriormente (${fecha}). Revisa bien tu solicitud.`, 'warning', null, 10000);
     }
@@ -150,7 +150,7 @@ export default function SlepDashboardPage() {
   const handleSolicitarPrestamo = async (e) => {
     e.preventDefault();
     if (!selectedEquipo || !fechaInicio || !fechaFin || !horaInicio || !horaFin || !motivo) return;
-    
+
     const startDateTime = new Date(`${fechaInicio}T${horaInicio}`);
     const endDateTime = new Date(`${fechaFin}T${horaFin}`);
 
@@ -192,15 +192,15 @@ export default function SlepDashboardPage() {
 
   const openPrestamoModal = (equipoId) => {
     const targetEquipo = equipos.find(e => e.id === equipoId || String(e.id) === String(equipoId));
-    
+
     // Check if there is a pending request for this equipment
     const pendingRequest = targetEquipo ? solicitudes.find(sol => {
       if (sol.tipo !== 'prestamo' || sol.estado !== 'pendiente') return false;
-      
+
       const matchId = sol.equipo_id === equipoId || String(sol.equipo_id) === String(equipoId);
       const matchSerial1 = targetEquipo['Nº de serie'] && (sol.equipo_id === targetEquipo['Nº de serie'] || String(sol.equipo_id) === String(targetEquipo['Nº de serie']));
       const matchSerial2 = targetEquipo['N° de serie'] && (sol.equipo_id === targetEquipo['N° de serie'] || String(sol.equipo_id) === String(targetEquipo['N° de serie']));
-      
+
       return matchId || matchSerial1 || matchSerial2;
     }) : null;
 
@@ -261,7 +261,7 @@ export default function SlepDashboardPage() {
 
       {/* Tab Content */}
       <div className="bg-white p-6 rounded-lg shadow border border-gray-100">
-        
+
         {/* TAB: MIS EQUIPOS */}
         {activeTab === 'equipos' && (
           <div>
@@ -290,7 +290,7 @@ export default function SlepDashboardPage() {
                             {eq.imagen_url ? (
                               <img src={eq.imagen_url} alt={eq['Descripción del Bien'] || 'Equipo'} style={{ objectFit: 'contain' }} className="w-full h-full" />
                             ) : (
-                              <span className="text-[8px] text-gray-400 font-bold uppercase text-center leading-tight">Sin<br/>Img</span>
+                              <span className="text-[8px] text-gray-400 font-bold uppercase text-center leading-tight">Sin<br />Img</span>
                             )}
                           </div>
                         </td>
@@ -392,21 +392,21 @@ export default function SlepDashboardPage() {
                     </tr>
                   ) : (
                     equiposDisponiblesParaPrestamo.map((eq) => {
-                      const activeLoan = solicitudes.find(sol => 
-                        sol.tipo === 'prestamo' && 
-                        sol.estado === 'aprobado' && 
+                      const activeLoan = solicitudes.find(sol =>
+                        sol.tipo === 'prestamo' &&
+                        sol.estado === 'aprobado' &&
                         (sol.equipo_id === eq.id || sol.equipo_id === eq['Nº de serie'] || String(sol.equipo_id) === String(eq.id))
                       );
                       const isEnPrestamo = eq.estado === 'EN PRESTAMO';
                       const isEsperandoRespuesta = eq.estado === 'ESPERANDO RESPUESTA';
-                      
+
                       return (
                         <tr key={eq.id} className="hover:bg-blue-50 even:bg-slate-50 transition-colors">
                           <td className="px-4 py-3 font-medium">{eq['Descripción del Bien'] || '—'}</td>
                           <td className="px-4 py-3">{eq.Marca || '—'}</td>
                           <td className="px-4 py-3">{eq.Modelo || '—'}</td>
                           <td className="px-4 py-3 font-mono text-[12px]">{eq['Nº de serie'] || '—'}</td>
-                          
+
                           {/* Usuario entregado */}
                           <td className="px-4 py-3">
                             {isEnPrestamo ? (
@@ -420,7 +420,7 @@ export default function SlepDashboardPage() {
                               </div>
                             ) : '—'}
                           </td>
-                          
+
                           {/* Fecha devolución */}
                           <td className="px-4 py-3">
                             {isEnPrestamo ? (
@@ -509,11 +509,11 @@ export default function SlepDashboardPage() {
                   <tbody className="divide-y divide-gray-200">
                     {misLicencias.map((asignacion) => {
                       const lic = asignacion.licencias;
-                      
+
                       // Calculate status
                       let estadoLabel = 'ACTIVA';
                       let estadoClass = 'bg-emerald-50 text-emerald-700 border-emerald-200';
-                      
+
                       if (!lic) {
                         estadoLabel = 'ELIMINADA';
                         estadoClass = 'bg-slate-100 text-slate-700 border-slate-200';
@@ -531,7 +531,7 @@ export default function SlepDashboardPage() {
                           }
                         }
                       }
-                      
+
                       // Format expiration date to prevent timezone shift
                       const formatExpDate = (dateStr) => {
                         if (!dateStr) return '';
@@ -558,7 +558,7 @@ export default function SlepDashboardPage() {
                           </td>
                           <td className="px-3 py-2.5">
                             <div className="font-bold text-[#112A46] text-[15px]">
-                              {lic?.software || 'Software Eliminado'} 
+                              {lic?.software || 'Software Eliminado'}
                               {lic?.version && <span className="text-xs font-medium text-gray-500 ml-1">{lic.version}</span>}
                             </div>
                             <div className="text-[11px] mt-1 flex gap-2 items-center">
@@ -596,11 +596,11 @@ export default function SlepDashboardPage() {
             <form onSubmit={handleSolicitarInsumo} className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">Cantidad Requerida</label>
-                <input 
-                  type="number" 
-                  min="1" 
+                <input
+                  type="number"
+                  min="1"
                   required
-                  value={cantidadInsumo} 
+                  value={cantidadInsumo}
                   onChange={(e) => setCantidadInsumo(parseInt(e.target.value))}
                   className="w-full rounded-lg border-gray-300 shadow-sm border p-2.5 text-sm focus:border-[#006BB9] focus:ring-[#006BB9]"
                 />
@@ -623,10 +623,10 @@ export default function SlepDashboardPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">Fecha de Inicio</label>
-                  <input 
-                    type="date" 
+                  <input
+                    type="date"
                     required
-                    value={fechaInicio} 
+                    value={fechaInicio}
                     onChange={(e) => setFechaInicio(e.target.value)}
                     onClick={(e) => e.target.showPicker && e.target.showPicker()}
                     className="w-full rounded-lg border-gray-300 shadow-sm border p-2.5 text-sm focus:border-[#006BB9] focus:ring-[#006BB9] bg-white cursor-pointer"
@@ -634,19 +634,19 @@ export default function SlepDashboardPage() {
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">Hora de Inicio</label>
-                  <CustomTimePicker 
+                  <CustomTimePicker
                     required
-                    value={horaInicio} 
+                    value={horaInicio}
                     onChange={setHoraInicio}
                     placeholder="HH:MM"
                   />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">Fecha de Devolución</label>
-                  <input 
-                    type="date" 
+                  <input
+                    type="date"
                     required
-                    value={fechaFin} 
+                    value={fechaFin}
                     onChange={(e) => setFechaFin(e.target.value)}
                     onClick={(e) => e.target.showPicker && e.target.showPicker()}
                     className="w-full rounded-lg border-gray-300 shadow-sm border p-2.5 text-sm focus:border-[#006BB9] focus:ring-[#006BB9] bg-white cursor-pointer"
@@ -654,18 +654,18 @@ export default function SlepDashboardPage() {
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">Hora de Devolución</label>
-                  <CustomTimePicker 
+                  <CustomTimePicker
                     required
-                    value={horaFin} 
+                    value={horaFin}
                     onChange={setHoraFin}
                     placeholder="HH:MM"
                   />
                 </div>
               </div>
-              
+
               <div>
                 <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">Motivo de la Reserva (Obligatorio)</label>
-                <textarea 
+                <textarea
                   required
                   placeholder="Explique brevemente para qué necesita este equipo..."
                   value={motivo}
@@ -690,9 +690,9 @@ export default function SlepDashboardPage() {
             <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-amber-50 text-amber-500 mb-4 border border-amber-200">
               <AlertTriangle size={32} className="animate-pulse" />
             </div>
-            
+
             <h3 className="text-lg font-bold text-gray-900 text-center mb-2">Solicitud de Préstamo en Trámite</h3>
-            
+
             <div className="space-y-3 mt-4">
               <p className="text-sm text-gray-600 text-center leading-relaxed">
                 El funcionario <strong className="text-gray-800 font-semibold">{pendingWarningInfo.applicantName}</strong> tiene una solicitud de préstamo pendiente para este mismo equipo.
@@ -701,11 +701,11 @@ export default function SlepDashboardPage() {
                 Actualmente se encuentra en espera de que el administrador revise la solicitud para su aprobación o rechazo.
               </p>
             </div>
-            
+
             <div className="flex justify-center pt-4 border-t border-gray-100 mt-6">
-              <button 
-                type="button" 
-                onClick={handleCancelWarning} 
+              <button
+                type="button"
+                onClick={handleCancelWarning}
                 className="px-8 py-2.5 bg-[#006BB9] hover:bg-[#25306B] text-white text-sm font-semibold rounded-xl transition-colors shadow-sm w-full sm:w-auto cursor-pointer"
               >
                 Entendido

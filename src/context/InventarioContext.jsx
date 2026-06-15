@@ -36,7 +36,7 @@ function consolidateFileStatuses(list) {
 }
 
 function toDbRow(eq) {
-  const { id, 'Nº de serie': serial, 'Orden de Compra': oc, 'Factura': fac, hasOcFile, hasFacturaFile, estado, usuario_asignado_id, ...detalles } = eq;
+  const { id, 'Nº de serie': serial, 'Orden de Compra': oc, 'Factura': fac, hasOcFile, hasFacturaFile, estado, usuario_asignado_id, perfiles, ...detalles } = eq;
   return {
     id,
     serial: serial || '',
@@ -72,6 +72,7 @@ function fromDbRow(dbRow) {
     hasFacturaFile: dbRow.has_factura_file,
     estado: dbRow.estado || 'DISPONIBLE',
     usuario_asignado_id: dbRow.usuario_asignado_id || null,
+    perfiles: dbRow.perfiles || null,
     ...detalles
   };
 }
