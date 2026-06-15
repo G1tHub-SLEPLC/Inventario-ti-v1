@@ -8,6 +8,8 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { saveDocument, getDocument } from '../utils/db';
 import EditarEquipoModal from '../components/EditarEquipoModal';
 import { isSameUser } from '../utils/userUtils';
+import AutocompleteInput from '../components/AutocompleteInput';
+import { supabase } from '../lib/supabaseClient';
 
 const COLUMNS = [
   'Descripción del Bien', 'Marca', 'Modelo', 'Nº de serie',
@@ -151,6 +153,18 @@ export default function DashboardPage() {
   const [assignModalData, setAssignModalData] = useState(null);
   const [assignUserName, setAssignUserName] = useState('');
   const [qrModalData, setQrModalData] = useState(null);
+  const [perfilesOptions, setPerfilesOptions] = useState([]);
+
+  useEffect(() => {
+    async function fetchPerfiles() {
+      const { data } = await supabase.from('perfiles').select('nombre, email');
+      if (data) {
+        const ops = new Set(data.map(p => p.nombre || p.email).filter(Boolean));
+        setPerfilesOptions(Array.from(ops).sort());
+      }
+    }
+    fetchPerfiles();
+  }, []);
 
   useEffect(() => {
     const handleGlobalMouseMove = (e) => {
@@ -1280,20 +1294,23 @@ export default function DashboardPage() {
               <UserPlus className="text-[#006BB9]" /> Asignar Equipo
             </h3>
             <p className="text-sm text-gray-600 mb-4 border-b pb-4">
-              <span className="font-semibold block">{assignModalData['Descripción del Bien'] || 'Equipo'}</span>
-              S/N: {assignModalData['Nº de serie'] || 'N/A'}
+              <span className="font-semibold block text-base">{assignModalData['Descripción del Bien'] || 'Equipo'}</span>
+              <span className="block mt-1"><strong>Marca:</strong> {assignModalData['Marca'] || 'N/A'}</span>
+              <span className="block"><strong>Modelo:</strong> {assignModalData['Modelo'] || 'N/A'}</span>
+              <span className="block"><strong>S/N:</strong> {assignModalData['Nº de serie'] || 'N/A'}</span>
+              <span className="block mt-2"><strong>Estado Actual:</strong> <span className="uppercase text-xs font-bold px-2 py-1 bg-gray-100 rounded text-gray-600">{assignModalData.estado || 'DISPONIBLE'}</span></span>
             </p>
-            <div className="mb-6">
+            <div className="mb-6 relative">
               <label className="block text-sm font-semibold text-[#25306B] mb-2">Nombre del Usuario / Funcionario</label>
-              <input
-                type="text"
+              <AutocompleteInput
                 value={assignUserName}
                 onChange={(e) => setAssignUserName(e.target.value)}
+                options={perfilesOptions}
                 placeholder="Ej. Juan Pérez (Dejar vacío para Disponible)"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#006BB9] focus:outline-none"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#006BB9] focus:outline-none bg-white"
               />
             </div>
-            <div className="flex justify-end gap-3 mt-auto">
+            <div className="flex justify-end gap-3 mt-auto relative z-0">
               <button
                 onClick={() => setAssignModalData(null)}
                 className="px-4 py-2 text-sm font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
