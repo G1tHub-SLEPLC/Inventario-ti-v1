@@ -148,6 +148,22 @@ export default function SlepDashboardPage() {
       return;
     }
 
+    // Validación de horario de devolución
+    const returnDay = endDateTime.getDay(); // 0 = Domingo, 1 = Lunes, ..., 5 = Viernes, 6 = Sábado
+    const returnTimeNum = endDateTime.getHours() * 100 + endDateTime.getMinutes();
+
+    if (returnDay >= 1 && returnDay <= 4) { // Lunes a Jueves
+      if (returnTimeNum > 1645) {
+        showToast('Horario excedido', 'De lunes a jueves, los equipos deben devolverse a las 16:45 hrs como máximo. De lo contrario, programa la devolución para el día hábil siguiente a primera hora.', 'error', null, 8000);
+        return;
+      }
+    } else if (returnDay === 5) { // Viernes
+      if (returnTimeNum > 1545) {
+        showToast('Horario excedido', 'Los viernes, los equipos deben devolverse a las 15:45 hrs como máximo. De lo contrario, programa la devolución para el día hábil siguiente a primera hora.', 'error', null, 8000);
+        return;
+      }
+    }
+
     try {
       await solicitarPrestamo(selectedEquipo, fechaInicio, fechaFin, horaInicio, horaFin, motivo);
       setSelectedEquipo('');

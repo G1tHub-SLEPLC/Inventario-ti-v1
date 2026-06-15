@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { useInventario } from '../context/InventarioContext';
-import { PlusCircle, Edit2, Trash2, Users, UploadCloud, XCircle, CheckCircle, QrCode, Download, Printer } from 'lucide-react';
+import { useSolicitudes } from '../context/SolicitudesContext';
+import { PlusCircle, Edit2, Trash2, Users, UploadCloud, XCircle, CheckCircle, QrCode, Download, Printer, AlertTriangle } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import * as XLSX from 'xlsx';
 import { logAuditoria } from '../utils/auditoria';
@@ -25,6 +26,7 @@ function getInitials(name) {
 
 export default function UsuariosAdminPage() {
   const { showToast, equipos } = useInventario();
+  const { solicitudes } = useSolicitudes();
   const [usuarios, setUsuarios] = useState([]);
   const { sorted: sortedUsuarios, sortKey: uSortKey, sortDir: uSortDir, handleSort: handleUSort } = useSort(usuarios, 'nombre', 'asc');
   
@@ -35,6 +37,15 @@ export default function UsuariosAdminPage() {
     const combinedList = [...listFromUsers, ...listFromEquipos].map(s => String(s).trim()).filter(s => s !== '' && s !== '—');
     return [...new Set(combinedList)].sort((a, b) => String(a).localeCompare(String(b)));
   }, [usuarios, equipos]);
+
+  const atrasosPorUsuario = useMemo(() => {
+    return (solicitudes || []).reduce((acc, sol) => {
+      if (sol.estado === 'devuelto_atrasado') {
+        acc[sol.usuario_id] = (acc[sol.usuario_id] || 0) + 1;
+      }
+      return acc;
+    }, {});
+  }, [solicitudes]);
 
   const [loading, setLoading] = useState(true);
   
@@ -458,6 +469,7 @@ export default function UsuariosAdminPage() {
               <SortableHeader label="Correo Electrónico" sortKey="email" currentKey={uSortKey} currentDir={uSortDir} onSort={handleUSort} className="px-6 py-3" />
               <SortableHeader label="Subdirección" sortKey="subdireccion" currentKey={uSortKey} currentDir={uSortDir} onSort={handleUSort} className="px-6 py-3" />
               <SortableHeader label="Rol" sortKey="rol" currentKey={uSortKey} currentDir={uSortDir} onSort={handleUSort} className="px-6 py-3" />
+              <th className="px-6 py-3 text-center">Cumplimiento</th>
               <th className="px-6 py-3 text-center">Acciones</th>
             </tr>
           </thead>
@@ -479,14 +491,25 @@ export default function UsuariosAdminPage() {
                       </span>
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-gray-600">{user.email}</td>
-                  <td className="px-6 py-4 text-gray-600">{user.subdireccion || '—'}</td>
-                  <td className="px-6 py-4">
+                  <td className="px-6 py-4 whitespace-nowrap text-gray-600">{user.email}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-gray-700 font-medium">{user.subdireccion || '—'}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-gray-500">
                     <span className={`px-2.5 py-1 rounded text-[11px] font-bold tracking-wide uppercase border whitespace-nowrap ${
                       user.rol === 'admin_ti' ? 'bg-purple-50 text-purple-700 border-purple-200' : 'bg-blue-50 text-blue-700 border-blue-200'
                     }`}>
                       {user.rol === 'admin_ti' ? 'Administrador' : 'Funcionario'}
                     </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-center">
+                    {atrasosPorUsuario[user.id] > 0 ? (
+                      <span className="inline-flex items-center gap-1 bg-red-50 text-red-700 border border-red-200 px-2 py-1 rounded text-xs font-bold shadow-sm">
+                        <AlertTriangle size={12} /> {atrasosPorUsuario[user.id]} Atraso(s)
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-emerald-600 text-xs font-bold">
+                        <CheckCircle size={12} /> Óptimo
+                      </span>
+                    )}
                   </td>
                   <td className="px-6 py-4 text-center">
                     <button onClick={() => setQrModalUser(user)} className="text-emerald-600 hover:text-emerald-800 mr-4" title="Generar QR de Funcionario">

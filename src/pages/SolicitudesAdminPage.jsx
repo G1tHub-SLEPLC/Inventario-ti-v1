@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useSolicitudes } from '../context/SolicitudesContext';
 import { useInventario } from '../context/InventarioContext';
 import { supabase } from '../lib/supabaseClient';
-import { CheckCircle, XCircle, Clock, Download, Printer, Check, X } from 'lucide-react';
+import { Check, X, Clock, Download, Printer, AlertTriangle } from 'lucide-react';
 import { logAuditoria } from '../utils/auditoria';
 import { exportToExcelAndPDF } from '../utils/exportUtils';
 import { sendInsumoAprobadoEmail } from '../utils/emailUtils';
@@ -15,29 +15,42 @@ export default function SolicitudesAdminPage() {
   const { equipos, showToast, refetch: refetchInventario } = useInventario();
   const { perfil } = useAuth();
   const { sorted: sortedSolicitudes, sortKey: solSortKey, sortDir: solSortDir, handleSort: handleSolSort } = useSort(solicitudes);
+  
+  const atrasosPorUsuario = useMemo(() => {
+    return solicitudes.reduce((acc, sol) => {
+      if (sol.estado === 'devuelto_atrasado') {
+        acc[sol.usuario_id] = (acc[sol.usuario_id] || 0) + 1;
+      }
+      return acc;
+    }, {});
+  }, [solicitudes]);
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedSolicitud, setSelectedSolicitud] = useState(null);
   const [observaciones, setObservaciones] = useState('');
-  const [accion, setAccion] = useState(''); // 'aprobar' o 'rechazar'
+  const [accion, setAccion] = useState(''); // 'aprobar', 'rechazado', 'devolver'
+  const [devolucionStatus, setDevolucionStatus] = useState('a_tiempo');
 
   const handleOpenModal = (solicitud, tipoAccion) => {
     setSelectedSolicitud(solicitud);
     setAccion(tipoAccion);
     setObservaciones('');
+    setDevolucionStatus('a_tiempo');
     setIsModalOpen(true);
   };
 
   const handleConfirm = async (e) => {
     e.preventDefault();
-    const nuevoEstado = accion === 'aprobar' ? 'aprobado' : 'rechazado';
+    if (!selectedSolicitud) return;
+    
+    let nuevoEstado = accion === 'aprobar' ? 'aprobado' : (accion === 'rechazado' ? 'rechazado' : (devolucionStatus === 'atrasado' ? 'devuelto_atrasado' : 'devuelto'));
     const adminName = perfil?.nombre || perfil?.email || 'Admin';
-    const obsPrefix = `[${accion === 'aprobar' ? 'Aprobado' : 'Rechazado'} por: ${adminName}]`;
+    const obsPrefix = `[${accion === 'aprobar' ? 'Aprobado' : (accion === 'rechazado' ? 'Rechazado' : 'Devuelto')} por: ${adminName}]`;
     const observacionFinal = observaciones.trim() ? `${obsPrefix} ${observaciones.trim()}` : obsPrefix;
     
     try {
       if (accion === 'aprobar') {
         if (selectedSolicitud.tipo === 'insumo') {
-          // Descontar stock
           const { data: insumoActual, error: errorInsumo } = await supabase
             .from('insumos')
             .select('cantidad_disponible')
@@ -45,13 +58,11 @@ export default function SolicitudesAdminPage() {
             .single();
 
           if (errorInsumo) throw errorInsumo;
-
           if (insumoActual.cantidad_disponible < selectedSolicitud.cantidad) {
             showToast('Error', 'No hay stock suficiente para aprobar esta solicitud.', 'error');
             return;
           }
 
-          // Restar stock
           const { error: updError } = await supabase
             .from('insumos')
             .update({ cantidad_disponible: insumoActual.cantidad_disponible - selectedSolicitud.cantidad })
@@ -60,9 +71,8 @@ export default function SolicitudesAdminPage() {
           if (updError) throw updError;
           await refetchSolicitudes();
 
-          // Send Email
           const userName = selectedSolicitud.perfil?.nombre || selectedSolicitud.perfil?.correo || 'Usuario';
-          const userEmail = selectedSolicitud.perfil?.correo || selectedSolicitud.perfil?.email; // supabase auth emails might be in 'email' or 'correo' depends on the profile structure
+          const userEmail = selectedSolicitud.perfil?.correo || selectedSolicitud.perfil?.email;
           
           if (userEmail) {
             sendInsumoAprobadoEmail({
@@ -73,12 +83,8 @@ export default function SolicitudesAdminPage() {
               observaciones: observacionFinal
             });
           }
-
         } else if (selectedSolicitud.tipo === 'prestamo') {
-          // Cambiar estado del equipo a 'EN PRESTAMO' y asignar el usuario
-          // selectedSolicitud.equipo_id holds the serial or string ID
           const equipoReal = equipos.find(eq => eq.id === selectedSolicitud.equipo_id || eq['Nº de serie'] === selectedSolicitud.equipo_id);
-          
           if (equipoReal) {
              const { error: eqError } = await supabase
                .from('equipos')
@@ -87,18 +93,22 @@ export default function SolicitudesAdminPage() {
                  usuario_asignado_id: selectedSolicitud.usuario_id 
                })
                .eq('id', equipoReal.id);
-               
              if (eqError) throw eqError;
              await refetchInventario();
           }
+        }
+      } else if (accion === 'devolver') {
+        const equipoReal = equipos.find(eq => eq.id === selectedSolicitud.equipo_id || eq['Nº de serie'] === selectedSolicitud.equipo_id);
+        if (equipoReal) {
+           await supabase.from('equipos').update({ estado: 'DISPONIBLE', usuario_asignado_id: null }).eq('id', equipoReal.id);
+           await refetchInventario();
         }
       }
 
       await updateEstadoSolicitud(selectedSolicitud.id, nuevoEstado, observacionFinal);
       
-      // Log to Auditoria
       const userName = selectedSolicitud.perfil?.nombre || selectedSolicitud.perfil?.correo || 'Usuario';
-      const actionText = accion === 'aprobar' ? 'Aprobó' : 'Rechazó';
+      const actionText = accion === 'aprobar' ? 'Aprobó' : (accion === 'rechazado' ? 'Rechazó' : 'Registró Devolución');
       let typeText = '';
       if (selectedSolicitud.tipo === 'insumo') {
          typeText = `solicitud de insumo: ${selectedSolicitud.insumo?.nombre || 'Desconocido'} (${selectedSolicitud.cantidad}x)`;
@@ -123,6 +133,7 @@ export default function SolicitudesAdminPage() {
       case 'aprobado': return <span className={`${baseClass} bg-emerald-50 text-emerald-700 border-emerald-200`}><Check size={12} strokeWidth={2.5}/> Aprobado</span>;
       case 'rechazado': return <span className={`${baseClass} bg-rose-50 text-rose-700 border-rose-200`}><X size={12} strokeWidth={2.5}/> Rechazado</span>;
       case 'devuelto': return <span className={`${baseClass} bg-blue-50 text-blue-700 border-blue-200`}><Check size={12} strokeWidth={2.5}/> Devuelto</span>;
+      case 'devuelto_atrasado': return <span className={`${baseClass} bg-orange-50 text-orange-700 border-orange-200`}><AlertTriangle size={12} strokeWidth={2.5}/> Devuelto (Atraso)</span>;
       default: return <span className={`${baseClass} bg-gray-50 text-gray-700 border-gray-200`}>{estado}</span>;
     }
   };
@@ -188,7 +199,14 @@ export default function SolicitudesAdminPage() {
               sortedSolicitudes.map((sol) => (
                 <tr key={sol.id} className="hover:bg-slate-50 transition-colors border-b border-gray-100 last:border-none">
                   <td className="px-6 py-4 text-gray-500">{new Date(sol.created_at).toLocaleDateString()}</td>
-                  <td className="px-6 py-4 font-medium text-gray-900">{sol.perfil?.nombre || sol.perfil?.correo || 'Usuario'}</td>
+                  <td className="px-6 py-4">
+                    <div className="font-medium text-gray-900">{sol.perfil?.nombre || sol.perfil?.correo || 'Usuario'}</div>
+                    {sol.estado === 'pendiente' && sol.tipo === 'prestamo' && atrasosPorUsuario[sol.usuario_id] > 0 && (
+                      <div className="mt-1 flex items-center gap-1 text-[10px] bg-red-100 text-red-700 px-1.5 py-0.5 rounded border border-red-200 w-fit font-bold">
+                        <AlertTriangle size={10} /> Historial Atrasos ({atrasosPorUsuario[sol.usuario_id]})
+                      </div>
+                    )}
+                  </td>
                   <td className="px-6 py-4 uppercase text-xs font-bold text-gray-500">{sol.tipo}</td>
                   <td className="px-6 py-4">
                     {sol.tipo === 'insumo' ? (
@@ -218,6 +236,11 @@ export default function SolicitudesAdminPage() {
                         <button onClick={() => handleOpenModal(sol, 'rechazado')} className="text-red-600 hover:text-red-800 font-bold px-2 py-1 bg-red-50 rounded text-xs transition">Rechazar</button>
                       </div>
                     )}
+                    {sol.estado === 'aprobado' && sol.tipo === 'prestamo' && (
+                      <div className="flex items-center justify-center gap-2 mt-1">
+                        <button onClick={() => handleOpenModal(sol, 'devolver')} className="text-blue-600 hover:text-blue-800 font-bold px-2 py-1 bg-blue-50 rounded text-xs transition border border-blue-200 shadow-sm">Registrar Devolución</button>
+                      </div>
+                    )}
                   </td>
                 </tr>
               ))
@@ -230,9 +253,24 @@ export default function SolicitudesAdminPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-md">
             <h2 className="text-xl font-bold mb-4">
-              {accion === 'aprobar' ? 'Aprobar Solicitud' : 'Rechazar Solicitud'}
+              {accion === 'aprobar' ? 'Aprobar Solicitud' : (accion === 'devolver' ? 'Registrar Devolución' : 'Rechazar Solicitud')}
             </h2>
             <form onSubmit={handleConfirm} className="space-y-4">
+              {accion === 'devolver' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Estado de la Devolución</label>
+                  <div className="flex gap-4">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input type="radio" name="devolucionStatus" value="a_tiempo" checked={devolucionStatus === 'a_tiempo'} onChange={() => setDevolucionStatus('a_tiempo')} className="text-[#006BB9] focus:ring-[#006BB9]" />
+                      <span className="text-sm text-gray-700">A tiempo</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input type="radio" name="devolucionStatus" value="atrasado" checked={devolucionStatus === 'atrasado'} onChange={() => setDevolucionStatus('atrasado')} className="text-orange-600 focus:ring-orange-600" />
+                      <span className="text-sm text-gray-700">Con Atraso</span>
+                    </label>
+                  </div>
+                </div>
+              )}
               <div>
                 <label className="block text-sm font-medium text-gray-700">Observaciones (opcional)</label>
                 <textarea 
