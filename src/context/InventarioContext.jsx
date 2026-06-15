@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { logAuditoria } from '../utils/auditoria';
 
@@ -139,7 +139,8 @@ export function InventarioProvider({ children }) {
     loadData();
 
     // Tiempo real: Escuchar cambios en la tabla
-    const channel = supabase.channel('equipos-changes')
+    const channel = supabase.channel('equipos-changes');
+    channel
       .on('postgres_changes', { event: '*', schema: 'public', table: 'equipos' }, () => {
          loadData();
       })
@@ -152,7 +153,8 @@ export function InventarioProvider({ children }) {
         }
       });
 
-    const perfilesChannel = supabase.channel('equipos-perfiles-changes')
+    const perfilesChannel = supabase.channel('equipos-perfiles-changes');
+    perfilesChannel
       .on('postgres_changes', { event: '*', schema: 'public', table: 'perfiles' }, () => {
          loadData();
       })
