@@ -15,7 +15,7 @@
     "file-saver": "^2.0.5",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.8",
-    "lucide-react": "^1.16.0",
+    "lucide-react": "^1.18.0",
     "papaparse": "^5.5.3",
     "qrcode.react": "^4.2.0",
     "react": "^19.2.6",
