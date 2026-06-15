@@ -74,19 +74,6 @@ export default function GlobalDashboardPage() {
 
   return (
     <div className="p-6 max-w-[1920px] mx-auto space-y-8 pb-12">
-      {/* Header Profile Section */}
-      <div className="bg-gradient-to-r from-[#112A46] to-[#006BB9] rounded-2xl shadow-lg p-8 text-white relative overflow-hidden">
-        <div className="absolute top-0 right-0 opacity-10 pointer-events-none transform translate-x-1/4 -translate-y-1/4">
-          <ShieldCheck size={300} strokeWidth={1} />
-        </div>
-        <div className="relative z-10">
-          <h1 className="text-3xl font-bold mb-2">Bienvenido, {firstName}</h1>
-          <p className="text-blue-100 text-lg max-w-2xl">
-            Bienvenido al panel de control central. Aquí tienes un resumen del estado de los recursos tecnológicos y solicitudes del SLEP.
-          </p>
-        </div>
-      </div>
-
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         
         {/* Equipos Card */}

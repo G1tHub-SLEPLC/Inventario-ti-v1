@@ -117,7 +117,6 @@ export default function SolicitudesPendientesWidget() {
     return <span className={`${baseClass} bg-amber-50 text-amber-700 border-amber-200`}><Clock size={12} strokeWidth={2.5}/> Pendiente</span>;
   };
 
-  if (pendientes.length === 0) return null;
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mt-8">
@@ -140,7 +139,17 @@ export default function SolicitudesPendientesWidget() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {pendientes.map((sol) => (
+            {pendientes.length === 0 ? (
+              <tr>
+                <td colSpan="6" className="px-6 py-8 text-center text-gray-500 bg-gray-50/50">
+                  <div className="flex flex-col items-center justify-center gap-2">
+                    <Check size={24} className="text-emerald-400" />
+                    <span>No hay solicitudes pendientes en este momento.</span>
+                  </div>
+                </td>
+              </tr>
+            ) : (
+              pendientes.map((sol) => (
               <tr key={sol.id} className="hover:bg-blue-50/50 transition-colors">
                 <td className="px-6 py-4 text-gray-600 font-medium">{new Date(sol.created_at).toLocaleDateString()}</td>
                 <td className="px-6 py-4 font-bold text-[#25306B]">{sol.perfil?.nombre || sol.perfil?.correo || 'Usuario'}</td>
@@ -179,7 +188,7 @@ export default function SolicitudesPendientesWidget() {
                   </div>
                 </td>
               </tr>
-            ))}
+            )))}
           </tbody>
         </table>
       </div>
