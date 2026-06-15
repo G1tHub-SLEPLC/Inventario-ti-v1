@@ -9,7 +9,7 @@ import { useAuth } from '../context/AuthContext';
 
 export default function SolicitudesPendientesWidget() {
   const { solicitudes, updateEstadoSolicitud, refetch: refetchSolicitudes } = useSolicitudes();
-  const { equipos, showToast, refetchInventario, broadcastEquiposChanges } = useInventario();
+  const { equipos, showToast, refetchInventario, broadcastEquiposChanges, updateEquipo } = useInventario();
   const { perfil } = useAuth();
   
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -77,34 +77,36 @@ export default function SolicitudesPendientesWidget() {
           const equipoReal = equipos.find(eq => eq.id === selectedSolicitud.equipo_id || eq['Nº de serie'] === selectedSolicitud.equipo_id);
           
           if (equipoReal) {
-             const { error: eqError } = await supabase
-               .from('equipos')
-               .update({ 
+             const idx = equipos.findIndex(eq => eq.id === equipoReal.id);
+             if (idx >= 0) {
+               const updatedEq = {
+                 ...equipoReal,
                  estado: 'EN PRESTAMO',
-                 usuario_asignado_id: selectedSolicitud.usuario_id 
-               })
-               .eq('id', equipoReal.id);
-               
-             if (eqError) throw eqError;
-             await refetchInventario();
-             if (broadcastEquiposChanges) broadcastEquiposChanges();
+                 usuario_asignado_id: selectedSolicitud.usuario_id,
+                 devolucion_fecha: selectedSolicitud.fecha_fin,
+                 devolucion_hora: selectedSolicitud.hora_fin
+               };
+               await updateEquipo(idx, updatedEq);
+               if (broadcastEquiposChanges) broadcastEquiposChanges();
+             }
           }
         }
       } else if (accion === 'rechazado' && selectedSolicitud.tipo === 'prestamo') {
         const equipoReal = equipos.find(eq => eq.id === selectedSolicitud.equipo_id || eq['Nº de serie'] === selectedSolicitud.equipo_id);
         
         if (equipoReal) {
-           const { error: eqError } = await supabase
-             .from('equipos')
-             .update({ 
+           const idx = equipos.findIndex(eq => eq.id === equipoReal.id);
+           if (idx >= 0) {
+             const updatedEq = {
+               ...equipoReal,
                estado: 'PARA PRESTAMO',
                usuario_asignado_id: null
-             })
-             .eq('id', equipoReal.id);
-             
-           if (eqError) throw eqError;
-           await refetchInventario();
-           if (broadcastEquiposChanges) broadcastEquiposChanges();
+             };
+             delete updatedEq.devolucion_fecha;
+             delete updatedEq.devolucion_hora;
+             await updateEquipo(idx, updatedEq);
+             if (broadcastEquiposChanges) broadcastEquiposChanges();
+           }
         }
       }
 

@@ -409,21 +409,33 @@ export default function SlepDashboardPage() {
                           
                           {/* Usuario entregado */}
                           <td className="px-4 py-3">
-                            {isEnPrestamo && activeLoan ? (
+                            {isEnPrestamo ? (
                               <div className="flex flex-col">
-                                <span className="font-semibold text-gray-800">{activeLoan.perfil?.nombre || '—'}</span>
-                                <span className="text-xs text-gray-500">{activeLoan.perfil?.correo || ''}</span>
+                                <span className="font-semibold text-gray-800">
+                                  {activeLoan?.perfil?.nombre || eq.perfiles?.nombre || '—'}
+                                </span>
+                                <span className="text-xs text-gray-500">
+                                  {activeLoan?.perfil?.correo || activeLoan?.perfil?.email || eq.perfiles?.email || eq.perfiles?.correo || ''}
+                                </span>
                               </div>
                             ) : '—'}
                           </td>
                           
                           {/* Fecha devolución */}
                           <td className="px-4 py-3">
-                            {isEnPrestamo && activeLoan ? (
-                              <div className="flex flex-col font-medium">
-                                <span>{formatFechaDev(activeLoan.fecha_fin)}</span>
-                                <span className="text-xs text-gray-500">{activeLoan.hora_fin ? activeLoan.hora_fin.substring(0, 5) : ''} hrs</span>
-                              </div>
+                            {isEnPrestamo ? (
+                              (activeLoan?.fecha_fin || eq.devolucion_fecha) ? (
+                                <div className="flex flex-col font-medium">
+                                  <span>{formatFechaDev(activeLoan?.fecha_fin || eq.devolucion_fecha)}</span>
+                                  <span className="text-xs text-gray-500">
+                                    {(activeLoan?.hora_fin || eq.devolucion_hora) ? (activeLoan?.hora_fin || eq.devolucion_hora).substring(0, 5) : ''} hrs
+                                  </span>
+                                </div>
+                              ) : (
+                                <div className="flex flex-col font-medium text-gray-400">
+                                  <span className="text-[11px] uppercase tracking-wide">No disponible</span>
+                                </div>
+                              )
                             ) : '—'}
                           </td>
 
