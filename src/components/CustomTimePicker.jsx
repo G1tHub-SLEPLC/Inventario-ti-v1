@@ -29,8 +29,12 @@ export default function CustomTimePicker({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const currentHour = value && value.includes(':') ? value.split(':')[0] : '';
-  const currentMinute = value && value.includes(':') ? value.split(':')[1] : '';
+  // Get current system hour and minute as defaults if value is empty
+  const defaultHour = String(new Date().getHours()).padStart(2, '0');
+  const defaultMinute = String(new Date().getMinutes()).padStart(2, '0');
+
+  const currentHour = value && value.includes(':') ? value.split(':')[0] : defaultHour;
+  const currentMinute = value && value.includes(':') ? value.split(':')[1] : defaultMinute;
 
   // Scroll active elements into view when dropdown is opened
   useEffect(() => {
