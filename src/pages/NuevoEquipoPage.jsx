@@ -23,12 +23,12 @@ export default function NuevoEquipoPage() {
 
   const uniqueDescripciones = useMemo(() => {
     const list = equipos.map(eq => eq['Descripción del Bien']).filter(v => v && v.trim() !== '');
-    return [...new Set(list)].sort();
+    return [...new Set(list)].sort((a, b) => String(a).localeCompare(String(b)));
   }, [equipos]);
 
   const uniqueMarcas = useMemo(() => {
     const list = equipos.map(eq => eq['Marca']).filter(v => v && v.trim() !== '');
-    return [...new Set(list)].sort();
+    return [...new Set(list)].sort((a, b) => String(a).localeCompare(String(b)));
   }, [equipos]);
   const [isMultiMode, setIsMultiMode] = useState(false);
   const [facturaFile, setFacturaFile] = useState(null);
@@ -42,7 +42,7 @@ export default function NuevoEquipoPage() {
 
   useEffect(() => {
     async function loadUsers() {
-      const { data, error } = await supabase.from('perfiles').select('id, nombre, email');
+      const { data, error } = await supabase.from('perfiles').select('id, nombre, email').order('nombre', { ascending: true });
       if (!error && data) setUsuarios(data);
     }
     loadUsers();
@@ -50,7 +50,7 @@ export default function NuevoEquipoPage() {
 
   const subdireccionesOptions = useMemo(() => {
     const subs = new Set(equipos.map(eq => eq['SubDirección'] ? String(eq['SubDirección']).trim() : '').filter(s => s !== '' && s !== '—'));
-    return Array.from(subs).sort();
+    return Array.from(subs).sort((a, b) => String(a).localeCompare(String(b)));
   }, [equipos]);
 
   const ocHasFile = useMemo(() => {
@@ -402,8 +402,8 @@ export default function NuevoEquipoPage() {
                       className="w-1/3 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#006BB9] focus:outline-none shadow-sm transition-shadow bg-white"
                     >
                       <option value="">— Tipo —</option>
-                      <option value="Convenio Marco">Convenio Marco</option>
                       <option value="Compra Ágil">Compra Ágil</option>
+                      <option value="Convenio Marco">Convenio Marco</option>
                       <option value="Licitación">Licitación</option>
                     </select>
                     <input
@@ -661,11 +661,11 @@ export default function NuevoEquipoPage() {
                 onChange={handleChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#006BB9] focus:outline-none shadow-sm transition-shadow"
               >
-                <option value="DISPONIBLE">DISPONIBLE</option>
-                <option value="PARA PRESTAMO">PARA PRÉSTAMO</option>
-                <option value="EN PRESTAMO">EN PRÉSTAMO</option>
                 <option value="ASIGNADO">ASIGNADO</option>
                 <option value="BAJA">DE BAJA</option>
+                <option value="DISPONIBLE">DISPONIBLE</option>
+                <option value="EN PRESTAMO">EN PRÉSTAMO</option>
+                <option value="PARA PRESTAMO">PARA PRÉSTAMO</option>
               </select>
             </div>
           </div>

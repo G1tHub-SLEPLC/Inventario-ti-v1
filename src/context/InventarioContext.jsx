@@ -102,7 +102,7 @@ export function InventarioProvider({ children }) {
     if (equiposError) {
       console.error('Error al cargar inventario desde Supabase:', equiposError);
     } else if (equiposData) {
-      const { data: perfilesData, error: perfilesError } = await supabase.from('perfiles').select('id, nombre, email, subdireccion');
+      const { data: perfilesData, error: perfilesError } = await supabase.from('perfiles').select('id, nombre, email, subdireccion').order('nombre', { ascending: true });
       
       const perfilesMap = {};
       if (!perfilesError && perfilesData) {

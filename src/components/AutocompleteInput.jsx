@@ -14,12 +14,13 @@ export default function AutocompleteInput({
   const wrapperRef = useRef(null);
 
   const formattedOptions = useMemo(() => {
-    return options.map(opt => {
+    const opts = options.map(opt => {
       if (typeof opt === 'string') {
         return { label: opt, value: opt };
       }
       return opt; // assume { label, value, sublabel }
     });
+    return opts.sort((a, b) => a.label.localeCompare(b.label));
   }, [options]);
 
   const filteredOptions = useMemo(() => {

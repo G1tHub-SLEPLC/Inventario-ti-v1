@@ -33,7 +33,7 @@ export default function UsuariosAdminPage() {
     const listFromUsers = usuarios.map(u => u.subdireccion).filter(Boolean);
     const listFromEquipos = equipos.map(eq => eq['SubDirección']).filter(Boolean);
     const combinedList = [...listFromUsers, ...listFromEquipos].map(s => String(s).trim()).filter(s => s !== '' && s !== '—');
-    return [...new Set(combinedList)].sort((a, b) => a.localeCompare(b));
+    return [...new Set(combinedList)].sort((a, b) => String(a).localeCompare(String(b)));
   }, [usuarios, equipos]);
 
   const [loading, setLoading] = useState(true);

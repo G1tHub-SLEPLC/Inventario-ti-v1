@@ -55,7 +55,7 @@ export const LicenciasProvider = ({ children }) => {
     }
     
     // Fetch perfiles to map them manually
-    const { data: perfilesData, error: perfilesError } = await supabase.from('perfiles').select('id, nombre, email');
+    const { data: perfilesData, error: perfilesError } = await supabase.from('perfiles').select('id, nombre, email').order('nombre', { ascending: true });
     if (perfilesError) console.error('Error fetching perfiles for asignaciones:', perfilesError);
     
     const asignacionesCompletas = (asignacionesData || []).map(asig => {

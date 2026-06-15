@@ -19,12 +19,12 @@ export default function EditarEquipoModal({ equipo, onClose }) {
 
   const uniqueDescripciones = useMemo(() => {
     const list = equipos.map(eq => eq['Descripción del Bien']).filter(v => v && v.trim() !== '');
-    return [...new Set(list)].sort();
+    return [...new Set(list)].sort((a, b) => String(a).localeCompare(String(b)));
   }, [equipos]);
 
   const uniqueMarcas = useMemo(() => {
     const list = equipos.map(eq => eq['Marca']).filter(v => v && v.trim() !== '');
-    return [...new Set(list)].sort();
+    return [...new Set(list)].sort((a, b) => String(a).localeCompare(String(b)));
   }, [equipos]);
   const [facturaFile, setFacturaFile] = useState(null);
   const [ocFile, setOcFile] = useState(null);
@@ -36,7 +36,7 @@ export default function EditarEquipoModal({ equipo, onClose }) {
 
   useEffect(() => {
     async function loadUsers() {
-      const { data, error } = await supabase.from('perfiles').select('id, nombre, email');
+      const { data, error } = await supabase.from('perfiles').select('id, nombre, email').order('nombre', { ascending: true });
       if (!error && data) setUsuarios(data);
     }
     loadUsers();
@@ -44,7 +44,7 @@ export default function EditarEquipoModal({ equipo, onClose }) {
 
   const subdireccionesOptions = useMemo(() => {
     const subs = new Set(equipos.map(eq => eq['SubDirección'] ? String(eq['SubDirección']).trim() : '').filter(s => s !== '' && s !== '—'));
-    return Array.from(subs).sort();
+    return Array.from(subs).sort((a, b) => String(a).localeCompare(String(b)));
   }, [equipos]);
 
   const ocHasFileGlobal = useMemo(() => {
@@ -668,8 +668,8 @@ export default function EditarEquipoModal({ equipo, onClose }) {
                     className="w-[42%] px-1 py-1 border border-gray-300 rounded-lg text-[11px] focus:ring-1.5 focus:ring-[#006BB9] focus:outline-none shadow-xs bg-white font-medium"
                   >
                     <option value="">— Tipo —</option>
-                    <option value="Convenio Marco">Conv. Marco</option>
                     <option value="Compra Ágil">Compra Ágil</option>
+                    <option value="Convenio Marco">Conv. Marco</option>
                     <option value="Licitación">Licitación</option>
                   </select>
                   <input
@@ -959,11 +959,11 @@ export default function EditarEquipoModal({ equipo, onClose }) {
                       onChange={handleChange}
                       className="w-full px-2 py-1 border border-gray-300 rounded-lg text-xs focus:ring-1.5 focus:ring-[#006BB9] focus:outline-none shadow-xs bg-white font-medium"
                     >
-                      <option value="DISPONIBLE">DISPONIBLE</option>
-                      <option value="PARA PRESTAMO">PARA PRÉSTAMO</option>
-                      <option value="EN PRESTAMO">EN PRÉSTAMO</option>
                       <option value="ASIGNADO">ASIGNADO</option>
                       <option value="BAJA">DE BAJA</option>
+                      <option value="DISPONIBLE">DISPONIBLE</option>
+                      <option value="EN PRESTAMO">EN PRÉSTAMO</option>
+                      <option value="PARA PRESTAMO">PARA PRÉSTAMO</option>
                     </select>
 
                     {/* Warning toast flotante al lado derecho del selector de estado */}

@@ -77,7 +77,7 @@ export default function InsumosPage() {
   const dynamicTipos = useMemo(() => {
     const defaultTipos = ["Tóner", "Tinta", "Tambor", "Mouse", "Teclado", "Pilas"];
     const dbTipos = insumos.map(i => i.tipo).filter(t => t && t.trim() !== '' && !defaultTipos.includes(t));
-    return [...new Set([...defaultTipos, ...dbTipos])].sort();
+    return [...new Set([...defaultTipos, ...dbTipos])].sort((a, b) => String(a).localeCompare(String(b)));
   }, [insumos]);
   
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
@@ -121,7 +121,7 @@ export default function InsumosPage() {
   // Load perfiles para select de asignación
   useEffect(() => {
     const loadUsuarios = async () => {
-      const { data } = await supabase.from('perfiles').select('id, nombre, email, rol');
+      const { data } = await supabase.from('perfiles').select('id, nombre, email, rol').order('nombre', { ascending: true });
       if (data) setUsuariosSlep(data);
     };
     loadUsuarios();
@@ -136,7 +136,7 @@ export default function InsumosPage() {
       .order('created_at', { ascending: false });
       
     if (sols) {
-      const { data: perfs } = await supabase.from('perfiles').select('id, nombre, email');
+      const { data: perfs } = await supabase.from('perfiles').select('id, nombre, email').order('nombre', { ascending: true });
       const hist = sols.map(s => {
         const user = perfs?.find(p => p.id === s.usuario_id);
         const obsTrimmed = (s.observaciones_admin || '').trim();
@@ -198,7 +198,7 @@ export default function InsumosPage() {
       .order('created_at', { ascending: false });
       
     if (sols) {
-      const { data: perfs } = await supabase.from('perfiles').select('id, nombre, email');
+      const { data: perfs } = await supabase.from('perfiles').select('id, nombre, email').order('nombre', { ascending: true });
       const hist = sols.map(s => {
         const user = perfs?.find(p => p.id === s.usuario_id);
         const obsTrimmed = (s.observaciones_admin || '').trim();

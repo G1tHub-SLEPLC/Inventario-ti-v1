@@ -80,7 +80,7 @@ export default function LicenciasAdminPage() {
       'SAAS', 'Perpetua', 'SW Propietario', 'SW Libre (Open Source)', 'Freemium / Shareware', 'PAAS (Plataforma como Servicio)', 'IAAS (Infraestructura como Servicio)'
     ];
     const dbLicTipos = licencias.map(l => l.tipo).filter(t => t && t.trim() !== '' && !defaultLicTipos.includes(t));
-    return [...new Set([...defaultLicTipos, ...dbLicTipos])].sort();
+    return [...new Set([...defaultLicTipos, ...dbLicTipos])].sort((a, b) => String(a).localeCompare(String(b)));
   }, [licencias]);
 
   const [facturaFile, setFacturaFile] = useState(null);

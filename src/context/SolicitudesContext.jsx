@@ -53,7 +53,7 @@ export function SolicitudesProvider({ children }) {
     }
     
     // Fetch perfiles to map them manually since FK join might be missing or failing
-    const { data: perfilesData, error: perfilesError } = await supabase.from('perfiles').select('*');
+    const { data: perfilesData, error: perfilesError } = await supabase.from('perfiles').select('*').order('nombre', { ascending: true });
     if (perfilesError) console.error('Error cargando perfiles:', perfilesError);
     
     const solicitudesCompletas = (solsData || []).map(sol => {
