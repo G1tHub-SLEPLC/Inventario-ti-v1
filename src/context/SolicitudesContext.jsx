@@ -40,10 +40,11 @@ export function SolicitudesProvider({ children }) {
 
     // Load Solicitudes
     let query = supabase.from('solicitudes').select('*, insumo:insumos(nombre), perfil:perfiles(nombre, email)');
-    // Si no es admin, solo carga las suyas
+    // Si no es admin, solo carga las suyas y todas las de tipo prestamo
     if (!isAdmin) {
-      query = query.eq('usuario_id', session.user.id);
+      query = query.or(`usuario_id.eq.${session.user.id},tipo.eq.prestamo`);
     }
+
     
     const { data: solsData, error: solsError } = await query.order('created_at', { ascending: false });
     

@@ -33,6 +33,15 @@ export default function SlepDashboardPage() {
       .join(' ');
   };
 
+  const formatFechaDev = (fechaStr) => {
+    if (!fechaStr) return '';
+    const parts = fechaStr.split('-');
+    if (parts.length === 3) {
+      return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    }
+    return fechaStr;
+  };
+
   // Filtrar equipos
   const misEquipos = useMemo(() => {
     const userName = perfil?.nombre || formatEmailName(session?.user?.email);
@@ -67,7 +76,7 @@ export default function SlepDashboardPage() {
   }, [equipos, session, perfil]);
 
   const equiposDisponiblesParaPrestamo = useMemo(() => {
-    return equipos.filter(eq => eq.estado === 'PARA PRESTAMO');
+    return equipos.filter(eq => eq.estado === 'PARA PRESTAMO' || eq.estado === 'EN PRESTAMO');
   }, [equipos]);
 
   const misLicencias = useMemo(() => {
@@ -342,6 +351,8 @@ export default function SlepDashboardPage() {
                     <th className="px-4 py-3 font-semibold">Marca</th>
                     <th className="px-4 py-3 font-semibold">Modelo</th>
                     <th className="px-4 py-3 font-semibold">Nº de Serie</th>
+                    <th className="px-4 py-3 font-semibold">Entregado a</th>
+                    <th className="px-4 py-3 font-semibold">Devolución</th>
                     <th className="px-4 py-3 font-semibold text-center w-24">Estado</th>
                     <th className="px-4 py-3 font-semibold text-center w-24">Acción</th>
                   </tr>
@@ -349,30 +360,75 @@ export default function SlepDashboardPage() {
                 <tbody className="divide-y divide-gray-200 text-sm text-gray-700">
                   {equiposDisponiblesParaPrestamo.length === 0 ? (
                     <tr>
-                      <td colSpan="6" className="px-4 py-8 text-center text-gray-500 italic">No hay equipos disponibles para préstamo actualmente.</td>
+                      <td colSpan="8" className="px-4 py-8 text-center text-gray-500 italic">No hay equipos disponibles para préstamo actualmente.</td>
                     </tr>
                   ) : (
-                    equiposDisponiblesParaPrestamo.map((eq) => (
-                      <tr key={eq.id} className="hover:bg-blue-50 even:bg-slate-50 transition-colors">
-                        <td className="px-4 py-3 font-medium">{eq['Descripción del Bien'] || '—'}</td>
-                        <td className="px-4 py-3">{eq.Marca || '—'}</td>
-                        <td className="px-4 py-3">{eq.Modelo || '—'}</td>
-                        <td className="px-4 py-3 font-mono text-[12px]">{eq['Nº de serie'] || '—'}</td>
-                        <td className="px-4 py-3 text-center">
-                          <span className="bg-indigo-200 text-indigo-600 border border-indigo-600 px-2.5 py-1 rounded text-[11px] font-bold tracking-wide uppercase whitespace-nowrap">
-                            PARA PRESTAMO
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-center">
-                          <button
-                            onClick={() => openPrestamoModal(eq.id)}
-                            className="px-3 py-1.5 rounded text-xs font-semibold transition-colors shadow-sm bg-[#006BB9] text-white hover:bg-[#25306B]"
-                          >
-                            Solicitar
-                          </button>
-                        </td>
-                      </tr>
-                    ))
+                    equiposDisponiblesParaPrestamo.map((eq) => {
+                      const activeLoan = solicitudes.find(sol => 
+                        sol.tipo === 'prestamo' && 
+                        sol.estado === 'aprobado' && 
+                        (sol.equipo_id === eq.id || sol.equipo_id === eq['Nº de serie'] || String(sol.equipo_id) === String(eq.id))
+                      );
+                      const isEnPrestamo = eq.estado === 'EN PRESTAMO';
+                      
+                      return (
+                        <tr key={eq.id} className="hover:bg-blue-50 even:bg-slate-50 transition-colors">
+                          <td className="px-4 py-3 font-medium">{eq['Descripción del Bien'] || '—'}</td>
+                          <td className="px-4 py-3">{eq.Marca || '—'}</td>
+                          <td className="px-4 py-3">{eq.Modelo || '—'}</td>
+                          <td className="px-4 py-3 font-mono text-[12px]">{eq['Nº de serie'] || '—'}</td>
+                          
+                          {/* Usuario entregado */}
+                          <td className="px-4 py-3">
+                            {isEnPrestamo && activeLoan ? (
+                              <div className="flex flex-col">
+                                <span className="font-semibold text-gray-800">{activeLoan.perfil?.nombre || '—'}</span>
+                                <span className="text-xs text-gray-500">{activeLoan.perfil?.correo || ''}</span>
+                              </div>
+                            ) : '—'}
+                          </td>
+                          
+                          {/* Fecha devolución */}
+                          <td className="px-4 py-3">
+                            {isEnPrestamo && activeLoan ? (
+                              <div className="flex flex-col font-medium">
+                                <span>{formatFechaDev(activeLoan.fecha_fin)}</span>
+                                <span className="text-xs text-gray-500">{activeLoan.hora_fin ? activeLoan.hora_fin.substring(0, 5) : ''} hrs</span>
+                              </div>
+                            ) : '—'}
+                          </td>
+
+                          <td className="px-4 py-3 text-center">
+                            {isEnPrestamo ? (
+                              <span className="bg-amber-100 text-amber-700 border border-amber-300 px-2.5 py-1 rounded text-[11px] font-bold tracking-wide uppercase whitespace-nowrap">
+                                EN PRESTAMO
+                              </span>
+                            ) : (
+                              <span className="bg-indigo-100 text-indigo-700 border border-indigo-300 px-2.5 py-1 rounded text-[11px] font-bold tracking-wide uppercase whitespace-nowrap">
+                                PARA PRESTAMO
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            {isEnPrestamo ? (
+                              <button
+                                disabled
+                                className="px-3 py-1.5 rounded text-xs font-semibold bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed"
+                              >
+                                Prestado
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => openPrestamoModal(eq.id)}
+                                className="px-3 py-1.5 rounded text-xs font-semibold transition-colors shadow-sm bg-[#006BB9] text-white hover:bg-[#25306B]"
+                              >
+                                Solicitar
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })
                   )}
                 </tbody>
               </table>
