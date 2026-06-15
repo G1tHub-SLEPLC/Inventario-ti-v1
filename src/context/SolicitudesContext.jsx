@@ -12,7 +12,7 @@ export function useSolicitudes() {
 
 export function SolicitudesProvider({ children }) {
   const { session, isAdmin } = useAuth();
-  const { showToast, broadcastEquiposChanges } = useInventario();
+  const { showToast, broadcastEquiposChanges, refetchInventario } = useInventario();
   
   const [insumos, setInsumos] = useState([]);
   const [solicitudes, setSolicitudes] = useState([]);
@@ -164,6 +164,9 @@ export function SolicitudesProvider({ children }) {
 
     showToast('Éxito', 'Solicitud de préstamo enviada correctamente.', 'success');
     await loadData();
+    if (refetchInventario) {
+      await refetchInventario();
+    }
     broadcastSolicitudesChanges();
     if (broadcastEquiposChanges) {
       broadcastEquiposChanges();
