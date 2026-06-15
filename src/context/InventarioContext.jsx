@@ -79,6 +79,17 @@ function fromDbRow(dbRow) {
 export function InventarioProvider({ children }) {
   const [equipos, setEquipos] = useState([]);
   const [loading, setLoading] = useState(true);
+  const channelRef = useRef(null);
+
+  const broadcastEquiposChanges = useCallback(() => {
+    if (channelRef.current) {
+      channelRef.current.send({
+        type: 'broadcast',
+        event: 'equipos_changed',
+        payload: {}
+      });
+    }
+  }, []);
   const [toast, setToast] = useState(null);
 
   const showToast = (title, message, type = 'success', details = null, customDuration = null) => {
@@ -132,7 +143,14 @@ export function InventarioProvider({ children }) {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'equipos' }, () => {
          loadData();
       })
-      .subscribe();
+      .on('broadcast', { event: 'equipos_changed' }, () => {
+         loadData();
+      })
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          channelRef.current = channel;
+        }
+      });
 
     const perfilesChannel = supabase.channel('equipos-perfiles-changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'perfiles' }, () => {
@@ -345,7 +363,8 @@ export function InventarioProvider({ children }) {
       updateEquiposMasivo,
       setFileStatus, 
       clearInventario,
-      refetch: loadData
+      refetchInventario: loadData,
+      broadcastEquiposChanges
     }}>
       {children}
     </InventarioContext.Provider>

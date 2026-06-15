@@ -12,7 +12,7 @@ import { SortableHeader } from '../components/SortableHeader';
 
 export default function SolicitudesAdminPage() {
   const { solicitudes, updateEstadoSolicitud, refetch: refetchSolicitudes } = useSolicitudes();
-  const { equipos, showToast, refetch: refetchInventario } = useInventario();
+  const { equipos, showToast, refetchInventario, broadcastEquiposChanges } = useInventario();
   const { perfil } = useAuth();
   const { sorted: sortedSolicitudes, sortKey: solSortKey, sortDir: solSortDir, handleSort: handleSolSort } = useSort(solicitudes);
 
@@ -95,6 +95,7 @@ export default function SolicitudesAdminPage() {
               .eq('id', equipoReal.id);
             if (eqError) throw eqError;
             await refetchInventario();
+            if (broadcastEquiposChanges) broadcastEquiposChanges();
           }
         }
       } else if (accion === 'devolver' || (accion === 'rechazado' && selectedSolicitud.tipo === 'prestamo')) {
@@ -102,6 +103,7 @@ export default function SolicitudesAdminPage() {
         if (equipoReal) {
           await supabase.from('equipos').update({ estado: 'PARA PRESTAMO', usuario_asignado_id: null }).eq('id', equipoReal.id);
           await refetchInventario();
+          if (broadcastEquiposChanges) broadcastEquiposChanges();
         }
       }
 

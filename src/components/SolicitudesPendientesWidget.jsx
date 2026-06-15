@@ -9,7 +9,7 @@ import { useAuth } from '../context/AuthContext';
 
 export default function SolicitudesPendientesWidget() {
   const { solicitudes, updateEstadoSolicitud, refetch: refetchSolicitudes } = useSolicitudes();
-  const { equipos, showToast, refetch: refetchInventario } = useInventario();
+  const { equipos, showToast, refetchInventario, broadcastEquiposChanges } = useInventario();
   const { perfil } = useAuth();
   
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -87,6 +87,7 @@ export default function SolicitudesPendientesWidget() {
                
              if (eqError) throw eqError;
              await refetchInventario();
+             if (broadcastEquiposChanges) broadcastEquiposChanges();
           }
         }
       } else if (accion === 'rechazado' && selectedSolicitud.tipo === 'prestamo') {
@@ -103,6 +104,7 @@ export default function SolicitudesPendientesWidget() {
              
            if (eqError) throw eqError;
            await refetchInventario();
+           if (broadcastEquiposChanges) broadcastEquiposChanges();
         }
       }
 
