@@ -98,7 +98,7 @@ export function InventarioProvider({ children }) {
       return;
     }
 
-    const { data: equiposData, error: equiposError } = await supabase.from('equipos').select('*');
+    const { data: equiposData, error: equiposError } = await supabase.from('equipos').select('*').order('created_at', { ascending: false });
     if (equiposError) {
       console.error('Error al cargar inventario desde Supabase:', equiposError);
     } else if (equiposData) {

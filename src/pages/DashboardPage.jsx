@@ -137,7 +137,7 @@ export default function DashboardPage() {
     setSearchParams({ tab });
   };
   const [globalSearch, setGlobalSearch] = useState(() => searchParams.get('q') || searchParams.get('search') || '');
-  const [sortConfig, setSortConfig] = useState({ col: null, dir: 1 });
+  const [sortConfig, setSortConfig] = useState({ col: 'Descripción del Bien', dir: 1 });
 
   const [isMasivaModalOpen, setIsMasivaModalOpen] = useState(false);
   const [editingEquipo, setEditingEquipo] = useState(null);

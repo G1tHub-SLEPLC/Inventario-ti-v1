@@ -26,7 +26,7 @@ function getInitials(name) {
 export default function UsuariosAdminPage() {
   const { showToast, equipos } = useInventario();
   const [usuarios, setUsuarios] = useState([]);
-  const { sorted: sortedUsuarios, sortKey: uSortKey, sortDir: uSortDir, handleSort: handleUSort } = useSort(usuarios);
+  const { sorted: sortedUsuarios, sortKey: uSortKey, sortDir: uSortDir, handleSort: handleUSort } = useSort(usuarios, 'nombre', 'asc');
   
   // Unique list of subdirecciones from existing users and equipos
   const subdirecciones = useMemo(() => {

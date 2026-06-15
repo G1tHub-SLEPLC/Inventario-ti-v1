@@ -22,7 +22,7 @@ export default function InsumosPage() {
   const { insumos, refetch } = useSolicitudes();
   const { showToast } = useInventario();
   const { session } = useAuth();
-  const { sorted: sortedInsumos, sortKey: insSortKey, sortDir: insSortDir, handleSort: handleInsSort } = useSort(insumos);
+  const { sorted: sortedInsumos, sortKey: insSortKey, sortDir: insSortDir, handleSort: handleInsSort } = useSort(insumos, 'nombre', 'asc');
   
   const [activeTab, setActiveTab] = useState('insumos'); // 'insumos' | 'func' | 'insumo'
   const [historial, setHistorial] = useState([]);

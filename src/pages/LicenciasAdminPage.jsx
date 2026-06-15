@@ -185,7 +185,7 @@ export default function LicenciasAdminPage() {
     }));
   }, [funcionarioAsignaciones]);
 
-  const { sorted: sortedDisponibles, sortKey: dispSortKey, sortDir: dispSortDir, handleSort: handleDispSort } = useSort(disponiblesLicencias);
+  const { sorted: sortedDisponibles, sortKey: dispSortKey, sortDir: dispSortDir, handleSort: handleDispSort } = useSort(disponiblesLicencias, 'software', 'asc');
   const { sorted: sortedAsignaciones, sortKey: asigSortKey, sortDir: asigSortDir, handleSort: handleAsigSort } = useSort(flatAsignaciones);
 
   const selectedLic = useMemo(() => {
