@@ -4,6 +4,7 @@ import { useSolicitudes } from '../context/SolicitudesContext';
 import { useAuth } from '../context/AuthContext';
 import { useLicencias } from '../context/LicenciasContext';
 import { Monitor, Package, Calendar, Key } from 'lucide-react';
+import CustomTimePicker from '../components/CustomTimePicker';
 
 export default function SlepDashboardPage() {
   const { session, perfil } = useAuth();
@@ -525,13 +526,11 @@ export default function SlepDashboardPage() {
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">Hora de Inicio</label>
-                  <input 
-                    type="time" 
+                  <CustomTimePicker 
                     required
                     value={horaInicio} 
-                    onChange={(e) => setHoraInicio(e.target.value)}
-                    onClick={(e) => e.target.showPicker && e.target.showPicker()}
-                    className="w-full rounded-lg border-gray-300 shadow-sm border p-2.5 text-sm focus:border-[#006BB9] focus:ring-[#006BB9] bg-white cursor-pointer"
+                    onChange={setHoraInicio}
+                    placeholder="HH:MM"
                   />
                 </div>
                 <div>
@@ -547,13 +546,11 @@ export default function SlepDashboardPage() {
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">Hora de Devolución</label>
-                  <input 
-                    type="time" 
+                  <CustomTimePicker 
                     required
                     value={horaFin} 
-                    onChange={(e) => setHoraFin(e.target.value)}
-                    onClick={(e) => e.target.showPicker && e.target.showPicker()}
-                    className="w-full rounded-lg border-gray-300 shadow-sm border p-2.5 text-sm focus:border-[#006BB9] focus:ring-[#006BB9] bg-white cursor-pointer"
+                    onChange={setHoraFin}
+                    placeholder="HH:MM"
                   />
                 </div>
               </div>
