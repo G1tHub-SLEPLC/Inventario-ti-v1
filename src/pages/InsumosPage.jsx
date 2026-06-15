@@ -102,6 +102,17 @@ export default function InsumosPage() {
 
   const { sorted: sortedViewAsignaciones, sortKey: vAsigSortKey, sortDir: vAsigSortDir, handleSort: handleVAsigSort } = useSort(flatViewAsignaciones, 'created_at', 'desc');
 
+  const userAssignOrder = useMemo(() => {
+    const order = {};
+    const chronologicalAsig = [...viewInsumoAsignaciones].sort((x, y) => new Date(x.created_at) - new Date(y.created_at));
+    chronologicalAsig.forEach((asig) => {
+       const uid = asig.usuario_id || asig.usuario_nombre || asig.perfiles?.nombre || asig.id;
+       if (!order[uid]) order[uid] = [];
+       order[uid].push(asig.id);
+    });
+    return order;
+  }, [viewInsumoAsignaciones]);
+
   const [isMasivaModalOpen, setIsMasivaModalOpen] = useState(false);
   const [status, setStatus] = useState({ type: 'idle', message: '' });
 
@@ -1273,6 +1284,11 @@ export default function InsumosPage() {
                         const dateStr = new Date(a.created_at).toLocaleDateString() + ' ' + new Date(a.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
                         const initials = uName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'U';
                         
+                        const uid = a.usuario_id || uName || a.id;
+                        const orderArr = userAssignOrder[uid] || [];
+                        const isMultiple = orderArr.indexOf(a.id) > 0;
+                        const qtyBg = isMultiple ? "bg-yellow-100 text-yellow-800 border-yellow-200" : "bg-gray-100 text-gray-700 border-gray-200";
+
                         return (
                           <tr key={a.id} className="hover:bg-slate-50 transition-colors group">
                             <td className="px-4 py-2">
@@ -1286,9 +1302,20 @@ export default function InsumosPage() {
                             <td className="px-4 py-2 text-slate-500 font-medium break-all whitespace-normal">{uEmail}</td>
                             <td className="px-4 py-2 text-slate-500 whitespace-nowrap">{dateStr}</td>
                             <td className="px-4 py-2 text-center whitespace-nowrap">
-                              <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-full bg-gray-100 text-gray-700 font-bold border border-gray-200">
-                                {a.cantidad}
-                              </span>
+                              <div className="relative inline-flex items-center justify-center">
+                                <span className={`inline-flex items-center justify-center px-2 py-0.5 rounded-full font-bold border ${qtyBg}`}>
+                                  {a.cantidad}
+                                </span>
+                                {a.observaciones_admin && (
+                                  <>
+                                    <div className="absolute -top-1 -right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full border border-white cursor-help peer z-10"></div>
+                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-slate-800 text-white text-[10px] rounded shadow-lg opacity-0 invisible peer-hover:opacity-100 peer-hover:visible transition-all whitespace-normal w-max max-w-[200px] z-50 pointer-events-none leading-tight font-normal text-left">
+                                      {a.observaciones_admin}
+                                      <div className="absolute top-full left-1/2 -translate-x-1/2 border-[4px] border-transparent border-t-slate-800"></div>
+                                    </div>
+                                  </>
+                                )}
+                              </div>
                             </td>
                             <td className="px-4 py-2 text-center whitespace-nowrap">
                               <button
