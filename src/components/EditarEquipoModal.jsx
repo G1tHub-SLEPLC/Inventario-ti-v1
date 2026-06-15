@@ -707,42 +707,6 @@ export default function EditarEquipoModal({ equipo, onClose }) {
                   </div>
                 </div>
               </div>
-
-              {/* Código QR (Sólo para Notebooks, AIO, Tablets) */}
-              {isQRSupported() && (
-                <div className="mt-3 pt-3 border-t border-gray-150 flex flex-col items-center gap-2">
-                  <span className="block text-[10px] font-bold text-[#25306B] uppercase tracking-wide w-full text-left">
-                    Código QR del Equipo
-                  </span>
-                  <div className="bg-slate-50 border border-slate-200 p-2 rounded-xl flex items-center justify-center shadow-inner">
-                      <QRCodeSVG
-                        id="edit-qr-code-svg"
-                        value={`${window.location.origin}/qr-info?equipo=${originalEquipo?.id}`}
-                        size={110}
-                      level="H"
-                      includeMargin={true}
-                    />
-                  </div>
-                  <div className="flex gap-1.5 w-full">
-                    <button
-                      type="button"
-                      onClick={handleDownloadQR}
-                      className="flex-1 py-1.5 bg-slate-100 hover:bg-slate-200 text-gray-700 font-bold rounded-lg border border-gray-300 flex items-center justify-center gap-1 text-[10px] transition-colors cursor-pointer"
-                      title="Descargar código QR como PNG"
-                    >
-                      <Download size={11} /> Descargar
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handlePrintQR}
-                      className="flex-1 py-1.5 bg-[#006BB9] hover:bg-[#25306B] text-white font-bold rounded-lg flex items-center justify-center gap-1 text-[10px] transition-colors shadow-xs cursor-pointer"
-                      title="Imprimir etiqueta de código QR"
-                    >
-                      <Printer size={11} /> Imprimir
-                    </button>
-                  </div>
-                </div>
-              )}
             </div>
           </div>
 
@@ -995,6 +959,42 @@ export default function EditarEquipoModal({ equipo, onClose }) {
                   </div>
                 </div>
               </div>
+
+              {/* Código QR (Sólo para Notebooks, AIO, Tablets) */}
+              {isQRSupported() && (
+                <div className="mt-4 pt-4 border-t border-gray-150 flex flex-col items-center gap-3">
+                  <span className="block text-[10px] font-bold text-[#25306B] uppercase tracking-wide w-full text-left">
+                    Código QR del Equipo
+                  </span>
+                  <div className="bg-slate-50 border border-slate-200 p-3 rounded-xl flex items-center justify-center shadow-inner">
+                      <QRCodeSVG
+                        id="edit-qr-code-svg"
+                        value={`${window.location.origin}/qr-info?equipo=${originalEquipo?.id}`}
+                        size={120}
+                      level="H"
+                      includeMargin={true}
+                    />
+                  </div>
+                  <div className="flex gap-2 w-full">
+                    <button
+                      type="button"
+                      onClick={handleDownloadQR}
+                      className="flex-1 py-2 bg-slate-100 hover:bg-slate-200 text-gray-700 font-bold rounded-lg border border-gray-300 flex items-center justify-center gap-1.5 text-[11px] transition-colors cursor-pointer shadow-sm"
+                      title="Descargar código QR como PNG"
+                    >
+                      <Download size={14} /> Descargar PNG
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handlePrintQR}
+                      className="flex-1 py-2 bg-[#006BB9] hover:bg-[#25306B] text-white font-bold rounded-lg flex items-center justify-center gap-1.5 text-[11px] transition-colors shadow-md cursor-pointer"
+                      title="Imprimir etiqueta de código QR"
+                    >
+                      <Printer size={14} /> Imprimir Etiqueta
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
