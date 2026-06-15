@@ -129,11 +129,11 @@ export default function SolicitudesAdminPage() {
   const getStatusBadge = (estado) => {
     const baseClass = "inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] font-bold tracking-wide uppercase border whitespace-nowrap";
     switch(estado) {
-      case 'pendiente': return <span className={`${baseClass} bg-amber-50 text-amber-700 border-amber-200`}><Clock size={12} strokeWidth={2.5}/> Pendiente</span>;
-      case 'aprobado': return <span className={`${baseClass} bg-emerald-50 text-emerald-700 border-emerald-200`}><Check size={12} strokeWidth={2.5}/> Aprobado</span>;
-      case 'rechazado': return <span className={`${baseClass} bg-rose-50 text-rose-700 border-rose-200`}><X size={12} strokeWidth={2.5}/> Rechazado</span>;
-      case 'devuelto': return <span className={`${baseClass} bg-blue-50 text-blue-700 border-blue-200`}><Check size={12} strokeWidth={2.5}/> Devuelto</span>;
-      case 'devuelto_atrasado': return <span className={`${baseClass} bg-orange-50 text-orange-700 border-orange-200`}><AlertTriangle size={12} strokeWidth={2.5}/> Devuelto (Atraso)</span>;
+      case 'pendiente': return <span className={`${baseClass} bg-amber-100 text-amber-600 border-amber-600`}><Clock size={12} strokeWidth={2.5}/> Pendiente</span>;
+      case 'aprobado': return <span className={`${baseClass} bg-green-300 text-green-800 border-green-600`}><Check size={12} strokeWidth={2.5}/> Aprobado</span>;
+      case 'rechazado': return <span className={`${baseClass} bg-rose-200 text-red-600 border-red-600`}><X size={12} strokeWidth={2.5}/> Rechazado</span>;
+      case 'devuelto': return <span className={`${baseClass} bg-blue-200 text-blue-600 border-blue-600`}><Check size={12} strokeWidth={2.5}/> Devuelto</span>;
+      case 'devuelto_atrasado': return <span className={`${baseClass} bg-orange-200 text-orange-600 border-orange-600`}><AlertTriangle size={12} strokeWidth={2.5}/> Devuelto (Atraso)</span>;
       default: return <span className={`${baseClass} bg-gray-50 text-gray-700 border-gray-200`}>{estado}</span>;
     }
   };

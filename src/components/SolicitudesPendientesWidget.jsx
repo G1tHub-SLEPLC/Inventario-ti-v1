@@ -114,7 +114,7 @@ export default function SolicitudesPendientesWidget() {
 
   const getStatusBadge = () => {
     const baseClass = "inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] font-bold tracking-wide uppercase border whitespace-nowrap";
-    return <span className={`${baseClass} bg-amber-50 text-amber-700 border-amber-200`}><Clock size={12} strokeWidth={2.5}/> Pendiente</span>;
+    return <span className={`${baseClass} bg-amber-100 text-amber-600 border-amber-600`}><Clock size={12} strokeWidth={2.5}/> Pendiente</span>;
   };
 
 
