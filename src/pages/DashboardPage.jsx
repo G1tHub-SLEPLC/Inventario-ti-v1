@@ -1321,22 +1321,65 @@ export default function DashboardPage() {
                 onClick={() => {
                   const currentDesc = assignModalData['Descripción del Bien'];
                   const isDisp = isAvailable(assignUserName);
+                  let obsData = '';
+                  
                   if (currentDesc && !isDisp) {
-                    const hasSameType = equipos.some(eq =>
-                      eq.id !== assignModalData.id &&
-                      eq['Descripción del Bien'] === currentDesc &&
-                      (eq['Usuario'] && isSameUser(eq['Usuario'], assignUserName))
-                    );
+                    const descLower = currentDesc.toLowerCase();
+                    const isPC = descLower.includes('notebook') || descLower.includes('all in one') || descLower.includes('pc') || descLower.includes('computador') || descLower.includes('desktop');
 
-                    if (hasSameType) {
-                      if (!window.confirm(`El usuario ya tiene asignado un equipo del tipo "${currentDesc}". ¿Desea asignarlo de igual manera?`)) {
+                    let hasDuplicate = false;
+                    let conflictDesc = '';
+
+                    if (isPC) {
+                      const existingPC = equipos.find(eq =>
+                        eq.id !== assignModalData.id &&
+                        (eq['Usuario'] && isSameUser(eq['Usuario'], assignUserName)) &&
+                        (eq['Descripción del Bien'] && (
+                           eq['Descripción del Bien'].toLowerCase().includes('notebook') ||
+                           eq['Descripción del Bien'].toLowerCase().includes('all in one') ||
+                           eq['Descripción del Bien'].toLowerCase().includes('pc') ||
+                           eq['Descripción del Bien'].toLowerCase().includes('computador') ||
+                           eq['Descripción del Bien'].toLowerCase().includes('desktop')
+                        ))
+                      );
+                      if (existingPC) {
+                        hasDuplicate = true;
+                        conflictDesc = existingPC['Descripción del Bien'];
+                      }
+                    } else {
+                      const existingSame = equipos.find(eq =>
+                        eq.id !== assignModalData.id &&
+                        eq['Descripción del Bien'] === currentDesc &&
+                        (eq['Usuario'] && isSameUser(eq['Usuario'], assignUserName))
+                      );
+                      if (existingSame) {
+                        hasDuplicate = true;
+                        conflictDesc = currentDesc;
+                      }
+                    }
+
+                    if (hasDuplicate) {
+                      if (!window.confirm(`El usuario ya tiene asignado un equipo de este tipo (${conflictDesc}). ¿Desea continuar y asignarlo de igual manera?`)) {
                         return;
                       }
+                      
+                      const reason = window.prompt("Ingrese el motivo por el cual se asigna un equipo adicional a este usuario (OBLIGATORIO):");
+                      if (!reason || !reason.trim()) {
+                        showLocalToast('Cancelado', 'La asignación de equipo adicional requiere una observación obligatoria.', 'error');
+                        return;
+                      }
+                      obsData = reason.trim();
                     }
                   }
 
                   const updated = { ...assignModalData, 'Usuario': assignUserName };
                   updated.estado = isDisp ? 'DISPONIBLE' : 'ASIGNADO';
+                  if (obsData) {
+                    updated.Observaciones = updated.Observaciones 
+                      ? `${updated.Observaciones} | Asignación adicional: ${obsData}` 
+                      : `Asignación adicional: ${obsData}`;
+                  }
+                  
                   updateEquipo(equipos.indexOf(assignModalData), updated);
                   setAssignModalData(null);
                   showLocalToast('Equipo Asignado', `El equipo se ha asignado correctamente a ${isDisp ? 'DISPONIBLE' : assignUserName}.`, 'success');
