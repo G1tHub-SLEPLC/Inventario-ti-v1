@@ -15,7 +15,7 @@ const COLUMNS = [
 ];
 
 export default function NuevoEquipoPage() {
-  const { equipos, addEquipo, addMasivo, showToast } = useInventario();
+  const { equipos, addEquipo, addMasivo, showToast, updateEquiposMasivo } = useInventario();
   const navigate = useNavigate();
   const [formData, setFormData] = useState({ estado: 'DISPONIBLE', usuario_asignado_id: '' });
   const [selectDescVal, setSelectDescVal] = useState('');
@@ -217,7 +217,26 @@ export default function NuevoEquipoPage() {
           ...(imgUrl ? { imagen_url: imgUrl } : {})
        }));
 
-       await addMasivo(nuevosEquipos);
+       const cascadeEquipos = [];
+       if (imgUrl) {
+         const marca = formData['Marca']?.trim()?.toLowerCase();
+         const modelo = formData['Modelo']?.trim()?.toLowerCase();
+         if (marca && modelo) {
+           const identicalEquipos = equipos.filter(e => 
+             e['Marca']?.trim()?.toLowerCase() === marca &&
+             e['Modelo']?.trim()?.toLowerCase() === modelo
+           );
+           identicalEquipos.forEach(e => {
+             cascadeEquipos.push({ ...e, imagen_url: imgUrl });
+           });
+         }
+       }
+
+       if (cascadeEquipos.length > 0) {
+         await updateEquiposMasivo([...nuevosEquipos, ...cascadeEquipos]);
+       } else {
+         await addMasivo(nuevosEquipos);
+       }
        showToast('Registro Múltiple Exitoso', `Se guardaron correctamente ${uniqueSerials.length} equipos nuevos en bloque.`, 'success');
        navigate('/');
        return;
@@ -274,16 +293,38 @@ export default function NuevoEquipoPage() {
       }
     }
 
+    let finalImgUrl = null;
     if (imagenFile) {
-      const imgUrl = await uploadEquipoImage(imagenFile);
-      if (imgUrl) {
-        newEquipo.imagen_url = imgUrl;
+      finalImgUrl = await uploadEquipoImage(imagenFile);
+      if (finalImgUrl) {
+        newEquipo.imagen_url = finalImgUrl;
       } else {
         showToast('Advertencia', 'No se pudo subir la imagen del equipo. Revise si el bucket existe en Supabase.', 'warning');
       }
     }
 
-    addEquipo(newEquipo);
+    const cascadeEquipos = [];
+    if (finalImgUrl) {
+      const marca = newEquipo['Marca']?.trim()?.toLowerCase();
+      const modelo = newEquipo['Modelo']?.trim()?.toLowerCase();
+      if (marca && modelo) {
+        const identicalEquipos = equipos.filter(e => 
+          e.id !== newEquipo.id &&
+          e['Marca']?.trim()?.toLowerCase() === marca &&
+          e['Modelo']?.trim()?.toLowerCase() === modelo
+        );
+        identicalEquipos.forEach(e => {
+          cascadeEquipos.push({ ...e, imagen_url: finalImgUrl });
+        });
+      }
+    }
+
+    if (cascadeEquipos.length > 0) {
+      await updateEquiposMasivo([newEquipo, ...cascadeEquipos]);
+    } else {
+      addEquipo(newEquipo);
+    }
+
     showToast(
       'Registro Exitoso', 
       `El equipo "${newEquipo['Descripción del Bien'] || 'Nuevo equipo'}" se ha guardado correctamente.`, 

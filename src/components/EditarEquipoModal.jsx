@@ -444,43 +444,60 @@ export default function EditarEquipoModal({ equipo, onClose }) {
     const idPubChanged = (originalEquipo['ID Publicación'] || '') !== (updatedEquipo['ID Publicación'] || '') ||
                          (originalEquipo['Tipo Publicación'] || '') !== (updatedEquipo['Tipo Publicación'] || '');
 
-    let cascadeUpdates = [];
+    const cascadeUpdatesMap = new Map();
+    const norm = (s) => (s == null || String(s).trim() === '' || String(s).trim() === '—') ? '' : String(s).trim().toLowerCase();
+
     if (idPubChanged) {
-       const norm = (s) => (s == null || String(s).trim() === '' || String(s).trim() === '—') ? '' : String(s).trim().toLowerCase();
-       
        const upOC = norm(updatedEquipo['Orden de Compra']);
        const upFac = norm(updatedEquipo['Factura']);
        const upMarca = norm(updatedEquipo['Marca']);
        const upMod = norm(updatedEquipo['Modelo']);
        const upProv = norm(updatedEquipo['Proveedor']);
 
-       cascadeUpdates = equipos.filter(eq => {
-          if (eq.id === originalEquipo.id) return false;
+       equipos.forEach(eq => {
+          if (eq.id === originalEquipo.id) return;
           
-          if (norm(eq['Orden de Compra']) !== upOC) return false;
-          if (norm(eq['Factura']) !== upFac) return false;
-          if (norm(eq['Marca']) !== upMarca) return false;
-          if (norm(eq['Modelo']) !== upMod) return false;
-          if (norm(eq['Proveedor']) !== upProv) return false;
+          if (norm(eq['Orden de Compra']) !== upOC) return;
+          if (norm(eq['Factura']) !== upFac) return;
+          if (norm(eq['Marca']) !== upMarca) return;
+          if (norm(eq['Modelo']) !== upMod) return;
+          if (norm(eq['Proveedor']) !== upProv) return;
 
           if ((eq['ID Publicación'] || '') === (updatedEquipo['ID Publicación'] || '') &&
               (eq['Tipo Publicación'] || '') === (updatedEquipo['Tipo Publicación'] || '')) {
-             return false;
+             return;
           }
 
-          return true;
-       }).map(eq => ({
-          ...eq,
-          'ID Publicación': updatedEquipo['ID Publicación'],
-          'Tipo Publicación': updatedEquipo['Tipo Publicación']
-       }));
+          cascadeUpdatesMap.set(eq.id, {
+            ...eq,
+            'ID Publicación': updatedEquipo['ID Publicación'],
+            'Tipo Publicación': updatedEquipo['Tipo Publicación']
+          });
+       });
     }
 
-    if (cascadeUpdates.length > 0) {
-       await updateEquiposMasivo([updatedEquipo, ...cascadeUpdates]);
+    if (imagenFile && updatedEquipo.imagen_url) {
+      const upMarca = norm(updatedEquipo['Marca']);
+      const upMod = norm(updatedEquipo['Modelo']);
+      if (upMarca && upMod) {
+         equipos.forEach(eq => {
+            if (eq.id === originalEquipo.id) return;
+            if (norm(eq['Marca']) === upMarca && norm(eq['Modelo']) === upMod) {
+               const existingUpdate = cascadeUpdatesMap.get(eq.id) || { ...eq };
+               existingUpdate.imagen_url = updatedEquipo.imagen_url;
+               cascadeUpdatesMap.set(eq.id, existingUpdate);
+            }
+         });
+      }
+    }
+
+    const cascadeUpdatesList = Array.from(cascadeUpdatesMap.values());
+
+    if (cascadeUpdatesList.length > 0) {
+       await updateEquiposMasivo([updatedEquipo, ...cascadeUpdatesList]);
        showToast(
          'Edición Múltiple Exitosa', 
-         `El equipo y otros ${cascadeUpdates.length} equipos vinculados fueron actualizados con el nuevo ID de Publicación.`, 
+         `El equipo y otros ${cascadeUpdatesList.length} equipos vinculados fueron actualizados con los nuevos datos.`, 
          'success'
        );
     } else {

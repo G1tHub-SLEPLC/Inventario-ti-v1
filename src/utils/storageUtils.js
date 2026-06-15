@@ -1,6 +1,6 @@
 import { supabase } from '../lib/supabaseClient';
 
-const BUCKET_NAME = 'equipos_imagenes';
+const BUCKET_NAME = 'documentos';
 
 /**
  * Uploads an image file to Supabase Storage and returns the public URL.
