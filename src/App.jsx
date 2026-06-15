@@ -27,6 +27,7 @@ const LicenciasBadgeShowcasePage = lazy(() => import('./pages/LicenciasBadgeShow
 const QRInfoPage = lazy(() => import('./pages/QRInfoPage'));
 const RowHeightShowcasePage = lazy(() => import('./pages/RowHeightShowcasePage'));
 const ImagenTablaShowcasePage = lazy(() => import('./pages/ImagenTablaShowcasePage'));
+const AlertShowcasePage = lazy(() => import('./pages/AlertShowcasePage'));
 
 function ProtectedRoute({ children }) {
   const { session, loading } = useAuth();
@@ -108,6 +109,7 @@ export default function App() {
                   <Route path="licencias-badge" element={<LicenciasBadgeShowcasePage />} />
                   <Route path="row-height-showcase" element={<RowHeightShowcasePage />} />
                   <Route path="imagen-tabla-showcase" element={<ImagenTablaShowcasePage />} />
+                  <Route path="alert-showcase" element={<AlertShowcasePage />} />
                   
                 </Route>
                 <Route path="*" element={<Navigate to="/" replace />} />
