@@ -232,8 +232,12 @@ export default function SolicitudesAdminPage() {
                   <td className="px-6 py-4 text-center">
                     {sol.estado === 'pendiente' && (
                       <div className="flex items-center justify-center gap-2">
-                        <button onClick={() => handleOpenModal(sol, 'aprobar')} className="text-emerald-600 hover:text-emerald-800 font-bold px-2 py-1 bg-emerald-50 rounded text-xs transition">Aprobar</button>
-                        <button onClick={() => handleOpenModal(sol, 'rechazado')} className="text-red-600 hover:text-red-800 font-bold px-2 py-1 bg-red-50 rounded text-xs transition">Rechazar</button>
+                        <button onClick={() => handleOpenModal(sol, 'aprobar')} className="flex items-center gap-1 bg-green-300 text-green-800 border border-green-400 hover:bg-green-400 font-bold px-2.5 py-1 rounded text-xs transition shadow-sm">
+                          <Check size={12} strokeWidth={3} /> Aprobar
+                        </button>
+                        <button onClick={() => handleOpenModal(sol, 'rechazado')} className="flex items-center gap-1 bg-rose-200 text-red-600 border border-red-600 hover:bg-rose-300 font-bold px-2.5 py-1 rounded text-xs transition shadow-sm">
+                          <X size={12} strokeWidth={3} /> Rechazar
+                        </button>
                       </div>
                     )}
                     {sol.estado === 'aprobado' && sol.tipo === 'prestamo' && (
