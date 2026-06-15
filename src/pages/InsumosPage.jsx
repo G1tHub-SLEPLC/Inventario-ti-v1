@@ -431,7 +431,7 @@ export default function InsumosPage() {
           insumo_id: assignData.insumo_id,
           cantidad: assignData.cantidad,
           estado: 'aprobado',
-          observaciones_admin: assignData.observaciones ? `Entrega directa (Múltiple): ${assignData.observaciones}` : 'Entrega directa (Múltiple)'
+          observaciones_admin: assignData.observaciones || ''
         }));
         const { error: errorSol } = await supabase.from('solicitudes').insert(inserts);
         if (errorSol) throw errorSol;
@@ -449,7 +449,7 @@ export default function InsumosPage() {
           insumo_id: assignData.insumo_id,
           cantidad: assignData.cantidad,
           estado: 'aprobado',
-          observaciones_admin: assignData.observaciones ? `Entrega directa: ${assignData.observaciones}` : 'Entrega directa'
+          observaciones_admin: assignData.observaciones || ''
         });
         if (errorSol) throw errorSol;
 
@@ -750,6 +750,7 @@ export default function InsumosPage() {
                       <SortableHeader label="Modelo" sortKey="insumos.modelo" currentKey={asigFuncSortKey} currentDir={asigFuncSortDir} onSort={handleAsigFuncSort} className="text-white bg-[#112A46] text-left" />
                       <SortableHeader label="Fecha Entrega" sortKey="created_at" currentKey={asigFuncSortKey} currentDir={asigFuncSortDir} onSort={handleAsigFuncSort} className="text-white bg-[#112A46] text-left" />
                       <SortableHeader label="Cantidad" sortKey="cantidad" currentKey={asigFuncSortKey} currentDir={asigFuncSortDir} onSort={handleAsigFuncSort} className="text-white bg-[#112A46] text-center" />
+                      <SortableHeader label="Observaciones" sortKey="observaciones_admin" currentKey={asigFuncSortKey} currentDir={asigFuncSortDir} onSort={handleAsigFuncSort} className="text-white bg-[#112A46] text-left" />
                       <th className="px-3 py-3 text-center font-bold text-white bg-[#112A46]">Acciones</th>
                     </tr>
                   </thead>
@@ -777,6 +778,9 @@ export default function InsumosPage() {
                           </td>
                           <td className="px-3 py-2.5 text-center font-bold text-[#25306B]">
                             {asig.cantidad}
+                          </td>
+                          <td className="px-3 py-2.5 text-gray-600 max-w-[200px] truncate" title={asig.observaciones_admin || ''}>
+                            {asig.observaciones_admin || '—'}
                           </td>
                           <td className="px-3 py-2.5 text-center">
                             <button 
@@ -850,6 +854,7 @@ export default function InsumosPage() {
                         <SortableHeader label="Correo Electrónico" sortKey="perfiles.email" currentKey={asigInsumoSortKey} currentDir={asigInsumoSortDir} onSort={handleAsigInsumoSort} className="text-white bg-[#112A46] text-left" />
                         <SortableHeader label="Fecha Entrega" sortKey="created_at" currentKey={asigInsumoSortKey} currentDir={asigInsumoSortDir} onSort={handleAsigInsumoSort} className="text-white bg-[#112A46] text-left" />
                         <SortableHeader label="Cantidad" sortKey="cantidad" currentKey={asigInsumoSortKey} currentDir={asigInsumoSortDir} onSort={handleAsigInsumoSort} className="text-white bg-[#112A46] text-center" />
+                        <SortableHeader label="Observaciones" sortKey="observaciones_admin" currentKey={asigInsumoSortKey} currentDir={asigInsumoSortDir} onSort={handleAsigInsumoSort} className="text-white bg-[#112A46] text-left" />
                         <th className="px-3 py-3 text-center font-bold text-white bg-[#112A46]">Acciones</th>
                       </tr>
                     </thead>
@@ -879,6 +884,9 @@ export default function InsumosPage() {
                             </td>
                             <td className="px-3 py-2.5 text-center font-bold text-[#25306B]">
                               {asig.cantidad}
+                            </td>
+                            <td className="px-3 py-2.5 text-gray-600 max-w-[200px] truncate" title={asig.observaciones_admin || ''}>
+                              {asig.observaciones_admin || '—'}
                             </td>
                             <td className="px-3 py-2.5 text-center">
                               <button 
