@@ -17,6 +17,7 @@ import { useSolicitudes } from '../context/SolicitudesContext';
 import { useLicencias } from '../context/LicenciasContext';
 import { useAuth } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
+import SolicitudesPendientesWidget from '../components/SolicitudesPendientesWidget';
 
 const norm = (s) => (s == null ? '' : String(s)).trim().toLowerCase().replace(/\s+/g, ' ');
 const isAvailable = (usuario) => {
@@ -51,12 +52,6 @@ export default function GlobalDashboardPage() {
   const licenciasAsignadas = asignaciones.length;
   const licenciasDisponibles = Math.max(0, totalLicencias - licenciasAsignadas);
 
-  const getGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return 'Buenos días';
-    if (hour < 19) return 'Buenas tardes';
-    return 'Buenas noches';
-  };
 
   const formatEmailName = (email) => {
     if (!email) return '';
@@ -85,7 +80,7 @@ export default function GlobalDashboardPage() {
           <ShieldCheck size={300} strokeWidth={1} />
         </div>
         <div className="relative z-10">
-          <h1 className="text-3xl font-bold mb-2">{getGreeting()}, {firstName}</h1>
+          <h1 className="text-3xl font-bold mb-2">Bienvenido, {firstName}</h1>
           <p className="text-blue-100 text-lg max-w-2xl">
             Bienvenido al panel de control central. Aquí tienes un resumen del estado de los recursos tecnológicos y solicitudes del SLEP.
           </p>
@@ -196,6 +191,8 @@ export default function GlobalDashboardPage() {
         </Link>
 
       </div>
+
+      <SolicitudesPendientesWidget />
     </div>
   );
 }
