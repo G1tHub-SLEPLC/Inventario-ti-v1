@@ -4,6 +4,7 @@ import { Save, AlertCircle, Eye, Clock, UserCheck, X, QrCode, Download, Printer 
 import { QRCodeSVG } from 'qrcode.react';
 import { saveDocument, getDocument } from '../utils/db';
 import { supabase } from '../lib/supabaseClient';
+import { uploadEquipoImage } from '../utils/storageUtils';
 import AutocompleteInput from './AutocompleteInput';
 import { isSameUser } from '../utils/userUtils';
 
@@ -27,6 +28,7 @@ export default function EditarEquipoModal({ equipo, onClose }) {
   }, [equipos]);
   const [facturaFile, setFacturaFile] = useState(null);
   const [ocFile, setOcFile] = useState(null);
+  const [imagenFile, setImagenFile] = useState(null);
   const [fileTooltip, setFileTooltip] = useState({ visible: false, x: 0, y: 0, type: '' });
   const [usuarios, setUsuarios] = useState([]);
   const [userSearchTerm, setUserSearchTerm] = useState('');
@@ -429,6 +431,15 @@ export default function EditarEquipoModal({ equipo, onClose }) {
       }
     }
 
+    if (imagenFile) {
+      const imgUrl = await uploadEquipoImage(imagenFile);
+      if (imgUrl) {
+        updatedEquipo.imagen_url = imgUrl;
+      } else {
+        showToast('Advertencia', 'No se pudo subir la imagen del equipo. Revise si el bucket existe en Supabase.', 'warning');
+      }
+    }
+
     // Cascade ID Publicacion if changed
     const idPubChanged = (originalEquipo['ID Publicación'] || '') !== (updatedEquipo['ID Publicación'] || '') ||
                          (originalEquipo['Tipo Publicación'] || '') !== (updatedEquipo['Tipo Publicación'] || '');
@@ -668,6 +679,33 @@ export default function EditarEquipoModal({ equipo, onClose }) {
                   className="w-full px-2 py-1 border border-gray-300 rounded-lg text-xs focus:ring-1.5 focus:ring-[#006BB9] focus:outline-none shadow-xs bg-white font-medium"
                   placeholder="Proveedor"
                 />
+              </div>
+
+              {/* Imagen del Equipo */}
+              <div className="mt-3 pt-3 border-t border-gray-150">
+                <label className="block text-[10px] font-bold text-[#25306B] uppercase tracking-wide mb-2">
+                  Imagen del Equipo
+                </label>
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-md bg-gray-50 border border-gray-200 overflow-hidden shrink-0 flex items-center justify-center shadow-sm">
+                    {imagenFile ? (
+                      <img src={URL.createObjectURL(imagenFile)} alt="Preview" className="w-full h-full object-cover" />
+                    ) : formData.imagen_url ? (
+                      <img src={formData.imagen_url} alt="Actual" className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-[8px] text-gray-400 font-bold uppercase">No Img</span>
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      onChange={e => setImagenFile(e.target.files[0] || null)}
+                      className="block w-full text-[10px] text-slate-500 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:font-semibold file:bg-blue-50 file:text-[#006BB9] hover:file:bg-blue-100"
+                    />
+                    <p className="text-[9px] text-gray-400 mt-1 leading-tight">La nueva imagen reemplazará a la actual. Tamaño en tablas: 48px.</p>
+                  </div>
+                </div>
               </div>
 
               {/* Código QR (Sólo para Notebooks, AIO, Tablets) */}

@@ -541,7 +541,7 @@ export default function DashboardPage() {
   // Define active columns dynamically
   const activeCols = useMemo(() => {
     if (isSearchingQR) {
-      const cols = [];
+      const cols = ['Imagen'];
       COLUMNS.forEach(c => {
         if (c === 'Usuario') {
           cols.push('Estado');
@@ -551,11 +551,11 @@ export default function DashboardPage() {
       return cols;
     }
     if (activeTab === 'disp') {
-      const cols = COLUMNS.filter(c => c !== 'Usuario' && c !== 'SubDirección');
+      const cols = ['Imagen', ...COLUMNS.filter(c => c !== 'Usuario' && c !== 'SubDirección')];
       cols.push('Estado');
       return cols;
     }
-    const cols = [];
+    const cols = ['Imagen'];
     COLUMNS.forEach(c => {
       if (c === 'Usuario') {
         cols.push('Estado');
@@ -1102,6 +1102,20 @@ export default function DashboardPage() {
                         {activeCols.map(c => {
                           const value = c === 'Estado' ? '' : safe(row[c]);
                           const itemId = row.id || row['Nº de serie'] || `temp_${i}`;
+
+                          if (c === 'Imagen') {
+                            return (
+                              <td key={c} className="px-3 py-2 w-16">
+                                <div className="w-[48px] h-[48px] rounded-[6px] bg-white border border-gray-200 overflow-hidden flex items-center justify-center shrink-0 shadow-sm">
+                                  {row.imagen_url ? (
+                                    <img src={row.imagen_url} alt={row['Descripción del Bien'] || 'Equipo'} style={{ objectFit: 'cover' }} className="w-full h-full" />
+                                  ) : (
+                                    <span className="text-[8px] text-gray-400 font-bold uppercase text-center leading-tight">Sin<br/>Img</span>
+                                  )}
+                                </div>
+                              </td>
+                            );
+                          }
 
                           if (c === 'Estado') {
                             const estadoFinal = getEstadoFinal(row);

@@ -4,6 +4,7 @@ import { Save, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { saveDocument } from '../utils/db';
 import { supabase } from '../lib/supabaseClient';
+import { uploadEquipoImage } from '../utils/storageUtils';
 import AutocompleteInput from '../components/AutocompleteInput';
 import { isSameUser } from '../utils/userUtils';
 
@@ -32,6 +33,7 @@ export default function NuevoEquipoPage() {
   const [isMultiMode, setIsMultiMode] = useState(false);
   const [facturaFile, setFacturaFile] = useState(null);
   const [ocFile, setOcFile] = useState(null);
+  const [imagenFile, setImagenFile] = useState(null);
   const [fileTooltip, setFileTooltip] = useState({ visible: false, x: 0, y: 0, type: '' });
   const [usuarios, setUsuarios] = useState([]);
   const [userSearchTerm, setUserSearchTerm] = useState('');
@@ -198,12 +200,21 @@ export default function NuevoEquipoPage() {
          } catch (err) {}
        }
 
+       let imgUrl = null;
+       if (imagenFile) {
+         imgUrl = await uploadEquipoImage(imagenFile);
+         if (!imgUrl) {
+           showToast('Advertencia', 'No se pudo subir la imagen del equipo. Revise si el bucket existe en Supabase.', 'warning');
+         }
+       }
+
        const nuevosEquipos = uniqueSerials.map(serial => ({
           ...formData,
           'Nº de serie': serial,
           id: serial,
           hasFacturaFile: factSaved || facturaHasFile,
-          hasOcFile: ocSaved || ocHasFile
+          hasOcFile: ocSaved || ocHasFile,
+          ...(imgUrl ? { imagen_url: imgUrl } : {})
        }));
 
        await addMasivo(nuevosEquipos);
@@ -260,6 +271,15 @@ export default function NuevoEquipoPage() {
         newEquipo.hasOcFile = true;
       } catch (err) {
         console.error('Error saving PO:', err);
+      }
+    }
+
+    if (imagenFile) {
+      const imgUrl = await uploadEquipoImage(imagenFile);
+      if (imgUrl) {
+        newEquipo.imagen_url = imgUrl;
+      } else {
+        showToast('Advertencia', 'No se pudo subir la imagen del equipo. Revise si el bucket existe en Supabase.', 'warning');
       }
     }
 
@@ -475,6 +495,28 @@ export default function NuevoEquipoPage() {
                 )}
               </div>
             ))}
+          </div>
+
+          <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-200 mt-6 mb-6">
+            <h3 className="text-sm font-bold text-gray-800 mb-4 uppercase tracking-wide">Imagen del Equipo (Opcional)</h3>
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 rounded-lg bg-gray-50 flex items-center justify-center border border-gray-200 overflow-hidden shrink-0 shadow-sm">
+                {imagenFile ? (
+                  <img src={URL.createObjectURL(imagenFile)} alt="Preview" className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-[10px] text-gray-400 font-medium tracking-wide uppercase">No Img</span>
+                )}
+              </div>
+              <div className="flex-1">
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  onChange={e => setImagenFile(e.target.files[0] || null)}
+                  className="block w-full text-xs text-slate-500 file:mr-4 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-[#006BB9] hover:file:bg-blue-100 transition-colors"
+                />
+                <p className="text-[10px] text-gray-500 mt-1.5 leading-tight">Sube una foto referencial o real del equipo. Aparecerá en las miniaturas de las tablas del sistema con un tamaño de 48px.</p>
+              </div>
+            </div>
           </div>
 
           <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-200 mb-8 relative">

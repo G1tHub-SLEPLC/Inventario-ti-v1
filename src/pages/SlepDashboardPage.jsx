@@ -209,6 +209,7 @@ export default function SlepDashboardPage() {
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-gray-50 border-b border-gray-200 text-xs text-gray-600 uppercase">
+                      <th className="px-4 py-3 font-semibold w-16">Imagen</th>
                       <th className="px-4 py-3 font-semibold">Descripción del Bien</th>
                       <th className="px-4 py-3 font-semibold">Marca</th>
                       <th className="px-4 py-3 font-semibold">Modelo</th>
@@ -220,6 +221,15 @@ export default function SlepDashboardPage() {
                   <tbody className="divide-y divide-gray-200 text-sm text-gray-700">
                     {misEquipos.map((eq, i) => (
                       <tr key={eq.id || i} className="hover:bg-blue-50 even:bg-slate-50 transition-colors">
+                        <td className="px-4 py-2">
+                          <div className="w-[48px] h-[48px] rounded-[6px] bg-white border border-gray-200 overflow-hidden flex items-center justify-center shrink-0 shadow-sm">
+                            {eq.imagen_url ? (
+                              <img src={eq.imagen_url} alt={eq['Descripción del Bien'] || 'Equipo'} style={{ objectFit: 'cover' }} className="w-full h-full" />
+                            ) : (
+                              <span className="text-[8px] text-gray-400 font-bold uppercase text-center leading-tight">Sin<br/>Img</span>
+                            )}
+                          </div>
+                        </td>
                         <td className="px-4 py-3 font-medium whitespace-nowrap">{eq['Descripción del Bien'] || '—'}</td>
                         <td className="px-4 py-3 whitespace-nowrap">{eq.Marca || '—'}</td>
                         <td className="px-4 py-3 whitespace-nowrap">{eq.Modelo || '—'}</td>
