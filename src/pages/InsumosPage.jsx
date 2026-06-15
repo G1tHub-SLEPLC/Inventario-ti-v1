@@ -139,8 +139,11 @@ export default function InsumosPage() {
       const { data: perfs } = await supabase.from('perfiles').select('id, nombre, email');
       const hist = sols.map(s => {
         const user = perfs?.find(p => p.id === s.usuario_id);
+        const obsTrimmed = (s.observaciones_admin || '').trim();
+        const obsClean = (obsTrimmed.toUpperCase() === 'ENTREGA DIRECTA' || obsTrimmed.toUpperCase() === 'ENTREGA DIRECTA (MÚLTIPLE)' || obsTrimmed.toUpperCase() === 'ENTREGA DIRECTA (MULTIPLE)') ? '' : s.observaciones_admin;
         return {
           ...s,
+          observaciones_admin: obsClean,
           perfiles: user || null,
           usuario_nombre: user?.nombre || user?.email || 'Desconocido'
         };
@@ -198,8 +201,11 @@ export default function InsumosPage() {
       const { data: perfs } = await supabase.from('perfiles').select('id, nombre, email');
       const hist = sols.map(s => {
         const user = perfs?.find(p => p.id === s.usuario_id);
+        const obsTrimmed = (s.observaciones_admin || '').trim();
+        const obsClean = (obsTrimmed.toUpperCase() === 'ENTREGA DIRECTA' || obsTrimmed.toUpperCase() === 'ENTREGA DIRECTA (MÚLTIPLE)' || obsTrimmed.toUpperCase() === 'ENTREGA DIRECTA (MULTIPLE)') ? '' : s.observaciones_admin;
         return {
           ...s,
+          observaciones_admin: obsClean,
           insumo_id: insumo.id,
           perfiles: user || null,
           usuario_nombre: user?.nombre || user?.email || 'Desconocido'
