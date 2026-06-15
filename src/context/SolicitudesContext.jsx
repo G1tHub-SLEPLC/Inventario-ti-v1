@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from './AuthContext';
 import { useInventario } from './InventarioContext';
@@ -17,6 +17,18 @@ export function SolicitudesProvider({ children }) {
   const [insumos, setInsumos] = useState([]);
   const [solicitudes, setSolicitudes] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  const solicitudesChannelRef = useRef(null);
+
+  const broadcastSolicitudesChanges = () => {
+    if (solicitudesChannelRef.current) {
+      solicitudesChannelRef.current.send({
+        type: 'broadcast',
+        event: 'solicitudes_changed',
+        payload: {}
+      });
+    }
+  };
 
   const loadData = useCallback(async () => {
     if (!session) {
@@ -83,7 +95,12 @@ export function SolicitudesProvider({ children }) {
           showToast('Nueva Solicitud', `Se ha recibido una nueva solicitud de ${payload.new.tipo}.`, 'info');
         }
       })
+      .on('broadcast', { event: 'solicitudes_changed' }, () => {
+        loadData();
+      })
       .subscribe();
+
+    solicitudesChannelRef.current = solicitudesChannel;
 
     const insumosChannel = supabase.channel('insumos-channel')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'insumos' }, () => {
@@ -134,6 +151,7 @@ export function SolicitudesProvider({ children }) {
 
     showToast('Éxito', 'Solicitud de préstamo enviada correctamente.', 'success');
     await loadData();
+    broadcastSolicitudesChanges();
   };
 
   const solicitarInsumo = async (insumo_id, cantidad) => {
@@ -149,6 +167,7 @@ export function SolicitudesProvider({ children }) {
     }
     showToast('Éxito', 'Solicitud de insumo enviada correctamente.', 'success');
     await loadData();
+    broadcastSolicitudesChanges();
   };
 
   const updateEstadoSolicitud = async (id, estado, observaciones_admin) => {
@@ -169,6 +188,7 @@ export function SolicitudesProvider({ children }) {
     
     showToast('Éxito', `Solicitud ${estado} correctamente.`, 'success');
     await loadData();
+    broadcastSolicitudesChanges();
   };
 
   return (
@@ -179,7 +199,8 @@ export function SolicitudesProvider({ children }) {
       solicitarPrestamo,
       solicitarInsumo,
       updateEstadoSolicitud,
-      refetch: loadData
+      refetch: loadData,
+      broadcast: broadcastSolicitudesChanges
     }}>
       {children}
     </SolicitudesContext.Provider>

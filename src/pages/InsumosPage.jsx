@@ -20,7 +20,7 @@ function getInitials(name) {
 }
 
 export default function InsumosPage() {
-  const { insumos, refetch } = useSolicitudes();
+  const { insumos, refetch, broadcast } = useSolicitudes();
   const { showToast } = useInventario();
   const { session } = useAuth();
   const { showAlertConfirm } = useAlert();
@@ -500,6 +500,7 @@ export default function InsumosPage() {
       setIsAssignModalOpen(false);
       await refetch();
       await fetchHistorial();
+      if (broadcast) broadcast();
     } catch (err) {
       console.error(err);
       showToast('Error', 'Hubo un error en la asignación.', 'error');
@@ -528,6 +529,7 @@ export default function InsumosPage() {
       showToast('Reversión exitosa', 'La entrega fue eliminada y el stock restaurado.', 'success');
       await refetch();
       await fetchHistorial();
+      if (broadcast) broadcast();
     } catch (err) {
       console.error(err);
       showToast('Error', 'Hubo un error al intentar revertir la entrega.', 'error');
