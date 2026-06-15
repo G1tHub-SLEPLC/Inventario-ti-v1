@@ -543,7 +543,7 @@ export default function NuevoEquipoPage() {
             <div className="flex items-center gap-4">
               <div className="w-16 h-16 rounded-lg bg-gray-50 flex items-center justify-center border border-gray-200 overflow-hidden shrink-0 shadow-sm">
                 {imagenFile ? (
-                  <img src={URL.createObjectURL(imagenFile)} alt="Preview" className="w-full h-full object-cover" />
+                  <img src={URL.createObjectURL(imagenFile)} alt="Preview" className="w-full h-full object-contain" />
                 ) : (
                   <span className="text-[10px] text-gray-400 font-medium tracking-wide uppercase">No Img</span>
                 )}

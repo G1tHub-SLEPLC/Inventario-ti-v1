@@ -1108,7 +1108,7 @@ export default function DashboardPage() {
                               <td key={c} className="px-3 py-2 w-16">
                                 <div className="w-[48px] h-[48px] rounded-[6px] bg-white border border-gray-200 overflow-hidden flex items-center justify-center shrink-0 shadow-sm">
                                   {row.imagen_url ? (
-                                    <img src={row.imagen_url} alt={row['Descripción del Bien'] || 'Equipo'} style={{ objectFit: 'cover' }} className="w-full h-full" />
+                                    <img src={row.imagen_url} alt={row['Descripción del Bien'] || 'Equipo'} style={{ objectFit: 'contain' }} className="w-full h-full" />
                                   ) : (
                                     <span className="text-[8px] text-gray-400 font-bold uppercase text-center leading-tight">Sin<br/>Img</span>
                                   )}

@@ -706,9 +706,9 @@ export default function EditarEquipoModal({ equipo, onClose }) {
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 rounded-md bg-gray-50 border border-gray-200 overflow-hidden shrink-0 flex items-center justify-center shadow-sm">
                     {imagenFile ? (
-                      <img src={URL.createObjectURL(imagenFile)} alt="Preview" className="w-full h-full object-cover" />
+                      <img src={URL.createObjectURL(imagenFile)} alt="Preview" className="w-full h-full object-contain" />
                     ) : formData.imagen_url ? (
-                      <img src={formData.imagen_url} alt="Actual" className="w-full h-full object-cover" />
+                      <img src={formData.imagen_url} alt="Actual" className="w-full h-full object-contain" />
                     ) : (
                       <span className="text-[8px] text-gray-400 font-bold uppercase">No Img</span>
                     )}

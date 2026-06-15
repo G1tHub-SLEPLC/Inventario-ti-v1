@@ -224,7 +224,7 @@ export default function SlepDashboardPage() {
                         <td className="px-4 py-2">
                           <div className="w-[48px] h-[48px] rounded-[6px] bg-white border border-gray-200 overflow-hidden flex items-center justify-center shrink-0 shadow-sm">
                             {eq.imagen_url ? (
-                              <img src={eq.imagen_url} alt={eq['Descripción del Bien'] || 'Equipo'} style={{ objectFit: 'cover' }} className="w-full h-full" />
+                              <img src={eq.imagen_url} alt={eq['Descripción del Bien'] || 'Equipo'} style={{ objectFit: 'contain' }} className="w-full h-full" />
                             ) : (
                               <span className="text-[8px] text-gray-400 font-bold uppercase text-center leading-tight">Sin<br/>Img</span>
                             )}
