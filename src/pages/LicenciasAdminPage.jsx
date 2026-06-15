@@ -1403,7 +1403,8 @@ export default function LicenciasAdminPage() {
                     type="date"
                     value={formData.fecha_inicio}
                     onChange={e => setFormData({ ...formData, fecha_inicio: e.target.value })}
-                    className="w-full rounded-lg border-gray-300 shadow-sm border p-2 text-sm focus:border-[#006BB9] focus:ring-[#006BB9]"
+                    onClick={(e) => e.target.showPicker && e.target.showPicker()}
+                    className="w-full rounded-lg border-gray-300 shadow-sm border p-2 text-sm focus:border-[#006BB9] focus:ring-[#006BB9] cursor-pointer"
                   />
                 </div>
                 <div>
@@ -1413,7 +1414,8 @@ export default function LicenciasAdminPage() {
                     type="date"
                     value={formData.fecha_termino}
                     onChange={e => setFormData({ ...formData, fecha_termino: e.target.value })}
-                    className="w-full rounded-lg border-gray-300 shadow-sm border p-2 text-sm focus:border-[#006BB9] focus:ring-[#006BB9]"
+                    onClick={(e) => e.target.showPicker && e.target.showPicker()}
+                    className="w-full rounded-lg border-gray-300 shadow-sm border p-2 text-sm focus:border-[#006BB9] focus:ring-[#006BB9] cursor-pointer"
                   />
                 </div>
               </div>

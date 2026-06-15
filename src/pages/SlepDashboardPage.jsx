@@ -519,7 +519,8 @@ export default function SlepDashboardPage() {
                     required
                     value={fechaInicio} 
                     onChange={(e) => setFechaInicio(e.target.value)}
-                    className="w-full rounded-lg border-gray-300 shadow-sm border p-2.5 text-sm focus:border-[#006BB9] focus:ring-[#006BB9] bg-white"
+                    onClick={(e) => e.target.showPicker && e.target.showPicker()}
+                    className="w-full rounded-lg border-gray-300 shadow-sm border p-2.5 text-sm focus:border-[#006BB9] focus:ring-[#006BB9] bg-white cursor-pointer"
                   />
                 </div>
                 <div>
@@ -529,7 +530,8 @@ export default function SlepDashboardPage() {
                     required
                     value={horaInicio} 
                     onChange={(e) => setHoraInicio(e.target.value)}
-                    className="w-full rounded-lg border-gray-300 shadow-sm border p-2.5 text-sm focus:border-[#006BB9] focus:ring-[#006BB9] bg-white"
+                    onClick={(e) => e.target.showPicker && e.target.showPicker()}
+                    className="w-full rounded-lg border-gray-300 shadow-sm border p-2.5 text-sm focus:border-[#006BB9] focus:ring-[#006BB9] bg-white cursor-pointer"
                   />
                 </div>
                 <div>
@@ -539,7 +541,8 @@ export default function SlepDashboardPage() {
                     required
                     value={fechaFin} 
                     onChange={(e) => setFechaFin(e.target.value)}
-                    className="w-full rounded-lg border-gray-300 shadow-sm border p-2.5 text-sm focus:border-[#006BB9] focus:ring-[#006BB9] bg-white"
+                    onClick={(e) => e.target.showPicker && e.target.showPicker()}
+                    className="w-full rounded-lg border-gray-300 shadow-sm border p-2.5 text-sm focus:border-[#006BB9] focus:ring-[#006BB9] bg-white cursor-pointer"
                   />
                 </div>
                 <div>
@@ -549,7 +552,8 @@ export default function SlepDashboardPage() {
                     required
                     value={horaFin} 
                     onChange={(e) => setHoraFin(e.target.value)}
-                    className="w-full rounded-lg border-gray-300 shadow-sm border p-2.5 text-sm focus:border-[#006BB9] focus:ring-[#006BB9] bg-white"
+                    onClick={(e) => e.target.showPicker && e.target.showPicker()}
+                    className="w-full rounded-lg border-gray-300 shadow-sm border p-2.5 text-sm focus:border-[#006BB9] focus:ring-[#006BB9] bg-white cursor-pointer"
                   />
                 </div>
               </div>
