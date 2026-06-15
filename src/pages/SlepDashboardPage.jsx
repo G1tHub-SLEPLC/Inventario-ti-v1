@@ -3,7 +3,7 @@ import { useInventario } from '../context/InventarioContext';
 import { useSolicitudes } from '../context/SolicitudesContext';
 import { useAuth } from '../context/AuthContext';
 import { useLicencias } from '../context/LicenciasContext';
-import { Monitor, Package, Calendar, Key } from 'lucide-react';
+import { Monitor, Package, Calendar, Key, AlertTriangle } from 'lucide-react';
 import CustomTimePicker from '../components/CustomTimePicker';
 
 export default function SlepDashboardPage() {
@@ -24,6 +24,7 @@ export default function SlepDashboardPage() {
   const [fechaFin, setFechaFin] = useState('');
   const [horaFin, setHoraFin] = useState('');
   const [motivo, setMotivo] = useState('');
+  const [pendingWarningInfo, setPendingWarningInfo] = useState(null); // { applicantName, equipoId }
 
   const formatEmailName = (email) => {
     if (!email) return '';
@@ -76,7 +77,7 @@ export default function SlepDashboardPage() {
   }, [equipos, session, perfil]);
 
   const equiposDisponiblesParaPrestamo = useMemo(() => {
-    return equipos.filter(eq => eq.estado === 'PARA PRESTAMO' || eq.estado === 'EN PRESTAMO');
+    return equipos.filter(eq => eq.estado === 'PARA PRESTAMO' || eq.estado === 'EN PRESTAMO' || eq.estado === 'ESPERANDO RESPUESTA');
   }, [equipos]);
 
   const misLicencias = useMemo(() => {
@@ -190,13 +191,40 @@ export default function SlepDashboardPage() {
   };
 
   const openPrestamoModal = (equipoId) => {
-    setSelectedEquipo(equipoId);
-    setFechaInicio('');
-    setHoraInicio('');
-    setFechaFin('');
-    setHoraFin('');
-    setMotivo('');
-    setIsPrestamoModalOpen(true);
+    const targetEquipo = equipos.find(e => e.id === equipoId || String(e.id) === String(equipoId));
+    
+    // Check if there is a pending request for this equipment
+    const pendingRequest = targetEquipo ? solicitudes.find(sol => {
+      if (sol.tipo !== 'prestamo' || sol.estado !== 'pendiente') return false;
+      
+      const matchId = sol.equipo_id === equipoId || String(sol.equipo_id) === String(equipoId);
+      const matchSerial1 = targetEquipo['Nº de serie'] && (sol.equipo_id === targetEquipo['Nº de serie'] || String(sol.equipo_id) === String(targetEquipo['Nº de serie']));
+      const matchSerial2 = targetEquipo['N° de serie'] && (sol.equipo_id === targetEquipo['N° de serie'] || String(sol.equipo_id) === String(targetEquipo['N° de serie']));
+      
+      return matchId || matchSerial1 || matchSerial2;
+    }) : null;
+
+    if (pendingRequest) {
+      const applicantName = pendingRequest.perfil?.nombre || formatEmailName(pendingRequest.perfil?.correo) || 'otro funcionario';
+      setPendingWarningInfo({
+        applicantName,
+        equipoId
+      });
+    } else {
+      setSelectedEquipo(equipoId);
+      setFechaInicio('');
+      setHoraInicio('');
+      setFechaFin('');
+      setHoraFin('');
+      setMotivo('');
+      setIsPrestamoModalOpen(true);
+    }
+  };
+
+
+
+  const handleCancelWarning = () => {
+    setPendingWarningInfo(null);
   };
 
   return (
@@ -370,6 +398,7 @@ export default function SlepDashboardPage() {
                         (sol.equipo_id === eq.id || sol.equipo_id === eq['Nº de serie'] || String(sol.equipo_id) === String(eq.id))
                       );
                       const isEnPrestamo = eq.estado === 'EN PRESTAMO';
+                      const isEsperandoRespuesta = eq.estado === 'ESPERANDO RESPUESTA';
                       
                       return (
                         <tr key={eq.id} className="hover:bg-blue-50 even:bg-slate-50 transition-colors">
@@ -403,6 +432,10 @@ export default function SlepDashboardPage() {
                               <span className="bg-amber-100 text-amber-700 border border-amber-300 px-2.5 py-1 rounded text-[11px] font-bold tracking-wide uppercase whitespace-nowrap">
                                 EN PRESTAMO
                               </span>
+                            ) : isEsperandoRespuesta ? (
+                              <span className="bg-gray-100 text-gray-600 border border-gray-300 px-2.5 py-1 rounded text-[11px] font-bold tracking-wide uppercase whitespace-nowrap">
+                                EN TRÁMITE
+                              </span>
                             ) : (
                               <span className="bg-indigo-100 text-indigo-700 border border-indigo-300 px-2.5 py-1 rounded text-[11px] font-bold tracking-wide uppercase whitespace-nowrap">
                                 PARA PRESTAMO
@@ -416,6 +449,13 @@ export default function SlepDashboardPage() {
                                 className="px-3 py-1.5 rounded text-xs font-semibold bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed"
                               >
                                 Prestado
+                              </button>
+                            ) : isEsperandoRespuesta ? (
+                              <button
+                                disabled
+                                className="px-3 py-1.5 rounded text-xs font-semibold bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed"
+                              >
+                                En Trámite
                               </button>
                             ) : (
                               <button
@@ -627,6 +667,38 @@ export default function SlepDashboardPage() {
                 <button type="submit" className="px-4 py-2 bg-[#006BB9] text-white text-sm font-medium rounded-lg hover:bg-[#25306B] transition-colors shadow-sm">Confirmar Solicitud</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Pop-up SaaS Advertencia de Solicitud Pendiente */}
+      {pendingWarningInfo && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-md border border-gray-100 animate-slide-in border-t-4 border-amber-500">
+            <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-amber-50 text-amber-500 mb-4 border border-amber-200">
+              <AlertTriangle size={32} className="animate-pulse" />
+            </div>
+            
+            <h3 className="text-lg font-bold text-gray-900 text-center mb-2">Solicitud de Préstamo en Trámite</h3>
+            
+            <div className="space-y-3 mt-4">
+              <p className="text-sm text-gray-600 text-center leading-relaxed">
+                El funcionario <strong className="text-gray-800 font-semibold">{pendingWarningInfo.applicantName}</strong> tiene una solicitud de préstamo pendiente para este mismo equipo.
+              </p>
+              <p className="text-xs text-gray-500 text-center">
+                Actualmente se encuentra en espera de que el administrador revise la solicitud para su aprobación o rechazo.
+              </p>
+            </div>
+            
+            <div className="flex justify-center pt-4 border-t border-gray-100 mt-6">
+              <button 
+                type="button" 
+                onClick={handleCancelWarning} 
+                className="px-8 py-2.5 bg-[#006BB9] hover:bg-[#25306B] text-white text-sm font-semibold rounded-xl transition-colors shadow-sm w-full sm:w-auto cursor-pointer"
+              >
+                Entendido
+              </button>
+            </div>
           </div>
         </div>
       )}

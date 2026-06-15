@@ -136,6 +136,19 @@ export function SolicitudesProvider({ children }) {
       console.error('Error al solicitar préstamo:', error);
       throw error;
     }
+
+    // Actualizar el estado del equipo a ESPERANDO RESPUESTA
+    // Tratamos equipo_id como posible string o numero, buscamos por id o N° de serie
+    // Pero asumiendo que equipo_id pasado es el ID real del equipo:
+    const { error: eqError } = await supabase
+      .from('equipos')
+      .update({ estado: 'ESPERANDO RESPUESTA' })
+      .eq('id', equipo_id);
+      
+    if (eqError) {
+      console.error('Error al actualizar estado del equipo:', eqError);
+      // No hacemos throw aquí para no romper el flujo si falla, pero sí queda registrado
+    }
     
     // Send email notification
     sendPrestamoEmail({

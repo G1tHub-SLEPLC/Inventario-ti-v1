@@ -97,7 +97,7 @@ export default function SolicitudesAdminPage() {
             await refetchInventario();
           }
         }
-      } else if (accion === 'devolver') {
+      } else if (accion === 'devolver' || (accion === 'rechazado' && selectedSolicitud.tipo === 'prestamo')) {
         const equipoReal = equipos.find(eq => eq.id === selectedSolicitud.equipo_id || eq['Nº de serie'] === selectedSolicitud.equipo_id);
         if (equipoReal) {
           await supabase.from('equipos').update({ estado: 'PARA PRESTAMO', usuario_asignado_id: null }).eq('id', equipoReal.id);
@@ -276,13 +276,16 @@ export default function SolicitudesAdminPage() {
                 </div>
               )}
               <div>
-                <label className="block text-sm font-medium text-gray-700">Observaciones (opcional)</label>
+                <label className="block text-sm font-medium text-gray-700">
+                  {accion === 'rechazar' ? 'Observaciones (obligatorio)' : 'Observaciones (opcional)'}
+                </label>
                 <textarea
+                  required={accion === 'rechazar'}
                   value={observaciones}
                   onChange={e => setObservaciones(e.target.value)}
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 focus:border-blue-500 focus:ring-blue-500"
                   rows="3"
-                  placeholder="Ej: Aprobado para entrega en bodega 2..."
+                  placeholder={accion === 'rechazar' ? "Indique el motivo del rechazo..." : "Ej: Aprobado para entrega en bodega 2..."}
                 ></textarea>
               </div>
               <div className="flex justify-end gap-3 pt-4">
