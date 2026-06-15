@@ -15,7 +15,7 @@ export default function SolicitudesAdminPage() {
   const { equipos, showToast, refetch: refetchInventario } = useInventario();
   const { perfil } = useAuth();
   const { sorted: sortedSolicitudes, sortKey: solSortKey, sortDir: solSortDir, handleSort: handleSolSort } = useSort(solicitudes);
-  
+
   const atrasosPorUsuario = useMemo(() => {
     return solicitudes.reduce((acc, sol) => {
       if (sol.estado === 'devuelto_atrasado') {
@@ -42,12 +42,12 @@ export default function SolicitudesAdminPage() {
   const handleConfirm = async (e) => {
     e.preventDefault();
     if (!selectedSolicitud) return;
-    
+
     let nuevoEstado = accion === 'aprobar' ? 'aprobado' : (accion === 'rechazado' ? 'rechazado' : (devolucionStatus === 'atrasado' ? 'devuelto_atrasado' : 'devuelto'));
     const adminName = perfil?.nombre || perfil?.email || 'Admin';
     const obsPrefix = `[${accion === 'aprobar' ? 'Aprobado' : (accion === 'rechazado' ? 'Rechazado' : 'Devuelto')} por: ${adminName}]`;
     const observacionFinal = observaciones.trim() ? `${obsPrefix} ${observaciones.trim()}` : obsPrefix;
-    
+
     try {
       if (accion === 'aprobar') {
         if (selectedSolicitud.tipo === 'insumo') {
@@ -67,13 +67,13 @@ export default function SolicitudesAdminPage() {
             .from('insumos')
             .update({ cantidad_disponible: insumoActual.cantidad_disponible - selectedSolicitud.cantidad })
             .eq('id', selectedSolicitud.insumo_id);
-            
+
           if (updError) throw updError;
           await refetchSolicitudes();
 
           const userName = selectedSolicitud.perfil?.nombre || selectedSolicitud.perfil?.correo || 'Usuario';
           const userEmail = selectedSolicitud.perfil?.correo || selectedSolicitud.perfil?.email;
-          
+
           if (userEmail) {
             sendInsumoAprobadoEmail({
               userEmail: userEmail,
@@ -86,36 +86,36 @@ export default function SolicitudesAdminPage() {
         } else if (selectedSolicitud.tipo === 'prestamo') {
           const equipoReal = equipos.find(eq => eq.id === selectedSolicitud.equipo_id || eq['Nº de serie'] === selectedSolicitud.equipo_id);
           if (equipoReal) {
-             const { error: eqError } = await supabase
-               .from('equipos')
-               .update({ 
-                 estado: 'EN PRESTAMO',
-                 usuario_asignado_id: selectedSolicitud.usuario_id 
-               })
-               .eq('id', equipoReal.id);
-             if (eqError) throw eqError;
-             await refetchInventario();
+            const { error: eqError } = await supabase
+              .from('equipos')
+              .update({
+                estado: 'EN PRESTAMO',
+                usuario_asignado_id: selectedSolicitud.usuario_id
+              })
+              .eq('id', equipoReal.id);
+            if (eqError) throw eqError;
+            await refetchInventario();
           }
         }
       } else if (accion === 'devolver') {
         const equipoReal = equipos.find(eq => eq.id === selectedSolicitud.equipo_id || eq['Nº de serie'] === selectedSolicitud.equipo_id);
         if (equipoReal) {
-           await supabase.from('equipos').update({ estado: 'PARA PRESTAMO', usuario_asignado_id: null }).eq('id', equipoReal.id);
-           await refetchInventario();
+          await supabase.from('equipos').update({ estado: 'PARA PRESTAMO', usuario_asignado_id: null }).eq('id', equipoReal.id);
+          await refetchInventario();
         }
       }
 
       await updateEstadoSolicitud(selectedSolicitud.id, nuevoEstado, observacionFinal);
-      
+
       const userName = selectedSolicitud.perfil?.nombre || selectedSolicitud.perfil?.correo || 'Usuario';
       const actionText = accion === 'aprobar' ? 'Aprobó' : (accion === 'rechazado' ? 'Rechazó' : 'Registró Devolución');
       let typeText = '';
       if (selectedSolicitud.tipo === 'insumo') {
-         typeText = `solicitud de insumo: ${selectedSolicitud.insumo?.nombre || 'Desconocido'} (${selectedSolicitud.cantidad}x)`;
+        typeText = `solicitud de insumo: ${selectedSolicitud.insumo?.nombre || 'Desconocido'} (${selectedSolicitud.cantidad}x)`;
       } else {
-         const eqObj = equipos.find(eq => eq.id === selectedSolicitud.equipo_id || eq['N° de serie'] === selectedSolicitud.equipo_id);
-         const eqName = eqObj ? `${eqObj.Marca} ${eqObj.Modelo}` : `ID: ${selectedSolicitud.equipo_id}`;
-         typeText = `préstamo de equipo: ${eqName}`;
+        const eqObj = equipos.find(eq => eq.id === selectedSolicitud.equipo_id || eq['N° de serie'] === selectedSolicitud.equipo_id);
+        const eqName = eqObj ? `${eqObj.Marca} ${eqObj.Modelo}` : `ID: ${selectedSolicitud.equipo_id}`;
+        typeText = `préstamo de equipo: ${eqName}`;
       }
       await logAuditoria('solicitudes', `${actionText} Solicitud`, `${actionText} ${typeText} para ${userName}. Observaciones: ${observacionFinal}`, userName);
 
@@ -128,12 +128,12 @@ export default function SolicitudesAdminPage() {
 
   const getStatusBadge = (estado) => {
     const baseClass = "inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] font-bold tracking-wide uppercase border whitespace-nowrap";
-    switch(estado) {
-      case 'pendiente': return <span className={`${baseClass} bg-amber-100 text-amber-600 border-amber-600`}><Clock size={12} strokeWidth={2.5}/> Pendiente</span>;
-      case 'aprobado': return <span className={`${baseClass} bg-green-300 text-green-800 border-green-600`}><Check size={12} strokeWidth={2.5}/> Aprobado</span>;
-      case 'rechazado': return <span className={`${baseClass} bg-rose-200 text-red-600 border-red-600`}><X size={12} strokeWidth={2.5}/> Rechazado</span>;
-      case 'devuelto': return <span className={`${baseClass} bg-blue-200 text-blue-600 border-blue-600`}><Check size={12} strokeWidth={2.5}/> Devuelto</span>;
-      case 'devuelto_atrasado': return <span className={`${baseClass} bg-orange-200 text-orange-600 border-orange-600`}><AlertTriangle size={12} strokeWidth={2.5}/> Devuelto (Atraso)</span>;
+    switch (estado) {
+      case 'pendiente': return <span className={`${baseClass} bg-amber-100 text-amber-600 border-amber-600`}><Clock size={12} strokeWidth={2.5} /> Pendiente</span>;
+      case 'aprobado': return <span className={`${baseClass} bg-green-300 text-green-800 border-green-600`}><Check size={12} strokeWidth={2.5} /> Aprobado</span>;
+      case 'rechazado': return <span className={`${baseClass} bg-rose-200 text-red-600 border-red-600`}><X size={12} strokeWidth={2.5} /> Rechazado</span>;
+      case 'devuelto': return <span className={`${baseClass} bg-blue-200 text-blue-600 border-blue-600`}><Check size={12} strokeWidth={2.5} /> Devuelto</span>;
+      case 'devuelto_atrasado': return <span className={`${baseClass} bg-orange-200 text-orange-600 border-orange-600`}><AlertTriangle size={12} strokeWidth={2.5} /> Devuelto (Atraso)</span>;
       default: return <span className={`${baseClass} bg-gray-50 text-gray-700 border-gray-200`}>{estado}</span>;
     }
   };
@@ -214,14 +214,14 @@ export default function SolicitudesAdminPage() {
                     ) : (
                       <div className="flex flex-col">
                         <span className="font-semibold text-gray-800">
-                           {(() => {
-                             const equipoObj = equipos.find(eq => eq.id === sol.equipo_id || eq['N° de serie'] === sol.equipo_id);
-                             return equipoObj ? `${equipoObj.Marca} ${equipoObj.Modelo}` : `Equipo ID: ${sol.equipo_id}`;
-                           })()}
+                          {(() => {
+                            const equipoObj = equipos.find(eq => eq.id === sol.equipo_id || eq['N° de serie'] === sol.equipo_id);
+                            return equipoObj ? `${equipoObj.Marca} ${equipoObj.Modelo}` : `Equipo ID: ${sol.equipo_id}`;
+                          })()}
                         </span>
                         <span className="text-xs text-gray-500 mt-0.5">Por: {sol.perfil?.nombre || sol.perfil?.correo || 'Usuario'}</span>
                         <span className="text-xs text-gray-400 mt-0.5 whitespace-nowrap">
-                          {sol.fecha_inicio} {sol.hora_inicio ? sol.hora_inicio.slice(0,5) : ''} a {sol.fecha_fin} {sol.hora_fin ? sol.hora_fin.slice(0,5) : ''}
+                          {sol.fecha_inicio} {sol.hora_inicio ? sol.hora_inicio.slice(0, 5) : ''} a {sol.fecha_fin} {sol.hora_fin ? sol.hora_fin.slice(0, 5) : ''}
                         </span>
                         {sol.motivo && <span className="text-xs text-gray-500 mt-1 italic block overflow-hidden text-ellipsis max-w-xs">Motivo: {sol.motivo}</span>}
                       </div>
@@ -232,7 +232,7 @@ export default function SolicitudesAdminPage() {
                   <td className="px-6 py-4 text-center">
                     {sol.estado === 'pendiente' && (
                       <div className="flex items-center justify-center gap-2">
-                        <button onClick={() => handleOpenModal(sol, 'aprobar')} className="flex items-center gap-1 bg-green-300 text-green-800 border border-green-400 hover:bg-green-400 font-bold px-2.5 py-1 rounded text-xs transition shadow-sm">
+                        <button onClick={() => handleOpenModal(sol, 'aprobar')} className="flex items-center gap-1 bg-green-300 text-green-800 border border-green-600 hover:bg-green-400 font-bold px-2.5 py-1 rounded text-xs transition shadow-sm">
                           <Check size={12} strokeWidth={3} /> Aprobar
                         </button>
                         <button onClick={() => handleOpenModal(sol, 'rechazado')} className="flex items-center gap-1 bg-rose-200 text-red-600 border border-red-600 hover:bg-rose-300 font-bold px-2.5 py-1 rounded text-xs transition shadow-sm">
@@ -277,10 +277,10 @@ export default function SolicitudesAdminPage() {
               )}
               <div>
                 <label className="block text-sm font-medium text-gray-700">Observaciones (opcional)</label>
-                <textarea 
-                  value={observaciones} 
-                  onChange={e => setObservaciones(e.target.value)} 
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 focus:border-blue-500 focus:ring-blue-500" 
+                <textarea
+                  value={observaciones}
+                  onChange={e => setObservaciones(e.target.value)}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 focus:border-blue-500 focus:ring-blue-500"
                   rows="3"
                   placeholder="Ej: Aprobado para entrega en bodega 2..."
                 ></textarea>

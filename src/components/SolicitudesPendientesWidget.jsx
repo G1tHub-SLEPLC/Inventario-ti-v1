@@ -179,7 +179,7 @@ export default function SolicitudesPendientesWidget() {
                 <td className="px-6 py-4">{getStatusBadge()}</td>
                 <td className="px-6 py-4 text-center">
                   <div className="flex items-center justify-center gap-2">
-                    <button onClick={() => handleOpenModal(sol, 'aprobar')} className="flex items-center gap-1.5 bg-green-300 text-green-800 border border-green-400 hover:bg-green-400 font-bold px-3 py-1.5 rounded-lg text-xs transition shadow-sm">
+                    <button onClick={() => handleOpenModal(sol, 'aprobar')} className="flex items-center gap-1.5 bg-green-300 text-green-800 border border-green-600 hover:bg-green-400 font-bold px-3 py-1.5 rounded-lg text-xs transition shadow-sm">
                       <Check size={14} strokeWidth={3} /> Aprobar
                     </button>
                     <button onClick={() => handleOpenModal(sol, 'rechazado')} className="flex items-center gap-1.5 bg-rose-200 text-red-600 border border-red-600 hover:bg-rose-300 font-bold px-3 py-1.5 rounded-lg text-xs transition shadow-sm">
