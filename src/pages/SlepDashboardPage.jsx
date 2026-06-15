@@ -139,6 +139,15 @@ export default function SlepDashboardPage() {
   const handleSolicitarPrestamo = async (e) => {
     e.preventDefault();
     if (!selectedEquipo || !fechaInicio || !fechaFin || !horaInicio || !horaFin || !motivo) return;
+    
+    const startDateTime = new Date(`${fechaInicio}T${horaInicio}`);
+    const endDateTime = new Date(`${fechaFin}T${horaFin}`);
+
+    if (endDateTime <= startDateTime) {
+      showToast('Error de Fechas', 'La fecha y hora de devolución deben ser posteriores al inicio del préstamo.', 'error');
+      return;
+    }
+
     try {
       await solicitarPrestamo(selectedEquipo, fechaInicio, fechaFin, horaInicio, horaFin, motivo);
       setSelectedEquipo('');
@@ -149,7 +158,8 @@ export default function SlepDashboardPage() {
       setMotivo('');
       setIsPrestamoModalOpen(false);
     } catch (error) {
-      // Error handled in context
+      console.error('Error in handleSolicitarPrestamo:', error);
+      showToast('Error', 'No se pudo procesar la solicitud de préstamo. Verifique que los datos sean correctos o contacte a soporte.', 'error');
     }
   };
 
