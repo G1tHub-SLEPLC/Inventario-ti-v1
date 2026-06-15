@@ -73,6 +73,31 @@ export const LicenciasProvider = ({ children }) => {
     if (session) {
       fetchLicencias();
       fetchAsignaciones();
+
+      // Tiempo real: Escuchar cambios en licencias, asignaciones y perfiles
+      const licenciasChannel = supabase.channel('licencias-changes')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'licencias' }, () => {
+          fetchLicencias();
+        })
+        .subscribe();
+
+      const asignacionesChannel = supabase.channel('asignaciones-licencias-changes')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'asignaciones_licencias' }, () => {
+          fetchAsignaciones();
+        })
+        .subscribe();
+
+      const perfilesChannel = supabase.channel('licencias-perfiles-changes')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'perfiles' }, () => {
+          fetchAsignaciones();
+        })
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(licenciasChannel);
+        supabase.removeChannel(asignacionesChannel);
+        supabase.removeChannel(perfilesChannel);
+      };
     }
   }, [session]);
 

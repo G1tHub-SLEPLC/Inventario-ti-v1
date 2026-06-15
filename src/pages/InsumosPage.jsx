@@ -127,6 +127,16 @@ export default function InsumosPage() {
       if (data) setUsuariosSlep(data);
     };
     loadUsuarios();
+
+    const perfilesChannel = supabase.channel('insumos-perfiles-channel')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'perfiles' }, () => {
+        loadUsuarios();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(perfilesChannel);
+    };
   }, []);
 
   const fetchHistorial = async () => {
@@ -154,10 +164,20 @@ export default function InsumosPage() {
     }
   };
 
-  // Load historial based on tabs
+  // Load historial based on tabs and listen to real-time changes
   useEffect(() => {
     if (activeTab === 'func' || activeTab === 'insumo') {
       fetchHistorial();
+
+      const channel = supabase.channel('insumos-historial-channel')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'solicitudes' }, () => {
+          fetchHistorial();
+        })
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
     }
   }, [activeTab]);
 

@@ -74,6 +74,16 @@ export default function UsuariosAdminPage() {
 
   useEffect(() => {
     fetchUsuarios();
+
+    const perfilesChannel = supabase.channel('usuarios-admin-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'perfiles' }, () => {
+        fetchUsuarios();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(perfilesChannel);
+    };
   }, []);
 
   const getSubdireccionUser = (user) => {

@@ -91,9 +91,16 @@ export function SolicitudesProvider({ children }) {
       })
       .subscribe();
 
+    const perfilesChannel = supabase.channel('solicitudes-perfiles-channel')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'perfiles' }, () => {
+        loadData();
+      })
+      .subscribe();
+
     return () => {
       supabase.removeChannel(solicitudesChannel);
       supabase.removeChannel(insumosChannel);
+      supabase.removeChannel(perfilesChannel);
     };
   }, [loadData, isAdmin, showToast]);
 

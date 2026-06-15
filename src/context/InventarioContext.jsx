@@ -133,6 +133,12 @@ export function InventarioProvider({ children }) {
          loadData();
       })
       .subscribe();
+
+    const perfilesChannel = supabase.channel('equipos-perfiles-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'perfiles' }, () => {
+         loadData();
+      })
+      .subscribe();
       
     // Refrescar al iniciar o cerrar sesión
     let hasInitialLoad = false;
@@ -156,6 +162,7 @@ export function InventarioProvider({ children }) {
       
     return () => {
       supabase.removeChannel(channel);
+      supabase.removeChannel(perfilesChannel);
       authListener.subscription.unsubscribe();
     };
   }, [loadData]);
