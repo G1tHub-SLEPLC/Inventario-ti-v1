@@ -100,7 +100,7 @@ export default function SolicitudesAdminPage() {
       } else if (accion === 'devolver') {
         const equipoReal = equipos.find(eq => eq.id === selectedSolicitud.equipo_id || eq['Nº de serie'] === selectedSolicitud.equipo_id);
         if (equipoReal) {
-           await supabase.from('equipos').update({ estado: 'DISPONIBLE', usuario_asignado_id: null }).eq('id', equipoReal.id);
+           await supabase.from('equipos').update({ estado: 'PARA PRESTAMO', usuario_asignado_id: null }).eq('id', equipoReal.id);
            await refetchInventario();
         }
       }
