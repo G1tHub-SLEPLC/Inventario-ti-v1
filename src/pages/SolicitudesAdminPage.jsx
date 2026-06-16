@@ -219,15 +219,18 @@ export default function SolicitudesAdminPage() {
     }
   };
 
-  const getStatusBadge = (estado) => {
+  const getStatusBadge = (sol) => {
     const baseClass = "inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] font-bold tracking-wide uppercase border whitespace-nowrap";
-    switch (estado) {
+    if (sol.estado === 'aprobado' && sol.tipo === 'prestamo') {
+      return <span className={`${baseClass} bg-amber-100 text-amber-700 border-amber-400`}><Clock size={12} strokeWidth={2.5} /> En Préstamo</span>;
+    }
+    switch (sol.estado) {
       case 'pendiente': return <span className={`${baseClass} bg-amber-100 text-amber-600 border-amber-600`}><Clock size={12} strokeWidth={2.5} /> Pendiente</span>;
       case 'aprobado': return <span className={`${baseClass} bg-green-300 text-green-800 border-green-600`}><Check size={12} strokeWidth={2.5} /> Aprobado</span>;
       case 'rechazado': return <span className={`${baseClass} bg-rose-200 text-red-600 border-red-600`}><X size={12} strokeWidth={2.5} /> Rechazado</span>;
       case 'devuelto': return <span className={`${baseClass} bg-blue-200 text-blue-600 border-blue-600`}><Check size={12} strokeWidth={2.5} /> Devuelto</span>;
       case 'devuelto_atrasado': return <span className={`${baseClass} bg-orange-200 text-orange-600 border-orange-600`}><AlertTriangle size={12} strokeWidth={2.5} /> Devuelto (Atraso)</span>;
-      default: return <span className={`${baseClass} bg-gray-50 text-gray-700 border-gray-200`}>{estado}</span>;
+      default: return <span className={`${baseClass} bg-gray-50 text-gray-700 border-gray-200`}>{sol.estado}</span>;
     }
   };
 
@@ -337,7 +340,9 @@ export default function SolicitudesAdminPage() {
                       </div>
                     )}
                   </td>
-                  <td className="px-6 py-4">{getStatusBadge(sol.estado)}</td>
+                  <td className="px-6 py-4">
+                    {getStatusBadge(sol)}
+                  </td>
                   <td className="px-6 py-4 text-gray-500 italic whitespace-normal min-w-[200px] break-words">{sol.observaciones_admin || '-'}</td>
                   <td className="px-6 py-4 text-center">
                     {sol.estado === 'pendiente' && (
