@@ -37,6 +37,16 @@ export async function generateActaDocx(data, templateName = 'acta_template.docx'
     return { success: true };
   } catch (error) {
     console.error('Error al generar el documento DOCX:', error);
-    return { success: false, error: error.message };
+    let errorMessage = error.message;
+
+    // docxtemplater specific error handling for "Multi error"
+    if (error.properties && error.properties.errors instanceof Array) {
+      const errorMessages = error.properties.errors.map(function (err) {
+        return err.properties.explanation || err.message;
+      }).join(" | ");
+      errorMessage = `Error en la plantilla Word: ${errorMessages}`;
+    }
+
+    return { success: false, error: errorMessage };
   }
 }
