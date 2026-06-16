@@ -79,7 +79,30 @@ export default function EditarEquipoModal({ equipo, onClose }) {
         (originalEquipo['Usuario'] && 
          originalEquipo['Usuario'].trim().toLowerCase() !== 'disponible' && 
          originalEquipo['Usuario'].trim() !== '');
-      const initialEstado = originalEquipo.estado || (isAssigned ? 'ASIGNADO' : 'DISPONIBLE');
+      
+      const dbEstado = (originalEquipo.estado || '').trim().toUpperCase();
+      let initialEstado = 'DISPONIBLE';
+
+      if (isAssigned) {
+        if (dbEstado === 'EN PRESTAMO' || dbEstado === 'EN PRÉSTAMO') {
+          initialEstado = 'EN PRESTAMO';
+        } else if (dbEstado === 'BAJA' || dbEstado === 'DE BAJA') {
+          initialEstado = 'BAJA';
+        } else {
+          initialEstado = 'ASIGNADO';
+        }
+      } else {
+        if (dbEstado === 'EN PRESTAMO' || dbEstado === 'EN PRÉSTAMO') {
+          initialEstado = 'EN PRESTAMO';
+        } else if (dbEstado === 'BAJA' || dbEstado === 'DE BAJA') {
+          initialEstado = 'BAJA';
+        } else if (dbEstado === 'PARA PRESTAMO' || dbEstado === 'PARA PRÉSTAMO') {
+          initialEstado = 'PARA PRESTAMO';
+        } else {
+          initialEstado = 'DISPONIBLE';
+        }
+      }
+
       setFormData({ 
         ...originalEquipo,
         estado: initialEstado
