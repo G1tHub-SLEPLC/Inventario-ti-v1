@@ -138,7 +138,7 @@ const isQRSupported = (tipo) => {
 export default function DashboardPage() {
   const { equipos, loading, setFileStatus, addMasivo, updateEquipo } = useInventario();
   const { solicitudes } = useSolicitudes();
-  const { user } = useAuth();
+  const { user, session, perfil } = useAuth();
   const { showAlertConfirm, showAlertPrompt } = useAlert();
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = searchParams.get('tab') || 'disp';
@@ -162,9 +162,6 @@ export default function DashboardPage() {
   const [qrModalData, setQrModalData] = useState(null);
   const [perfilesOptions, setPerfilesOptions] = useState([]);
   const [perfilesData, setPerfilesData] = useState([]);
-  const { session } = useAuth();
-  const perfil = session?.user?.user_metadata || {}; 
-  // We need the admin's full profile to get RUT. We can fetch it if needed, or rely on perfilesData.
 
   useEffect(() => {
     async function fetchPerfiles() {
@@ -230,9 +227,9 @@ export default function DashboardPage() {
 
   const handleGenerateActaAsignacion = async (row) => {
     try {
-      const adminName = perfil?.nombre || 'Administrador TI';
-      const adminRut = perfil?.rut || '—';
-      const adminSub = perfil?.subdireccion || 'Tecnologías de la Información';
+      let adminName = perfil?.nombre || 'Administrador TI';
+      let adminRut = perfil?.rut || '—';
+      let adminSub = perfil?.subdireccion || 'Tecnologías de la Información';
 
       const dbEstado = (row.estado || '').trim().toUpperCase();
       const isEnPrestamo = dbEstado === 'EN PRESTAMO' || dbEstado === 'EN PRÉSTAMO';
@@ -253,9 +250,11 @@ export default function DashboardPage() {
           if (approvedByName) {
              const approver = perfilesData.find(p => p.nombre === approvedByName || p.email === approvedByName);
              if (approver) {
-               // Use approver data instead of current admin
-               // adminName = approver.nombre;
-               // Wait, cannot reassign const. Let's just use current admin for assignment since this is complex.
+               adminName = approver.nombre || approvedByName;
+               adminRut = approver.rut || '—';
+               adminSub = approver.subdireccion || 'Tecnologías de la Información';
+             } else {
+               adminName = approvedByName;
              }
           }
           

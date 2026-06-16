@@ -92,7 +92,8 @@ export default function SlepDashboardPage() {
         ]
       };
 
-      const result = await generateActaDocx(data);
+      const templateName = activeLoan ? 'acta_prestamo.docx' : 'acta_asigna.docx';
+      const result = await generateActaDocx(data, templateName);
       if (!result.success) {
          showToast('Error', result.error || 'No se pudo generar el acta', 'error');
       }
@@ -337,6 +338,7 @@ export default function SlepDashboardPage() {
                       <th className="px-4 py-3 font-semibold">Nº de serie</th>
                       <th className="px-4 py-3 font-semibold">SubDirección</th>
                       <th className="px-4 py-3 font-semibold text-center w-24">Estado</th>
+                      <th className="px-4 py-3 font-semibold text-center w-24">Acción</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200 text-sm text-gray-700">
@@ -360,6 +362,15 @@ export default function SlepDashboardPage() {
                           <span className="font-sans bg-lime-300 text-lime-800 border border-lime-400 px-2.5 py-1 rounded text-[11px] font-bold tracking-wide uppercase whitespace-nowrap">
                             ASIGNADO
                           </span>
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <button
+                            onClick={() => handleGenerateActa(null, eq)}
+                            className="flex items-center justify-center mx-auto gap-1 bg-indigo-100 text-indigo-700 border border-indigo-400 hover:bg-indigo-200 font-bold px-3 py-1.5 rounded-lg text-xs transition shadow-sm"
+                            title="Descargar Acta de Asignación"
+                          >
+                            <Download size={14} className="stroke-[2.5]" /> Acta
+                          </button>
                         </td>
                       </tr>
                     ))}
