@@ -76,6 +76,11 @@ export default function SlepDashboardPage() {
         solicitante_nombre: userName,
         solicitante_rut: userRut,
         solicitante_subdireccion: userSub,
+        fecha_inicio: activeLoan?.fecha_inicio || '',
+        fecha_fin: activeLoan?.fecha_fin || '',
+        hora_inicio: activeLoan?.hora_inicio || '',
+        hora_fin: activeLoan?.hora_fin || '',
+        fecha_entrega: new Date().toLocaleDateString(),
         equipos: [
           {
             tipo: eq['Descripción del Bien'] || 'Equipo',

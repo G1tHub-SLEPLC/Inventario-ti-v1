@@ -193,6 +193,11 @@ export default function SolicitudesAdminPage() {
         solicitante_nombre: userName,
         solicitante_rut: userRut,
         solicitante_subdireccion: sol.perfil?.subdireccion || '—',
+        fecha_inicio: sol.fecha_inicio || '',
+        fecha_fin: sol.fecha_fin || '',
+        hora_inicio: sol.hora_inicio || '',
+        hora_fin: sol.hora_fin || '',
+        fecha_entrega: new Date().toLocaleDateString(),
         equipos: [
           {
             tipo: equipoObj ? equipoObj['Descripción del Bien'] || 'Equipo' : 'Equipo',

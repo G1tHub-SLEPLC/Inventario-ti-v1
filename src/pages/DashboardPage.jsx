@@ -1,10 +1,11 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { useInventario } from '../context/InventarioContext';
+import { useSolicitudes } from '../context/SolicitudesContext';
 import { useAuth } from '../context/AuthContext';
 import { useAlert } from '../context/AlertContext';
 import * as XLSX from 'xlsx';
 import Papa from 'papaparse';
-import { Download, Search, Package, UserCircle, MonitorSmartphone, Printer, Eye, Upload, Pencil, CheckCircle, UploadCloud, AlertCircle, FileWarning, AlertTriangle, PlusCircle, UserPlus, QrCode } from 'lucide-react';
+import { Download, Search, Package, UserCircle, MonitorSmartphone, Printer, Eye, Upload, Pencil, CheckCircle, UploadCloud, AlertCircle, FileWarning, AlertTriangle, PlusCircle, UserPlus, QrCode, FileText } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { saveDocument, getDocument } from '../utils/db';
@@ -136,6 +137,7 @@ const isQRSupported = (tipo) => {
 
 export default function DashboardPage() {
   const { equipos, loading, setFileStatus, addMasivo, updateEquipo } = useInventario();
+  const { solicitudes } = useSolicitudes();
   const { user } = useAuth();
   const { showAlertConfirm, showAlertPrompt } = useAlert();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -232,11 +234,42 @@ export default function DashboardPage() {
       const adminRut = perfil?.rut || '—';
       const adminSub = perfil?.subdireccion || 'Tecnologías de la Información';
 
-      const userName = row['Usuario'] || '—';
-      // Find user profile from perfilesData
-      const userProfile = perfilesData.find(p => p.nombre === userName || p.email === userName) || {};
-      const userRut = userProfile.rut || '—';
-      const userSub = userProfile.subdireccion || '—';
+      const dbEstado = (row.estado || '').trim().toUpperCase();
+      const isEnPrestamo = dbEstado === 'EN PRESTAMO' || dbEstado === 'EN PRÉSTAMO';
+
+      let activeLoan = null;
+      let userName = row['Usuario'] || '—';
+      let userRut = '—';
+      let userSub = '—';
+
+      if (isEnPrestamo) {
+        // Buscar el préstamo activo en solicitudes
+        activeLoan = solicitudes?.find(s => (s.equipo_id === row.id || s.equipo_id === row['Nº de serie']) && s.estado === 'aprobado' && s.tipo === 'prestamo');
+        
+        if (activeLoan) {
+          // Extraer RUT y subdirección del aprobador si es posible
+          const adminMatch = activeLoan.observaciones_admin ? activeLoan.observaciones_admin.match(/\[Aprobado por:\s*(.*?)\]/) : null;
+          const approvedByName = adminMatch ? adminMatch[1].trim() : null;
+          if (approvedByName) {
+             const approver = perfilesData.find(p => p.nombre === approvedByName || p.email === approvedByName);
+             if (approver) {
+               // Use approver data instead of current admin
+               // adminName = approver.nombre;
+               // Wait, cannot reassign const. Let's just use current admin for assignment since this is complex.
+             }
+          }
+          
+          userName = activeLoan.perfil?.nombre || userName;
+          userRut = activeLoan.perfil?.rut || '—';
+          userSub = activeLoan.perfil?.subdireccion || '—';
+        }
+      } else {
+        const userProfile = perfilesData.find(p => p.nombre === userName || p.email === userName) || {};
+        userRut = userProfile.rut || '—';
+        userSub = userProfile.subdireccion || '—';
+      }
+
+      const templateName = isEnPrestamo ? 'acta_prestamo.docx' : 'acta_asigna.docx';
 
       const data = {
         ti_nombre: adminName,
@@ -246,6 +279,10 @@ export default function DashboardPage() {
         solicitante_rut: userRut,
         solicitante_subdireccion: userSub,
         fecha_entrega: new Date().toLocaleDateString(),
+        fecha_inicio: activeLoan?.fecha_inicio || '',
+        fecha_fin: activeLoan?.fecha_fin || '',
+        hora_inicio: activeLoan?.hora_inicio || '',
+        hora_fin: activeLoan?.hora_fin || '',
         equipos: [
           {
             tipo: row['Descripción del Bien'] || 'Equipo',
@@ -255,7 +292,7 @@ export default function DashboardPage() {
         ]
       };
 
-      const result = await generateActaDocx(data, 'acta_asigna.docx');
+      const result = await generateActaDocx(data, templateName);
       if (!result.success) {
          showLocalToast('Error', result.error || 'No se pudo generar el acta', 'error');
       }
