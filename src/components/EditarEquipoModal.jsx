@@ -964,7 +964,7 @@ export default function EditarEquipoModal({ equipo, onClose }) {
               </div>
 
               {/* Fecha de Asignación */}
-              {formData.estado === 'ASIGNADO' && (
+              {(formData.estado === 'ASIGNADO' || formData.estado === 'EN PRESTAMO' || formData.usuario_asignado_id || (formData['Usuario'] && !['disponible', 'bodega', '—', '-', 'sin asignar'].includes(formData['Usuario'].toLowerCase().trim()))) && (
                 <div className="space-y-0.5">
                   <label className="block text-[10px] font-bold text-[#25306B] uppercase tracking-wide">
                     Fecha de Asignación
