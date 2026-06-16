@@ -26,15 +26,20 @@ export default function MisSolicitudesPage() {
 
   const handleGenerateActa = async (sol) => {
     try {
-      // Intentar obtener el admin_ti que tenga un RUT configurado
-      const { data: admins } = await supabase.from('perfiles').select('*').eq('rol', 'admin_ti').not('rut', 'is', null);
-      let admin = admins && admins.length > 0 ? admins[0] : null;
-      if (!admin) {
-        const { data: fallback } = await supabase.from('perfiles').select('*').eq('rol', 'admin_ti').limit(1);
-        admin = fallback && fallback.length > 0 ? fallback[0] : null;
+      const adminMatch = sol.observaciones_admin ? sol.observaciones_admin.match(/\[Aprobado por:\s*(.*?)\]/) : null;
+      const approvedByName = adminMatch ? adminMatch[1].trim() : null;
+
+      // Intentar obtener el admin_ti que aprobó o uno válido
+      const { data: admins } = await supabase.from('perfiles').select('*').eq('rol', 'admin_ti');
+      let admin = null;
+      if (approvedByName && admins) {
+        admin = admins.find(a => a.nombre === approvedByName || a.email === approvedByName);
+      }
+      if (!admin && admins) {
+         admin = admins.find(a => a.rut) || admins[0];
       }
 
-      const adminName = admin?.nombre || 'Administrador TI';
+      const adminName = admin?.nombre || approvedByName || 'Administrador TI';
       const adminRut = admin?.rut || '—';
       const adminSub = admin?.subdireccion || 'Tecnologías de la Información';
 

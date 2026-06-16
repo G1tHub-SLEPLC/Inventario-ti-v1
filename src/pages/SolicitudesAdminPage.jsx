@@ -156,8 +156,28 @@ export default function SolicitudesAdminPage() {
 
   const handleGenerateActa = async (sol) => {
     try {
-      const adminName = perfil?.nombre || 'Administrador TI';
-      const adminRut = perfil?.rut || '—';
+      const adminMatch = sol.observaciones_admin ? sol.observaciones_admin.match(/\[Aprobado por:\s*(.*?)\]/) : null;
+      const approvedByName = adminMatch ? adminMatch[1].trim() : null;
+
+      let currentAdminName = perfil?.nombre || 'Administrador TI';
+      let currentAdminRut = perfil?.rut || '—';
+      let currentAdminSub = perfil?.subdireccion || 'Tecnologías de la Información';
+
+      if (approvedByName && approvedByName !== currentAdminName) {
+         // Si fue aprobado por otro admin, buscamos sus datos
+         const { data: admins } = await supabase.from('perfiles').select('*').eq('rol', 'admin_ti');
+         if (admins) {
+            const otherAdmin = admins.find(a => a.nombre === approvedByName || a.email === approvedByName);
+            if (otherAdmin) {
+               currentAdminName = otherAdmin.nombre || approvedByName;
+               currentAdminRut = otherAdmin.rut || '—';
+               currentAdminSub = otherAdmin.subdireccion || 'Tecnologías de la Información';
+            }
+         }
+      }
+
+      const adminName = currentAdminName;
+      const adminRut = currentAdminRut;
       const userName = sol.perfil?.nombre || 'Usuario';
       const userRut = sol.perfil?.rut || '—';
 
@@ -169,7 +189,7 @@ export default function SolicitudesAdminPage() {
       const data = {
         ti_nombre: adminName,
         ti_rut: adminRut,
-        ti_subdireccion: perfil?.subdireccion || 'Tecnologías de la Información',
+        ti_subdireccion: currentAdminSub,
         solicitante_nombre: userName,
         solicitante_rut: userRut,
         solicitante_subdireccion: sol.perfil?.subdireccion || '—',
