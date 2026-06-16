@@ -168,19 +168,30 @@ export default function SlepDashboardPage() {
       const userRut = perfil?.rut || '—';
       const userSub = perfil?.subdireccion || 'Tecnologías de la Información';
 
+      // Obtener el admin_ti válido
+      const { data: admins } = await supabase.from('perfiles').select('*').eq('rol', 'admin_ti');
+      let admin = null;
+      if (admins && admins.length > 0) {
+         admin = admins.find(a => a.rut) || admins[0];
+      }
+
+      const adminName = admin?.nombre || 'Administrador TI';
+      const adminRut = admin?.rut || '—';
+      const adminSub = admin?.subdireccion || 'Tecnologías de la Información';
+
       const d = new Date();
       const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-      const dia = d.getDate();
+      const dia = d.getDate().toString().padStart(2, '0');
       const mes = meses[d.getMonth()];
-      const ano = d.getFullYear();
+      const ano = d.getFullYear().toString();
 
       const allPrestamo = misEquipos.every(eq => eq.estado === 'EN PRESTAMO' || eq.estado === 'EN PRÉSTAMO');
       const templateName = allPrestamo ? 'acta_prestamo.docx' : 'acta_asigna.docx';
 
       const data = {
-        ti_nombre: 'Administrador TI',
-        ti_rut: '—',
-        ti_subdireccion: 'Tecnologías de la Información',
+        ti_nombre: adminName,
+        ti_rut: adminRut,
+        ti_subdireccion: adminSub,
         solicitante_nombre: userName,
         solicitante_rut: userRut,
         solicitante_subdireccion: userSub,

@@ -339,11 +339,19 @@ export default function DashboardPage() {
       const userName = firstEq['Usuario'] || selectedFunc;
       const userSub = firstEq['SubDirección'] || '—';
 
+      // Obtener RUT del usuario si existe
+      const userProfile = perfilesData.find(p => p.nombre === userName || p.email === userName) || {};
+      const userRut = userProfile.rut || '—';
+
+      let adminName = perfil?.nombre || 'Administrador TI';
+      let adminRut = perfil?.rut || '—';
+      let adminSub = perfil?.subdireccion || 'Tecnologías de la Información';
+
       const d = new Date();
       const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-      const dia = d.getDate();
+      const dia = d.getDate().toString().padStart(2, '0');
       const mes = meses[d.getMonth()];
-      const ano = d.getFullYear();
+      const ano = d.getFullYear().toString();
 
       const allPrestamo = baseData.every(eq => eq.estado === 'EN PRESTAMO' || eq.estado === 'EN PRÉSTAMO');
       const templateName = allPrestamo ? 'acta_prestamo.docx' : 'acta_asigna.docx';
@@ -353,7 +361,7 @@ export default function DashboardPage() {
         ti_rut: adminRut,
         ti_subdireccion: adminSub,
         solicitante_nombre: userName,
-        solicitante_rut: '—', // El admin tendrá que llenar esto manualmente si no está en la BBDD del equipo
+        solicitante_rut: userRut,
         solicitante_subdireccion: userSub,
         fecha_entrega: `${dia} de ${mes} de ${ano}`,
         dia: dia,
