@@ -175,7 +175,7 @@ export default function SolicitudesAdminPage() {
         solicitante_subdireccion: sol.perfil?.subdireccion || '—',
         equipos: [
           {
-            tipo: equipoObj ? equipoObj['Tipo de equipo'] || 'Equipo' : 'Equipo',
+            tipo: equipoObj ? equipoObj['Descripción del Bien'] || 'Equipo' : 'Equipo',
             marca_modelo: equipoObj ? `${equipoObj.Marca || ''} ${equipoObj.Modelo || ''}`.trim() : '',
             serie: serieStr,
             codigo_interno: equipoObj ? (equipoObj.id || equipoObj['ID Publicación'] || '') : '',

@@ -248,7 +248,7 @@ export default function DashboardPage() {
         fecha_entrega: new Date().toLocaleDateString(),
         equipos: [
           {
-            tipo: row['Tipo de equipo'] || 'Equipo',
+            tipo: row['Descripción del Bien'] || 'Equipo',
             marca_modelo: `${row.Marca || ''} ${row.Modelo || ''}`.trim(),
             serie: row['Nº de serie'] || '—'
           }

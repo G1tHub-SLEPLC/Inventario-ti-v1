@@ -26,9 +26,13 @@ export default function MisSolicitudesPage() {
 
   const handleGenerateActa = async (sol) => {
     try {
-      // Intentar obtener un admin_ti
-      const { data: admins } = await supabase.from('perfiles').select('*').eq('rol', 'admin_ti').limit(1);
-      const admin = admins && admins.length > 0 ? admins[0] : null;
+      // Intentar obtener el admin_ti que tenga un RUT configurado
+      const { data: admins } = await supabase.from('perfiles').select('*').eq('rol', 'admin_ti').not('rut', 'is', null);
+      let admin = admins && admins.length > 0 ? admins[0] : null;
+      if (!admin) {
+        const { data: fallback } = await supabase.from('perfiles').select('*').eq('rol', 'admin_ti').limit(1);
+        admin = fallback && fallback.length > 0 ? fallback[0] : null;
+      }
 
       const adminName = admin?.nombre || 'Administrador TI';
       const adminRut = admin?.rut || '—';
@@ -52,7 +56,7 @@ export default function MisSolicitudesPage() {
         solicitante_subdireccion: userSub,
         equipos: [
           {
-            tipo: equipoObj ? equipoObj['Tipo de equipo'] || 'Equipo' : 'Equipo',
+            tipo: equipoObj ? equipoObj['Descripción del Bien'] || 'Equipo' : 'Equipo',
             marca_modelo: equipoObj ? `${equipoObj.Marca || ''} ${equipoObj.Modelo || ''}`.trim() : '',
             serie: serieStr,
             codigo_interno: equipoObj ? (equipoObj.id || equipoObj['ID Publicación'] || '') : '',

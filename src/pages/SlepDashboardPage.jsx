@@ -48,9 +48,13 @@ export default function SlepDashboardPage() {
   // Filtrar equipos
   const handleGenerateActa = async (activeLoan, eq) => {
     try {
-      // Intentar obtener un admin_ti
-      const { data: admins } = await supabase.from('perfiles').select('*').eq('rol', 'admin_ti').limit(1);
-      const admin = admins && admins.length > 0 ? admins[0] : null;
+      // Intentar obtener el admin_ti que tenga RUT
+      const { data: admins } = await supabase.from('perfiles').select('*').eq('rol', 'admin_ti').not('rut', 'is', null);
+      let admin = admins && admins.length > 0 ? admins[0] : null;
+      if (!admin) {
+        const { data: fallback } = await supabase.from('perfiles').select('*').eq('rol', 'admin_ti').limit(1);
+        admin = fallback && fallback.length > 0 ? fallback[0] : null;
+      }
 
       const adminName = admin?.nombre || 'Administrador TI';
       const adminRut = admin?.rut || '—';
@@ -69,7 +73,7 @@ export default function SlepDashboardPage() {
         solicitante_subdireccion: userSub,
         equipos: [
           {
-            tipo: eq['Tipo de equipo'] || 'Equipo',
+            tipo: eq['Descripción del Bien'] || 'Equipo',
             marca_modelo: `${eq.Marca || ''} ${eq.Modelo || ''}`.trim(),
             serie: eq['Nº de serie'] || '—',
             codigo_interno: eq.id || eq['ID Publicación'] || '',
