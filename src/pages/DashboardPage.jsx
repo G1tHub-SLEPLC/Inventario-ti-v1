@@ -12,6 +12,7 @@ import EditarEquipoModal from '../components/EditarEquipoModal';
 import { isSameUser } from '../utils/userUtils';
 import AutocompleteInput from '../components/AutocompleteInput';
 import { supabase } from '../lib/supabaseClient';
+import { generateActaDocx } from '../utils/docxUtils';
 
 const COLUMNS = [
   'Descripción del Bien', 'Marca', 'Modelo', 'Nº de serie',
@@ -158,11 +159,16 @@ export default function DashboardPage() {
   const [assignUserName, setAssignUserName] = useState('');
   const [qrModalData, setQrModalData] = useState(null);
   const [perfilesOptions, setPerfilesOptions] = useState([]);
+  const [perfilesData, setPerfilesData] = useState([]);
+  const { session } = useAuth();
+  const perfil = session?.user?.user_metadata || {}; 
+  // We need the admin's full profile to get RUT. We can fetch it if needed, or rely on perfilesData.
 
   useEffect(() => {
     async function fetchPerfiles() {
-      const { data } = await supabase.from('perfiles').select('nombre, email');
+      const { data } = await supabase.from('perfiles').select('*');
       if (data) {
+        setPerfilesData(data);
         const ops = new Set(data.map(p => p.nombre || p.email).filter(Boolean));
         setPerfilesOptions(Array.from(ops).sort());
       }
@@ -217,6 +223,45 @@ export default function DashboardPage() {
   const handleToastMouseLeave = () => {
     if (localToast) {
       startToastTimer(localToast.title, 4000);
+    }
+  };
+
+  const handleGenerateActaAsignacion = async (row) => {
+    try {
+      const adminName = perfil?.nombre || 'Administrador TI';
+      const adminRut = perfil?.rut || '—';
+      const adminSub = perfil?.subdireccion || 'Tecnologías de la Información';
+
+      const userName = row['Usuario'] || '—';
+      // Find user profile from perfilesData
+      const userProfile = perfilesData.find(p => p.nombre === userName || p.email === userName) || {};
+      const userRut = userProfile.rut || '—';
+      const userSub = userProfile.subdireccion || '—';
+
+      const data = {
+        ti_nombre: adminName,
+        ti_rut: adminRut,
+        ti_subdireccion: adminSub,
+        solicitante_nombre: userName,
+        solicitante_rut: userRut,
+        solicitante_subdireccion: userSub,
+        fecha_entrega: new Date().toLocaleDateString(),
+        equipos: [
+          {
+            tipo: row['Tipo de equipo'] || 'Equipo',
+            marca_modelo: `${row.Marca || ''} ${row.Modelo || ''}`.trim(),
+            serie: row['Nº de serie'] || '—'
+          }
+        ]
+      };
+
+      const result = await generateActaDocx(data, 'acta_asigna.docx');
+      if (!result.success) {
+         showLocalToast('Error', result.error || 'No se pudo generar el acta', 'error');
+      }
+    } catch(err) {
+       console.error(err);
+       showLocalToast('Error', 'Hubo un error al crear el acta.', 'error');
     }
   };
 
@@ -1239,6 +1284,16 @@ export default function DashboardPage() {
                         })}
                         <td className="text-center no-print-interactive">
                           <div className="flex justify-center items-center gap-2">
+                            {/* Acta Button */}
+                            {!isAvailable(row['Usuario']) && (
+                              <button
+                                onClick={() => handleGenerateActaAsignacion(row)}
+                                className="p-2 text-indigo-600 hover:text-white hover:bg-indigo-600 border border-indigo-200 hover:border-indigo-600 rounded-lg transition-all shadow-xs flex items-center justify-center cursor-pointer"
+                                title="Generar Acta de Asignación"
+                              >
+                                <Download size={14} className="stroke-[2.5]" />
+                              </button>
+                            )}
                             <button
                               disabled={!isQRSupported(row['Descripción del Bien'])}
                               onClick={() => setQrModalData(row)}

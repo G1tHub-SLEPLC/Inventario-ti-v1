@@ -2,10 +2,10 @@ import Docxtemplater from 'docxtemplater';
 import PizZip from 'pizzip';
 import { saveAs } from 'file-saver';
 
-export async function generateActaDocx(data) {
+export async function generateActaDocx(data, templateName = 'acta_template.docx') {
   try {
     // Load the template file from the public folder
-    const response = await fetch('/acta_template.docx');
+    const response = await fetch(`/${templateName}`);
     if (!response.ok) {
       throw new Error(`No se pudo cargar la plantilla: ${response.statusText}`);
     }

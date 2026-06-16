@@ -229,7 +229,6 @@ export default function SlepDashboardPage() {
 
   return (
     <div className="p-6 max-w-[1920px] mx-auto">
-      <h1 className="text-2xl font-bold text-gray-800 mb-6">Mi Portal SLEP</h1>
 
       {/* Tabs */}
       <div className="flex space-x-2 border-b border-gray-200 mb-6">
@@ -673,6 +672,10 @@ export default function SlepDashboardPage() {
                   className="w-full rounded-lg border-gray-300 shadow-sm border p-2.5 text-sm focus:border-[#006BB9] focus:ring-[#006BB9] bg-white"
                   rows="3"
                 ></textarea>
+                <div className="mt-3 bg-blue-50 border border-blue-100 p-3 rounded-lg text-[11px] leading-relaxed text-blue-800 text-justify">
+                  <strong className="block mb-1 text-blue-900">Condiciones del Préstamo:</strong>
+                  "Al solicitar este equipo, el funcionario asume la completa responsabilidad por su cuidado y buen uso durante el período de préstamo y debe ser devuelto en las mismas condiciones en las que fue entregado, en la fecha y hora acordadas. Cualquier daño físico, pérdida, robo o alteración de software sin autorización deberá ser reportado inmediatamente a la Unidad de Tecnologías de la Información."
+                </div>
               </div>
               <div className="flex justify-end gap-3 pt-2 border-t mt-4">
                 <button type="button" onClick={() => setIsPrestamoModalOpen(false)} className="px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors">Cancelar</button>
