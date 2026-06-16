@@ -65,9 +65,9 @@ export default function SlepDashboardPage() {
       const adminRut = admin?.rut || '—';
       const adminSub = admin?.subdireccion || 'Tecnologías de la Información';
 
-      const userName = activeLoan?.perfil?.nombre || eq.perfiles?.nombre || session?.user?.user_metadata?.nombre || 'Usuario';
-      const userRut = activeLoan?.perfil?.rut || eq.perfiles?.rut || session?.user?.user_metadata?.rut || '—';
-      const userSub = activeLoan?.perfil?.subdireccion || eq.perfiles?.subdireccion || session?.user?.user_metadata?.subdireccion || '—';
+      const userName = activeLoan?.perfil?.nombre || eq.perfiles?.nombre || perfil?.nombre || session?.user?.user_metadata?.nombre || 'Usuario';
+      const userRut = activeLoan?.perfil?.rut || eq.perfiles?.rut || perfil?.rut || session?.user?.user_metadata?.rut || '—';
+      const userSub = activeLoan?.perfil?.subdireccion || eq.perfiles?.subdireccion || perfil?.subdireccion || session?.user?.user_metadata?.subdireccion || '—';
 
       const data = {
         ti_nombre: adminName,
@@ -359,9 +359,15 @@ export default function SlepDashboardPage() {
                         <td className="px-4 py-3 font-mono text-[12px] whitespace-nowrap">{eq['Nº de serie'] || '—'}</td>
                         <td className="px-4 py-3 whitespace-nowrap">{eq['SubDirección'] || '—'}</td>
                         <td className="px-4 py-3 text-center">
-                          <span className="font-sans bg-lime-300 text-lime-800 border border-lime-400 px-2.5 py-1 rounded text-[11px] font-bold tracking-wide uppercase whitespace-nowrap">
-                            ASIGNADO
-                          </span>
+                          {eq.estado === 'EN PRESTAMO' || eq.estado === 'EN PRÉSTAMO' ? (
+                            <span className="font-sans bg-amber-100 text-amber-700 border border-amber-300 px-2.5 py-1 rounded text-[11px] font-bold tracking-wide uppercase whitespace-nowrap">
+                              EN PRESTAMO
+                            </span>
+                          ) : (
+                            <span className="font-sans bg-lime-300 text-lime-800 border border-lime-400 px-2.5 py-1 rounded text-[11px] font-bold tracking-wide uppercase whitespace-nowrap">
+                              ASIGNADO
+                            </span>
+                          )}
                         </td>
                         <td className="px-4 py-3 text-center">
                           <button
