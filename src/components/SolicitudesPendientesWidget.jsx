@@ -2,9 +2,11 @@ import React, { useState } from 'react';
 import { useSolicitudes } from '../context/SolicitudesContext';
 import { useInventario } from '../context/InventarioContext';
 import { supabase } from '../lib/supabaseClient';
-import { Clock, Check, X, AlertTriangle } from 'lucide-react';
+import { Clock, Check, X, AlertTriangle, Download } from 'lucide-react';
 import { logAuditoria } from '../utils/auditoria';
 import { sendInsumoAprobadoEmail } from '../utils/emailUtils';
+import { useAuth } from '../context/AuthContext';
+import { generateActaDocx } from '../utils/docxUtils';
 import { useAuth } from '../context/AuthContext';
 
 export default function SolicitudesPendientesWidget() {
@@ -110,7 +112,7 @@ export default function SolicitudesPendientesWidget() {
         }
       }
 
-      } else if (accion === 'devolver') {
+      else if (accion === 'devolver') {
         const equipoReal = equipos.find(eq => eq.id === selectedSolicitud.equipo_id || eq['Nº de serie'] === selectedSolicitud.equipo_id);
         if (equipoReal) {
            const idx = equipos.findIndex(eq => eq.id === equipoReal.id);
@@ -146,6 +148,71 @@ export default function SolicitudesPendientesWidget() {
     } catch (error) {
       console.error(error);
       showToast('Error', 'No se pudo procesar la solicitud.', 'error');
+    }
+  };
+
+  const handleGenerateActa = async (sol) => {
+    try {
+      const adminMatch = sol.observaciones_admin ? sol.observaciones_admin.match(/\[Aprobado por:\s*(.*?)\]/) : null;
+      const approvedByName = adminMatch ? adminMatch[1].trim() : null;
+
+      let currentAdminName = perfil?.nombre || 'Administrador TI';
+      let currentAdminRut = perfil?.rut || '—';
+      let currentAdminSub = perfil?.subdireccion || 'Tecnologías de la Información';
+
+      if (approvedByName && approvedByName !== currentAdminName) {
+         // Si fue aprobado por otro admin, buscamos sus datos
+         const { data: admins } = await supabase.from('perfiles').select('*').eq('rol', 'admin_ti');
+         if (admins) {
+            const otherAdmin = admins.find(a => a.nombre === approvedByName || a.email === approvedByName);
+            if (otherAdmin) {
+               currentAdminName = otherAdmin.nombre || approvedByName;
+               currentAdminRut = otherAdmin.rut || '—';
+               currentAdminSub = otherAdmin.subdireccion || 'Tecnologías de la Información';
+            }
+         }
+      }
+
+      const adminName = currentAdminName;
+      const adminRut = currentAdminRut;
+      const userName = sol.perfil?.nombre || 'Usuario';
+      const userRut = sol.perfil?.rut || '—';
+
+      const equipoObj = equipos.find(eq => eq.id === sol.equipo_id || eq['Nº de serie'] === sol.equipo_id);
+      const equipoStr = equipoObj ? `${equipoObj.Marca || ''} ${equipoObj.Modelo || ''}` : `ID: ${sol.equipo_id}`;
+      const serieStr = equipoObj ? equipoObj['Nº de serie'] : '—';
+      const estadoStr = equipoObj ? equipoObj.estado : '—';
+
+      const data = {
+        ti_nombre: adminName,
+        ti_rut: adminRut,
+        ti_subdireccion: currentAdminSub,
+        solicitante_nombre: userName,
+        solicitante_rut: userRut,
+        solicitante_subdireccion: sol.perfil?.subdireccion || '—',
+        fecha_inicio: sol.fecha_inicio || '',
+        fecha_fin: sol.fecha_fin || '',
+        hora_inicio: sol.hora_inicio || '',
+        hora_fin: sol.hora_fin || '',
+        fecha_entrega: new Date().toLocaleDateString(),
+        equipos: [
+          {
+            tipo: equipoObj ? equipoObj['Descripción del Bien'] || 'Equipo' : 'Equipo',
+            marca_modelo: equipoObj ? `${equipoObj.Marca || ''} ${equipoObj.Modelo || ''}`.trim() : '',
+            serie: serieStr,
+            codigo_interno: equipoObj ? (equipoObj.id || equipoObj['ID Publicación'] || '') : '',
+            estado: estadoStr
+          }
+        ]
+      };
+
+      const result = await generateActaDocx(data);
+      if (!result.success) {
+         showToast('Error', result.error || 'No se pudo generar el acta', 'error');
+      }
+    } catch(err) {
+       console.error(err);
+       showToast('Error', 'Hubo un error al crear el acta.', 'error');
     }
   };
 
@@ -250,12 +317,21 @@ export default function SolicitudesPendientesWidget() {
                   <td className="px-3 py-2.5 text-center">
                     <div className="flex items-center justify-center gap-2">
                       {sol.estado === 'aprobado' && sol.tipo === 'prestamo' ? (
-                        <button 
-                          onClick={() => handleOpenModal(sol, 'devolver')} 
-                          className="flex items-center gap-1 bg-blue-200 text-blue-700 border border-blue-600 hover:bg-blue-300 font-bold px-2.5 py-1 rounded text-xs transition shadow-sm cursor-pointer"
-                        >
-                          <Clock size={12} strokeWidth={3} /> Registrar Devolución
-                        </button>
+                        <>
+                          <button 
+                            onClick={() => handleGenerateActa(sol)} 
+                            className="flex items-center gap-1 bg-indigo-100 text-indigo-700 border border-indigo-400 hover:bg-indigo-200 font-bold px-2.5 py-1 rounded text-xs transition shadow-sm cursor-pointer"
+                            title="Descargar Acta"
+                          >
+                            <Download size={12} strokeWidth={3} /> Acta
+                          </button>
+                          <button 
+                            onClick={() => handleOpenModal(sol, 'devolver')} 
+                            className="flex items-center gap-1 bg-blue-200 text-blue-700 border border-blue-600 hover:bg-blue-300 font-bold px-2.5 py-1 rounded text-xs transition shadow-sm cursor-pointer"
+                          >
+                            <Clock size={12} strokeWidth={3} /> Registrar Devolución
+                          </button>
+                        </>
                       ) : (
                         <>
                           <button 
