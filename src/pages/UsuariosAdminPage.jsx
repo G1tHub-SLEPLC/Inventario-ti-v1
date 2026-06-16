@@ -50,7 +50,7 @@ export default function UsuariosAdminPage() {
   const [loading, setLoading] = useState(true);
   
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState({ id: null, email: '', nombre: '', rol: 'slep', password: '', subdireccion: '' });
+  const [formData, setFormData] = useState({ id: null, email: '', nombre: '', rut: '', rol: 'slep', password: '', subdireccion: '' });
   const [showSubdirSug, setShowSubdirSug] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -253,9 +253,9 @@ export default function UsuariosAdminPage() {
 
   const handleOpenModal = (user = null) => {
     if (user) {
-      setFormData({ id: user.id, email: user.email, nombre: user.nombre || '', rol: user.rol, password: '', subdireccion: user.subdireccion || '' });
+      setFormData({ id: user.id, email: user.email, nombre: user.nombre || '', rut: user.rut || '', rol: user.rol, password: '', subdireccion: user.subdireccion || '' });
     } else {
-      setFormData({ id: null, email: '', nombre: '', rol: 'slep', password: '', subdireccion: '' });
+      setFormData({ id: null, email: '', nombre: '', rut: '', rol: 'slep', password: '', subdireccion: '' });
     }
     setIsModalOpen(true);
   };
@@ -288,6 +288,10 @@ export default function UsuariosAdminPage() {
           throw error;
         }
         if (data?.error) throw new Error(data.error);
+
+        // EXTRA CALL TO UPDATE RUT IN PERFILES
+        await supabase.from('perfiles').update({ rut: formData.rut }).eq('id', formData.id);
+
         showToast('Usuario actualizado', 'Los datos se guardaron correctamente.', 'success');
       } else {
         // Create user
@@ -317,6 +321,12 @@ export default function UsuariosAdminPage() {
           throw error;
         }
         if (data?.error) throw new Error(data.error);
+
+        // EXTRA CALL TO UPDATE RUT IN PERFILES
+        if (data?.user?.id) {
+          await supabase.from('perfiles').update({ rut: formData.rut }).eq('id', data.user.id);
+        }
+
         showToast('Usuario creado', 'El usuario fue registrado con éxito.', 'success');
       }
       
@@ -556,6 +566,16 @@ export default function UsuariosAdminPage() {
                   onChange={e => setFormData({...formData, nombre: e.target.value})} 
                   className="w-full rounded-lg border-gray-300 shadow-sm border p-2.5 focus:border-[#006BB9] focus:ring-[#006BB9]" 
                   placeholder="Ej: Juan Pérez"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">RUT</label>
+                <input 
+                  type="text" 
+                  value={formData.rut} 
+                  onChange={e => setFormData({...formData, rut: e.target.value})} 
+                  className="w-full rounded-lg border-gray-300 shadow-sm border p-2.5 focus:border-[#006BB9] focus:ring-[#006BB9]" 
+                  placeholder="Ej: 12.345.678-9"
                 />
               </div>
               <div>
