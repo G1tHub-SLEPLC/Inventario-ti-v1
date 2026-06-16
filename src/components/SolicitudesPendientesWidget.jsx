@@ -7,7 +7,6 @@ import { logAuditoria } from '../utils/auditoria';
 import { sendInsumoAprobadoEmail } from '../utils/emailUtils';
 import { useAuth } from '../context/AuthContext';
 import { generateActaDocx } from '../utils/docxUtils';
-import { useAuth } from '../context/AuthContext';
 
 export default function SolicitudesPendientesWidget() {
   const { solicitudes, updateEstadoSolicitud, refetch: refetchSolicitudes } = useSolicitudes();
