@@ -169,14 +169,16 @@ export default function SolicitudesAdminPage() {
       const data = {
         ti_nombre: adminName,
         ti_rut: adminRut,
+        ti_subdireccion: perfil?.subdireccion || 'Tecnologías de la Información',
         solicitante_nombre: userName,
         solicitante_rut: userRut,
+        solicitante_subdireccion: sol.perfil?.subdireccion || '—',
         equipos: [
           {
             tipo: equipoObj ? equipoObj['Tipo de equipo'] || 'Equipo' : 'Equipo',
-            marca: equipoObj?.Marca || '',
-            modelo: equipoObj?.Modelo || '',
+            marca_modelo: equipoObj ? `${equipoObj.Marca || ''} ${equipoObj.Modelo || ''}`.trim() : '',
             serie: serieStr,
+            codigo_interno: equipoObj ? (equipoObj.id || equipoObj['ID Publicación'] || '') : '',
             estado: estadoStr
           }
         ]
