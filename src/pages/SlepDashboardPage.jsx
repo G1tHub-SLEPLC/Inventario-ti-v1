@@ -487,6 +487,7 @@ export default function SlepDashboardPage() {
                 </table>
               </div>
             )}
+            </div>
           </div>
         )}
 
