@@ -342,7 +342,14 @@ export default function SlepDashboardPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200 text-sm text-gray-700">
-                    {misEquipos.map((eq, i) => (
+                    {misEquipos.map((eq, i) => {
+                      const isEnPrestamo = eq.estado === 'EN PRESTAMO' || eq.estado === 'EN PRÉSTAMO';
+                      let myActiveLoan = null;
+                      if (isEnPrestamo && solicitudes) {
+                        myActiveLoan = solicitudes.find(s => (s.equipo_id === eq.id || String(s.equipo_id) === String(eq['Nº de serie'])) && s.estado === 'aprobado' && s.tipo === 'prestamo');
+                      }
+                      
+                      return (
                       <tr key={eq.id || i} className="hover:bg-blue-50 even:bg-slate-50 transition-colors">
                         <td className="px-4 py-2">
                           <div className="w-[48px] h-[48px] rounded-[6px] bg-white border border-gray-200 overflow-hidden flex items-center justify-center shrink-0 shadow-sm">
@@ -371,15 +378,16 @@ export default function SlepDashboardPage() {
                         </td>
                         <td className="px-4 py-3 text-center">
                           <button
-                            onClick={() => handleGenerateActa(null, eq)}
+                            onClick={() => handleGenerateActa(myActiveLoan, eq)}
                             className="flex items-center justify-center mx-auto gap-1 bg-indigo-100 text-indigo-700 border border-indigo-400 hover:bg-indigo-200 font-bold px-3 py-1.5 rounded-lg text-xs transition shadow-sm"
-                            title="Descargar Acta de Asignación"
+                            title="Descargar Acta"
                           >
                             <Download size={14} className="stroke-[2.5]" /> Acta
                           </button>
                         </td>
                       </tr>
-                    ))}
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
