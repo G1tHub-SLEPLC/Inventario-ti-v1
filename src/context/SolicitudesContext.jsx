@@ -51,7 +51,7 @@ export function SolicitudesProvider({ children }) {
     else setInsumos(insumosData || []);
 
     // Load Solicitudes
-    let query = supabase.from('solicitudes').select('*, insumo:insumos(nombre), perfil:perfiles(nombre, email)');
+    let query = supabase.from('solicitudes').select('*, insumo:insumos(nombre), perfil:perfiles(nombre, email, rut, subdireccion)');
     // Si no es admin, solo carga las suyas y todas las de tipo prestamo
     if (!isAdmin) {
       query = query.or(`usuario_id.eq.${session.user.id},tipo.eq.prestamo`);
@@ -74,7 +74,7 @@ export function SolicitudesProvider({ children }) {
       const perfil = (perfilesData || []).find(p => p.id === sol.usuario_id);
       return {
         ...sol,
-        perfil: perfil ? { nombre: perfil.nombre, correo: perfil.email } : sol.perfil // Fallback a lo que haya traido Supabase
+        perfil: perfil ? { nombre: perfil.nombre, correo: perfil.email, rut: perfil.rut, subdireccion: perfil.subdireccion } : sol.perfil // Fallback a lo que haya traido Supabase
       };
     });
 
