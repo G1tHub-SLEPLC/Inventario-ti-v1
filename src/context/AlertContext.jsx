@@ -14,6 +14,7 @@ export function AlertProvider({ children }) {
     title: '',
     message: '',
     placeholder: '',
+    inputType: 'textarea',
     resolve: null,
   });
 
@@ -31,15 +32,16 @@ export function AlertProvider({ children }) {
     });
   }, []);
 
-  const showAlertPrompt = useCallback((title, message, placeholder = '') => {
+  const showAlertPrompt = useCallback((title, message, placeholder = '', inputType = 'textarea', defaultValue = '') => {
     return new Promise((resolve) => {
-      setPromptValue('');
+      setPromptValue(defaultValue);
       setAlertConfig({
         isOpen: true,
         type: 'prompt',
         title,
         message,
         placeholder,
+        inputType,
         resolve,
       });
     });
@@ -98,13 +100,24 @@ export function AlertProvider({ children }) {
                   </div>
                   <p className="text-sm text-slate-500 mb-4" dangerouslySetInnerHTML={{ __html: alertConfig.message }}></p>
                   <div className="relative">
-                    <textarea 
-                      autoFocus
-                      value={promptValue}
-                      onChange={(e) => setPromptValue(e.target.value)}
-                      placeholder={alertConfig.placeholder || "Ingrese la información aquí..."}
-                      className="w-full pl-3 pr-3 py-3 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-[#006BB9] focus:border-[#006BB9] outline-none transition-all resize-none h-28"
-                    ></textarea>
+                    {alertConfig.inputType === 'textarea' ? (
+                      <textarea 
+                        autoFocus
+                        value={promptValue}
+                        onChange={(e) => setPromptValue(e.target.value)}
+                        placeholder={alertConfig.placeholder || "Ingrese la información aquí..."}
+                        className="w-full pl-3 pr-3 py-3 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-[#006BB9] focus:border-[#006BB9] outline-none transition-all resize-none h-28"
+                      ></textarea>
+                    ) : (
+                      <input
+                        type={alertConfig.inputType}
+                        value={promptValue}
+                        onChange={(e) => setPromptValue(e.target.value)}
+                        placeholder={alertConfig.placeholder}
+                        className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#006BB9] focus:outline-none text-sm transition shadow-sm"
+                        autoFocus
+                      />
+                    )}
                   </div>
                 </div>
                 <div className="bg-slate-50 px-6 py-4 flex justify-end gap-3 border-t border-slate-100">

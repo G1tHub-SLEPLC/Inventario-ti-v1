@@ -270,6 +270,35 @@ export default function DashboardPage() {
 
       const templateName = isEnPrestamo ? 'acta_prestamo.docx' : 'acta_asigna.docx';
 
+      let fechaEntrega = new Date().toLocaleDateString();
+      let dia = '';
+      let mes = '';
+      let ano = '';
+
+      if (!isEnPrestamo) {
+        const todayStr = new Date().toISOString().split('T')[0];
+        const selectedDateStr = await showAlertPrompt(
+          'Fecha de Asignación',
+          'Confirme o modifique la fecha en que se asignó o entregó este equipo:',
+          '',
+          'date',
+          todayStr
+        );
+
+        if (!selectedDateStr) return;
+
+        const dateParts = selectedDateStr.split('-');
+        if (dateParts.length === 3) {
+          const [y, m, d] = dateParts;
+          const dateObj = new Date(y, m - 1, d);
+          fechaEntrega = dateObj.toLocaleDateString();
+          dia = dateObj.getDate().toString().padStart(2, '0');
+          const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+          mes = monthNames[dateObj.getMonth()];
+          ano = dateObj.getFullYear().toString();
+        }
+      }
+
       const data = {
         ti_nombre: adminName,
         ti_rut: adminRut,
@@ -277,7 +306,10 @@ export default function DashboardPage() {
         solicitante_nombre: userName,
         solicitante_rut: userRut,
         solicitante_subdireccion: userSub,
-        fecha_entrega: new Date().toLocaleDateString(),
+        fecha_entrega: fechaEntrega,
+        dia: dia,
+        mes: mes,
+        año: ano,
         fecha_inicio: activeLoan?.fecha_inicio || '',
         fecha_fin: activeLoan?.fecha_fin || '',
         hora_inicio: activeLoan?.hora_inicio || '',

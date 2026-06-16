@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { useInventario } from '../context/InventarioContext';
 import { useSolicitudes } from '../context/SolicitudesContext';
 import { useAuth } from '../context/AuthContext';
+import { useAlert } from '../context/AlertContext';
 import { useLicencias } from '../context/LicenciasContext';
 import { Monitor, Package, Calendar, Key, AlertTriangle, Download } from 'lucide-react';
 import CustomTimePicker from '../components/CustomTimePicker';
@@ -11,6 +12,7 @@ import { generateActaDocx } from '../utils/docxUtils';
 export default function SlepDashboardPage() {
   const { session, perfil } = useAuth();
   const { equipos, showToast } = useInventario();
+  const { showAlertPrompt } = useAlert();
   const { insumos, solicitarInsumo, solicitarPrestamo, solicitudes } = useSolicitudes();
   const { asignaciones } = useLicencias();
   const [activeTab, setActiveTab] = useState('equipos'); // 'equipos', 'insumos', 'prestamos', 'licencias'
@@ -69,6 +71,35 @@ export default function SlepDashboardPage() {
       const userRut = activeLoan?.perfil?.rut || eq.perfiles?.rut || perfil?.rut || session?.user?.user_metadata?.rut || '—';
       const userSub = activeLoan?.perfil?.subdireccion || eq.perfiles?.subdireccion || perfil?.subdireccion || session?.user?.user_metadata?.subdireccion || '—';
 
+      let fechaEntrega = new Date().toLocaleDateString();
+      let dia = '';
+      let mes = '';
+      let ano = '';
+
+      if (!activeLoan) {
+        const todayStr = new Date().toISOString().split('T')[0];
+        const selectedDateStr = await showAlertPrompt(
+          'Fecha de Asignación',
+          'Confirme o modifique la fecha en que se le asignó este equipo:',
+          '',
+          'date',
+          todayStr
+        );
+
+        if (!selectedDateStr) return; // cancelado
+
+        const dateParts = selectedDateStr.split('-');
+        if (dateParts.length === 3) {
+          const [y, m, d] = dateParts;
+          const dateObj = new Date(y, m - 1, d);
+          fechaEntrega = dateObj.toLocaleDateString();
+          dia = dateObj.getDate().toString().padStart(2, '0');
+          const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+          mes = monthNames[dateObj.getMonth()];
+          ano = dateObj.getFullYear().toString();
+        }
+      }
+
       const data = {
         ti_nombre: adminName,
         ti_rut: adminRut,
@@ -80,7 +111,10 @@ export default function SlepDashboardPage() {
         fecha_fin: activeLoan?.fecha_fin || '',
         hora_inicio: activeLoan?.hora_inicio || '',
         hora_fin: activeLoan?.hora_fin || '',
-        fecha_entrega: new Date().toLocaleDateString(),
+        fecha_entrega: fechaEntrega,
+        dia: dia,
+        mes: mes,
+        año: ano,
         equipos: [
           {
             tipo: eq['Descripción del Bien'] || 'Equipo',
