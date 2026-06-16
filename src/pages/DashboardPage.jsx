@@ -1436,7 +1436,8 @@ export default function DashboardPage() {
                 type="date"
                 value={assignDate}
                 onChange={(e) => setAssignDate(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#006BB9] focus:outline-none bg-white"
+                onClick={(e) => e.target.showPicker && e.target.showPicker()}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#006BB9] focus:outline-none bg-white cursor-pointer"
               />
             </div>
             <div className="flex justify-end gap-3 mt-auto relative z-0">

@@ -997,7 +997,8 @@ export default function EditarEquipoModal({ equipo, onClose }) {
                     name="fecha_asignacion"
                     value={formData.fecha_asignacion || ''}
                     onChange={handleChange}
-                    className="w-full px-2 py-1 border border-gray-300 rounded-lg text-xs focus:ring-1.5 focus:ring-[#006BB9] focus:outline-none shadow-xs bg-white font-medium"
+                    onClick={(e) => e.target.showPicker && e.target.showPicker()}
+                    className="w-full px-2 py-1 border border-gray-300 rounded-lg text-xs focus:ring-1.5 focus:ring-[#006BB9] focus:outline-none shadow-xs bg-white font-medium cursor-pointer"
                   />
                 </div>
               )}
