@@ -2,7 +2,7 @@ import Docxtemplater from 'docxtemplater';
 import PizZip from 'pizzip';
 import { saveAs } from 'file-saver';
 
-export async function generateActaDocx(data, templateName = 'acta_template.docx') {
+export async function generateActaDocx(data, templateName = 'acta_prestamo.docx') {
   try {
     // Load the template file from the public folder
     const response = await fetch(`/${templateName}`);
