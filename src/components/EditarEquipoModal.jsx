@@ -8,10 +8,13 @@ import { supabase } from '../lib/supabaseClient';
 import { uploadEquipoImage } from '../utils/storageUtils';
 import AutocompleteInput from './AutocompleteInput';
 import { isSameUser } from '../utils/userUtils';
+import { logAuditoria } from '../utils/auditoria';
+import { useAuth } from '../context/AuthContext';
 
 export default function EditarEquipoModal({ equipo, onClose }) {
   const { equipos, updateEquipo, updateEquiposMasivo, showToast } = useInventario();
   const { showAlertConfirm } = useAlert();
+  const { session, perfil } = useAuth();
   const originalEquipo = equipo;
   const equipIndex = equipos.findIndex(eq => eq.id === originalEquipo?.id);
 
@@ -404,6 +407,18 @@ export default function EditarEquipoModal({ equipo, onClose }) {
         ...(originalEquipo.historialUsuarios || []),
         newHistoryEntry
       ];
+    }
+
+    const oldFecha = originalEquipo.fecha_asignacion || '';
+    const newFecha = formData.fecha_asignacion || '';
+    if (oldFecha !== newFecha) {
+       const uName = session?.user?.user_metadata?.nombre || perfil?.nombre || session?.user?.email;
+       await logAuditoria(
+         'equipos', 
+         'Modificar Fecha Asignación', 
+         `Se modificó la fecha de asignación del equipo: ${originalEquipo['Descripción del Bien']} (S/N: ${originalEquipo['Nº de serie']}). De "${oldFecha || 'No definida'}" a "${newFecha || 'No definida'}".`, 
+         uName
+       );
     }
 
     // Save newly selected files to IndexedDB
@@ -947,6 +962,22 @@ export default function EditarEquipoModal({ equipo, onClose }) {
                   );
                 })()}
               </div>
+
+              {/* Fecha de Asignación */}
+              {formData.estado === 'ASIGNADO' && (
+                <div className="space-y-0.5">
+                  <label className="block text-[10px] font-bold text-[#25306B] uppercase tracking-wide">
+                    Fecha de Asignación
+                  </label>
+                  <input
+                    type="date"
+                    name="fecha_asignacion"
+                    value={formData.fecha_asignacion || ''}
+                    onChange={handleChange}
+                    className="w-full px-2 py-1 border border-gray-300 rounded-lg text-xs focus:ring-1.5 focus:ring-[#006BB9] focus:outline-none shadow-xs bg-white font-medium"
+                  />
+                </div>
+              )}
 
               {/* Estado */}
               <div className="grid grid-cols-1 gap-2">

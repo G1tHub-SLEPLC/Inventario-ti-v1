@@ -159,6 +159,7 @@ export default function DashboardPage() {
 
   const [assignModalData, setAssignModalData] = useState(null);
   const [assignUserName, setAssignUserName] = useState('');
+  const [assignDate, setAssignDate] = useState('');
   const [qrModalData, setQrModalData] = useState(null);
   const [perfilesOptions, setPerfilesOptions] = useState([]);
   const [perfilesData, setPerfilesData] = useState([]);
@@ -276,18 +277,8 @@ export default function DashboardPage() {
       let ano = '';
 
       if (!isEnPrestamo) {
-        const todayStr = new Date().toISOString().split('T')[0];
-        const selectedDateStr = await showAlertPrompt(
-          'Fecha de Asignación',
-          'Confirme o modifique la fecha en que se asignó o entregó este equipo:',
-          '',
-          'date',
-          todayStr
-        );
-
-        if (!selectedDateStr) return;
-
-        const dateParts = selectedDateStr.split('-');
+        const dateToUse = row.fecha_asignacion ? row.fecha_asignacion : new Date().toISOString().split('T')[0];
+        const dateParts = dateToUse.split('-');
         if (dateParts.length === 3) {
           const [y, m, d] = dateParts;
           const dateObj = new Date(y, m - 1, d);
@@ -1375,7 +1366,11 @@ export default function DashboardPage() {
                               <QrCode size={14} className="stroke-[2.5]" />
                             </button>
                             <button
-                              onClick={() => { setAssignModalData(row); setAssignUserName(row['Usuario'] || ''); }}
+                              onClick={() => { 
+                                setAssignModalData(row); 
+                                setAssignUserName(row['Usuario'] || ''); 
+                                setAssignDate(row.fecha_asignacion || new Date().toISOString().split('T')[0]);
+                              }}
                               className="p-2 text-emerald-600 hover:text-white hover:bg-emerald-600 border border-emerald-200 hover:border-emerald-600 rounded-lg transition-all shadow-xs flex items-center justify-center cursor-pointer"
                               title="Asignar Equipo a un Funcionario"
                             >
@@ -1434,6 +1429,13 @@ export default function DashboardPage() {
                 onChange={(e) => setAssignUserName(e.target.value)}
                 options={perfilesOptions}
                 placeholder="Ej. Juan Pérez (Dejar vacío para Disponible)"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#006BB9] focus:outline-none bg-white mb-4"
+              />
+              <label className="block text-sm font-semibold text-[#25306B] mb-2 mt-4">Fecha de Asignación</label>
+              <input
+                type="date"
+                value={assignDate}
+                onChange={(e) => setAssignDate(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#006BB9] focus:outline-none bg-white"
               />
             </div>
@@ -1506,7 +1508,7 @@ export default function DashboardPage() {
                     }
                   }
 
-                  const updated = { ...assignModalData, 'Usuario': assignUserName };
+                  const updated = { ...assignModalData, 'Usuario': assignUserName, fecha_asignacion: assignDate };
                   updated.estado = isDisp ? 'DISPONIBLE' : 'ASIGNADO';
                   if (obsData) {
                     updated.Observaciones = updated.Observaciones 

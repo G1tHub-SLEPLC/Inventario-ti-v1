@@ -77,18 +77,8 @@ export default function SlepDashboardPage() {
       let ano = '';
 
       if (!activeLoan) {
-        const todayStr = new Date().toISOString().split('T')[0];
-        const selectedDateStr = await showAlertPrompt(
-          'Fecha de Asignación',
-          'Confirme o modifique la fecha en que se le asignó este equipo:',
-          '',
-          'date',
-          todayStr
-        );
-
-        if (!selectedDateStr) return; // cancelado
-
-        const dateParts = selectedDateStr.split('-');
+        const dateToUse = eq.fecha_asignacion ? eq.fecha_asignacion : new Date().toISOString().split('T')[0];
+        const dateParts = dateToUse.split('-');
         if (dateParts.length === 3) {
           const [y, m, d] = dateParts;
           const dateObj = new Date(y, m - 1, d);
