@@ -3,8 +3,10 @@ import { useInventario } from '../context/InventarioContext';
 import { useSolicitudes } from '../context/SolicitudesContext';
 import { useAuth } from '../context/AuthContext';
 import { useLicencias } from '../context/LicenciasContext';
-import { Monitor, Package, Calendar, Key, AlertTriangle } from 'lucide-react';
+import { Monitor, Package, Calendar, Key, AlertTriangle, Download } from 'lucide-react';
 import CustomTimePicker from '../components/CustomTimePicker';
+import { supabase } from '../lib/supabaseClient';
+import { generateActaDocx } from '../utils/docxUtils';
 
 export default function SlepDashboardPage() {
   const { session, perfil } = useAuth();
@@ -44,6 +46,48 @@ export default function SlepDashboardPage() {
   };
 
   // Filtrar equipos
+  const handleGenerateActa = async (activeLoan, eq) => {
+    try {
+      // Intentar obtener un admin_ti
+      const { data: admins } = await supabase.from('perfiles').select('*').eq('rol', 'admin_ti').limit(1);
+      const admin = admins && admins.length > 0 ? admins[0] : null;
+
+      const adminName = admin?.nombre || 'Administrador TI';
+      const adminRut = admin?.rut || '—';
+      const adminSub = admin?.subdireccion || 'Tecnologías de la Información';
+
+      const userName = activeLoan?.perfil?.nombre || eq.perfiles?.nombre || session?.user?.user_metadata?.nombre || 'Usuario';
+      const userRut = activeLoan?.perfil?.rut || eq.perfiles?.rut || session?.user?.user_metadata?.rut || '—';
+      const userSub = activeLoan?.perfil?.subdireccion || eq.perfiles?.subdireccion || session?.user?.user_metadata?.subdireccion || '—';
+
+      const data = {
+        ti_nombre: adminName,
+        ti_rut: adminRut,
+        ti_subdireccion: adminSub,
+        solicitante_nombre: userName,
+        solicitante_rut: userRut,
+        solicitante_subdireccion: userSub,
+        equipos: [
+          {
+            tipo: eq['Tipo de equipo'] || 'Equipo',
+            marca_modelo: `${eq.Marca || ''} ${eq.Modelo || ''}`.trim(),
+            serie: eq['Nº de serie'] || '—',
+            codigo_interno: eq.id || eq['ID Publicación'] || '',
+            estado: eq.estado || '—'
+          }
+        ]
+      };
+
+      const result = await generateActaDocx(data);
+      if (!result.success) {
+         showToast('Error', result.error || 'No se pudo generar el acta', 'error');
+      }
+    } catch(err) {
+       console.error(err);
+       showToast('Error', 'Hubo un error al crear el acta.', 'error');
+    }
+  };
+
   const misEquipos = useMemo(() => {
     const userName = perfil?.nombre || formatEmailName(session?.user?.email);
 
@@ -455,12 +499,22 @@ export default function SlepDashboardPage() {
                           </td>
                           <td className="px-4 py-3 text-center">
                             {isEnPrestamo ? (
-                              <button
-                                disabled
-                                className="px-3 py-1.5 rounded text-xs font-semibold bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed"
-                              >
-                                Prestado
-                              </button>
+                              activeLoan?.usuario_id === session?.user?.id ? (
+                                <button
+                                  onClick={() => handleGenerateActa(activeLoan, eq)}
+                                  className="flex items-center justify-center mx-auto gap-1 bg-indigo-100 text-indigo-700 border border-indigo-400 hover:bg-indigo-200 font-bold px-3 py-1.5 rounded-lg text-xs transition shadow-sm"
+                                  title="Descargar Acta de Préstamo"
+                                >
+                                  <Download size={14} className="stroke-[2.5]" /> Acta
+                                </button>
+                              ) : (
+                                <button
+                                  disabled
+                                  className="px-3 py-1.5 rounded text-xs font-semibold bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed"
+                                >
+                                  Prestado
+                                </button>
+                              )
                             ) : isEsperandoRespuesta ? (
                               <button
                                 disabled
