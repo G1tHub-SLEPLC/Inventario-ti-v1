@@ -17,7 +17,7 @@ export default function SolicitudesPendientesWidget() {
   const [observaciones, setObservaciones] = useState('');
   const [accion, setAccion] = useState('');
 
-  const pendientes = (solicitudes || []).filter(s => s.estado === 'pendiente');
+  const pendientes = (solicitudes || []).filter(s => s.estado === 'pendiente' || (s.estado === 'aprobado' && s.tipo === 'prestamo'));
 
   const handleOpenModal = (solicitud, tipoAccion) => {
     setSelectedSolicitud(solicitud);
@@ -110,10 +110,28 @@ export default function SolicitudesPendientesWidget() {
         }
       }
 
+      } else if (accion === 'devolver') {
+        const equipoReal = equipos.find(eq => eq.id === selectedSolicitud.equipo_id || eq['Nº de serie'] === selectedSolicitud.equipo_id);
+        if (equipoReal) {
+           const idx = equipos.findIndex(eq => eq.id === equipoReal.id);
+           if (idx >= 0) {
+             const updatedEq = {
+               ...equipoReal,
+               estado: 'PARA PRESTAMO',
+               usuario_asignado_id: null
+             };
+             delete updatedEq.devolucion_fecha;
+             delete updatedEq.devolucion_hora;
+             await updateEquipo(idx, updatedEq);
+             if (broadcastEquiposChanges) broadcastEquiposChanges();
+           }
+        }
+      }
+
       await updateEstadoSolicitud(selectedSolicitud.id, nuevoEstado, observacionFinal);
       
       const userName = selectedSolicitud.perfil?.nombre || selectedSolicitud.perfil?.correo || 'Usuario';
-      const actionText = accion === 'aprobar' ? 'Aprobó' : 'Rechazó';
+      const actionText = accion === 'aprobar' ? 'Aprobó' : (accion === 'rechazado' ? 'Rechazó' : 'Registró devolución de');
       let typeText = '';
       if (selectedSolicitud.tipo === 'insumo') {
          typeText = `solicitud de insumo: ${selectedSolicitud.insumo?.nombre || 'Desconocido'} (${selectedSolicitud.cantidad}x)`;
@@ -131,10 +149,14 @@ export default function SolicitudesPendientesWidget() {
     }
   };
 
-  const getStatusBadge = (estado) => {
+  const getStatusBadge = (sol) => {
     const baseClass = "inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] font-bold uppercase border whitespace-nowrap leading-none";
     
-    const est = (estado || '').toLowerCase();
+    if (sol.estado === 'aprobado' && sol.tipo === 'prestamo') {
+      return <span className={`${baseClass} bg-amber-100 text-amber-700 border-amber-400`}><Clock size={12} strokeWidth={2.5} /> En Préstamo</span>;
+    }
+
+    const est = (sol.estado || '').toLowerCase();
     if (est === 'rechazado' || est === 'rechazada') {
       return <span className={`${baseClass} bg-rose-200 text-red-600 border-red-600`}><X size={12} strokeWidth={2.5} /> Rechazado</span>;
     }
@@ -224,21 +246,32 @@ export default function SolicitudesPendientesWidget() {
                       </div>
                     )}
                   </td>
-                  <td className="px-3 py-2.5">{getStatusBadge(sol.estado)}</td>
+                  <td className="px-3 py-2.5">{getStatusBadge(sol)}</td>
                   <td className="px-3 py-2.5 text-center">
                     <div className="flex items-center justify-center gap-2">
-                      <button 
-                        onClick={() => handleOpenModal(sol, 'aprobar')} 
-                        className="flex items-center gap-1 bg-green-300 text-green-800 border border-green-400 hover:bg-green-400 font-bold px-2.5 py-1 rounded text-xs transition shadow-sm cursor-pointer"
-                      >
-                        <Check size={12} strokeWidth={3} /> Aprobar
-                      </button>
-                      <button 
-                        onClick={() => handleOpenModal(sol, 'rechazado')} 
-                        className="flex items-center gap-1 bg-rose-200 text-red-600 border border-red-600 hover:bg-rose-300 font-bold px-2.5 py-1 rounded text-xs transition shadow-sm cursor-pointer"
-                      >
-                        <X size={12} strokeWidth={3} /> Rechazar
-                      </button>
+                      {sol.estado === 'aprobado' && sol.tipo === 'prestamo' ? (
+                        <button 
+                          onClick={() => handleOpenModal(sol, 'devolver')} 
+                          className="flex items-center gap-1 bg-blue-200 text-blue-700 border border-blue-600 hover:bg-blue-300 font-bold px-2.5 py-1 rounded text-xs transition shadow-sm cursor-pointer"
+                        >
+                          <Clock size={12} strokeWidth={3} /> Registrar Devolución
+                        </button>
+                      ) : (
+                        <>
+                          <button 
+                            onClick={() => handleOpenModal(sol, 'aprobar')} 
+                            className="flex items-center gap-1 bg-green-300 text-green-800 border border-green-400 hover:bg-green-400 font-bold px-2.5 py-1 rounded text-xs transition shadow-sm cursor-pointer"
+                          >
+                            <Check size={12} strokeWidth={3} /> Aprobar
+                          </button>
+                          <button 
+                            onClick={() => handleOpenModal(sol, 'rechazado')} 
+                            className="flex items-center gap-1 bg-rose-200 text-red-600 border border-red-600 hover:bg-rose-300 font-bold px-2.5 py-1 rounded text-xs transition shadow-sm cursor-pointer"
+                          >
+                            <X size={12} strokeWidth={3} /> Rechazar
+                          </button>
+                        </>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -250,9 +283,9 @@ export default function SolicitudesPendientesWidget() {
 
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100]">
-          <div className="bg-white p-6 rounded-2xl shadow-xl w-full max-w-md border border-gray-100 transform transition-all scale-100">
-            <h2 className="text-xl font-bold mb-4 text-[#25306B]">
-              {accion === 'aprobar' ? 'Aprobar Solicitud' : 'Rechazar Solicitud'}
+          <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-md">
+            <h2 className="text-xl font-bold mb-4">
+              {accion === 'aprobar' ? 'Aprobar Solicitud' : (accion === 'devolver' ? 'Registrar Devolución' : 'Rechazar Solicitud')}
             </h2>
             <form onSubmit={handleConfirm} className="space-y-5">
               <div>
@@ -272,8 +305,8 @@ export default function SolicitudesPendientesWidget() {
                 <button type="button" onClick={() => setIsModalOpen(false)} className="px-5 py-2.5 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 transition-colors">
                   Cancelar
                 </button>
-                <button type="submit" className={`px-5 py-2.5 text-white font-semibold rounded-xl shadow-sm transition-colors ${accion === 'aprobar' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-rose-600 hover:bg-rose-700'}`}>
-                  {accion === 'aprobar' ? 'Confirmar Aprobación' : 'Confirmar Rechazo'}
+                <button type="submit" className={`px-4 py-2 text-white rounded ${accion === 'aprobar' ? 'bg-emerald-600 hover:bg-emerald-700' : (accion === 'devolver' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-red-600 hover:bg-red-700')}`}>
+                  {accion === 'aprobar' ? 'Aprobar Solicitud' : (accion === 'devolver' ? 'Registrar Devolución' : 'Rechazar Solicitud')}
                 </button>
               </div>
             </form>
