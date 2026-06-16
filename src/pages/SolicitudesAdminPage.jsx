@@ -124,9 +124,12 @@ export default function SolicitudesAdminPage() {
               ...equipoReal,
               estado: 'PARA PRESTAMO',
               usuario_asignado_id: null,
+              'Usuario': 'Disponible',
+              'SubDirección': ''
             };
             delete updatedEq.devolucion_fecha;
             delete updatedEq.devolucion_hora;
+            delete updatedEq.fecha_asignacion;
             await updateEquipo(idx, updatedEq);
             if (broadcastEquiposChanges) broadcastEquiposChanges();
           }
