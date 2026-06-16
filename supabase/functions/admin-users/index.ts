@@ -53,7 +53,7 @@ serve(async (req) => {
 
     // 4. Procesar la acción
     if (action === 'CREATE_USER') {
-      const { email, password, nombre, rol, subdireccion } = payload
+      const { email, password, nombre, rol, subdireccion, rut } = payload
       
       // Crear en auth.users
       const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
@@ -74,7 +74,8 @@ serve(async (req) => {
           email: email,
           nombre: nombre,
           rol: rol || 'slep',
-          subdireccion: subdireccion || null
+          subdireccion: subdireccion || null,
+          rut: rut || null
         })
 
       if (profileError) throw profileError
@@ -98,7 +99,7 @@ serve(async (req) => {
     }
     
     if (action === 'UPDATE_USER') {
-      const { userId, nombre, rol, password, subdireccion } = payload
+      const { userId, nombre, rol, password, subdireccion, rut } = payload
       
       // Si enviaron contraseña, la actualizamos en auth.users
       if (password && password.trim() !== '') {
@@ -111,7 +112,7 @@ serve(async (req) => {
       // Actualizar perfil
       const { error: profError } = await supabaseAdmin
         .from('perfiles')
-        .update({ nombre, rol, subdireccion: subdireccion || null })
+        .update({ nombre, rol, subdireccion: subdireccion || null, rut: rut || null })
         .eq('id', userId)
 
       if (profError) throw profError

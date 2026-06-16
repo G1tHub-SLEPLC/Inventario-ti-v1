@@ -274,7 +274,8 @@ export default function UsuariosAdminPage() {
               nombre: formData.nombre,
               rol: formData.rol,
               password: formData.password,
-              subdireccion: formData.subdireccion
+              subdireccion: formData.subdireccion,
+              rut: formData.rut
             }
           }
         });
@@ -288,9 +289,6 @@ export default function UsuariosAdminPage() {
           throw error;
         }
         if (data?.error) throw new Error(data.error);
-
-        // EXTRA CALL TO UPDATE RUT IN PERFILES
-        await supabase.from('perfiles').update({ rut: formData.rut }).eq('id', formData.id);
 
         showToast('Usuario actualizado', 'Los datos se guardaron correctamente.', 'success');
       } else {
@@ -307,7 +305,8 @@ export default function UsuariosAdminPage() {
               password: formData.password,
               nombre: formData.nombre,
               rol: formData.rol,
-              subdireccion: formData.subdireccion
+              subdireccion: formData.subdireccion,
+              rut: formData.rut
             }
           }
         });
@@ -321,11 +320,6 @@ export default function UsuariosAdminPage() {
           throw error;
         }
         if (data?.error) throw new Error(data.error);
-
-        // EXTRA CALL TO UPDATE RUT IN PERFILES
-        if (data?.user?.id) {
-          await supabase.from('perfiles').update({ rut: formData.rut }).eq('id', data.user.id);
-        }
 
         showToast('Usuario creado', 'El usuario fue registrado con éxito.', 'success');
       }
