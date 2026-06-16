@@ -9,6 +9,7 @@ import { sendInsumoAprobadoEmail } from '../utils/emailUtils';
 import { useAuth } from '../context/AuthContext';
 import { useSort } from '../hooks/useSort';
 import { SortableHeader } from '../components/SortableHeader';
+import { generateActaDocx } from '../utils/docxUtils';
 
 export default function SolicitudesAdminPage() {
   const { solicitudes, updateEstadoSolicitud, refetch: refetchSolicitudes } = useSolicitudes();
@@ -153,6 +154,44 @@ export default function SolicitudesAdminPage() {
     }
   };
 
+  const handleGenerateActa = async (sol) => {
+    try {
+      const adminName = perfil?.nombre || 'Administrador TI';
+      const adminRut = perfil?.rut || '—';
+      const userName = sol.perfil?.nombre || 'Usuario';
+      const userRut = sol.perfil?.rut || '—';
+
+      const equipoObj = equipos.find(eq => eq.id === sol.equipo_id || eq['Nº de serie'] === sol.equipo_id);
+      const equipoStr = equipoObj ? `${equipoObj.Marca || ''} ${equipoObj.Modelo || ''}` : `ID: ${sol.equipo_id}`;
+      const serieStr = equipoObj ? equipoObj['Nº de serie'] : '—';
+      const estadoStr = equipoObj ? equipoObj.estado : '—';
+
+      const data = {
+        ti_nombre: adminName,
+        ti_rut: adminRut,
+        solicitante_nombre: userName,
+        solicitante_rut: userRut,
+        equipos: [
+          {
+            tipo: equipoObj ? equipoObj['Tipo de equipo'] || 'Equipo' : 'Equipo',
+            marca: equipoObj?.Marca || '',
+            modelo: equipoObj?.Modelo || '',
+            serie: serieStr,
+            estado: estadoStr
+          }
+        ]
+      };
+
+      const result = await generateActaDocx(data);
+      if (!result.success) {
+         showToast('Error', result.error || 'No se pudo generar el acta', 'error');
+      }
+    } catch(err) {
+       console.error(err);
+       showToast('Error', 'Hubo un error al crear el acta.', 'error');
+    }
+  };
+
   const getStatusBadge = (estado) => {
     const baseClass = "inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] font-bold tracking-wide uppercase border whitespace-nowrap";
     switch (estado) {
@@ -285,8 +324,17 @@ export default function SolicitudesAdminPage() {
                       </div>
                     )}
                     {sol.estado === 'aprobado' && sol.tipo === 'prestamo' && (
-                      <div className="flex items-center justify-center gap-2 mt-1">
-                        <button onClick={() => handleOpenModal(sol, 'devolver')} className="text-blue-600 hover:text-blue-800 font-bold px-2 py-1 bg-blue-50 rounded text-xs transition border border-blue-200 shadow-sm">Registrar Devolución</button>
+                      <div className="flex items-center justify-center mt-2">
+                        <button onClick={() => handleGenerateActa(sol)} className="flex items-center gap-1 bg-indigo-100 text-indigo-700 border border-indigo-400 hover:bg-indigo-200 font-bold px-2.5 py-1 rounded text-xs transition shadow-sm">
+                          <Download size={12} strokeWidth={3} /> Acta
+                        </button>
+                      </div>
+                    )}
+                    {sol.estado === 'aprobado' && (
+                      <div className="flex items-center justify-center mt-2 gap-2">
+                        <button onClick={() => handleOpenModal(sol, 'devolver')} className="flex items-center gap-1 bg-blue-200 text-blue-700 border border-blue-600 hover:bg-blue-300 font-bold px-2.5 py-1 rounded text-xs transition shadow-sm">
+                          <Clock size={12} strokeWidth={3} /> Registrar Devolución
+                        </button>
                       </div>
                     )}
                   </td>
