@@ -146,8 +146,6 @@ export default function SlepDashboardPage() {
       if (w1.length === 0 || w2.length === 0) return false;
 
       const [shorter, longer] = w1.length < w2.length ? [w1, w2] : [w2, w1];
-      // Require at least 2 words to match (like first name and last name) to avoid generic single-word false positives,
-      // unless the shorter name only has 1 valid word.
       const matchCount = shorter.filter(word => longer.includes(word)).length;
       return matchCount === shorter.length;
     };
@@ -158,6 +156,61 @@ export default function SlepDashboardPage() {
       return matchId || matchName;
     });
   }, [equipos, session, perfil]);
+
+  const handleGenerateActaMasiva = async () => {
+    if (misEquipos.length === 0) {
+      showToast('Atención', 'No tienes equipos asignados para generar acta.', 'warning');
+      return;
+    }
+    
+    try {
+      const userName = perfil?.nombre || formatEmailName(session?.user?.email);
+      const userRut = perfil?.rut || '—';
+      const userSub = perfil?.subdireccion || 'Tecnologías de la Información';
+
+      const d = new Date();
+      const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+      const dia = d.getDate();
+      const mes = meses[d.getMonth()];
+      const ano = d.getFullYear();
+
+      const allPrestamo = misEquipos.every(eq => eq.estado === 'EN PRESTAMO' || eq.estado === 'EN PRÉSTAMO');
+      const templateName = allPrestamo ? 'acta_prestamo.docx' : 'acta_asigna.docx';
+
+      const data = {
+        ti_nombre: 'Administrador TI',
+        ti_rut: '—',
+        ti_subdireccion: 'Tecnologías de la Información',
+        solicitante_nombre: userName,
+        solicitante_rut: userRut,
+        solicitante_subdireccion: userSub,
+        fecha_entrega: `${dia} de ${mes} de ${ano}`,
+        dia: dia,
+        mes: mes,
+        año: ano,
+        fecha_inicio: '',
+        fecha_fin: '',
+        hora_inicio: '',
+        hora_fin: '',
+        equipos: misEquipos.map(eq => ({
+          tipo: eq['Descripción del Bien'] || 'Equipo',
+          marca_modelo: `${eq.Marca || ''} ${eq.Modelo || ''}`.trim(),
+          serie: eq['Nº de serie'] || '—',
+          codigo_interno: eq.id || eq['ID Publicación'] || '',
+          estado: eq.estado || '—',
+          fecha_asignacion: eq.fecha_asignacion || ''
+        }))
+      };
+
+      const result = await generateActaDocx(data, templateName);
+      if (!result.success) {
+         showToast('Error', result.error || 'No se pudo generar el acta', 'error');
+      }
+    } catch(err) {
+       console.error(err);
+       showToast('Error', 'Hubo un error al crear el acta.', 'error');
+    }
+  };
 
   const equiposDisponiblesParaPrestamo = useMemo(() => {
     return equipos.filter(eq => eq.estado === 'PARA PRESTAMO' || eq.estado === 'EN PRESTAMO' || eq.estado === 'ESPERANDO RESPUESTA');
@@ -346,8 +399,26 @@ export default function SlepDashboardPage() {
 
         {/* TAB: MIS EQUIPOS */}
         {activeTab === 'equipos' && (
-          <div>
-            <h2 className="text-lg font-bold mb-4 text-gray-800">Equipos Asignados</h2>
+          <div className="bg-white rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 overflow-hidden flex flex-col min-h-0">
+            <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-white shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-blue-50 text-[#006BB9] rounded-lg">
+                  <Monitor size={20} className="stroke-[2.5px]" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-[#25306B]">Mis Equipos Asignados</h2>
+                  <p className="text-xs font-medium text-slate-500 mt-0.5">Dispositivos a tu cargo</p>
+                </div>
+              </div>
+              <button 
+                onClick={handleGenerateActaMasiva}
+                className="px-3 py-1.5 text-blue-800 rounded-lg text-xs font-bold shadow-sm transition-colors bg-blue-100 hover:bg-blue-200 flex items-center gap-1.5"
+              >
+                <Download size={14} strokeWidth={2.5} /> Acta Completa
+              </button>
+            </div>
+            
+            <div className="flex-1 overflow-auto bg-slate-50/50 p-5">
             {misEquipos.length === 0 ? (
               <p className="text-gray-500">No tienes equipos asignados actualmente.</p>
             ) : (

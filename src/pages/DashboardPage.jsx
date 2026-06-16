@@ -324,6 +324,65 @@ export default function DashboardPage() {
     }
   };
 
+  const handleGenerateActaMasivaFuncionario = async () => {
+    if (!selectedFunc) {
+      alert('Debe seleccionar un funcionario primero.');
+      return;
+    }
+    if (baseData.length === 0) {
+      alert('El funcionario no tiene equipos asignados.');
+      return;
+    }
+    
+    try {
+      const firstEq = baseData[0];
+      const userName = firstEq['Usuario'] || selectedFunc;
+      const userSub = firstEq['SubDirección'] || '—';
+
+      const d = new Date();
+      const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+      const dia = d.getDate();
+      const mes = meses[d.getMonth()];
+      const ano = d.getFullYear();
+
+      const allPrestamo = baseData.every(eq => eq.estado === 'EN PRESTAMO' || eq.estado === 'EN PRÉSTAMO');
+      const templateName = allPrestamo ? 'acta_prestamo.docx' : 'acta_asigna.docx';
+
+      const data = {
+        ti_nombre: adminName,
+        ti_rut: adminRut,
+        ti_subdireccion: adminSub,
+        solicitante_nombre: userName,
+        solicitante_rut: '—', // El admin tendrá que llenar esto manualmente si no está en la BBDD del equipo
+        solicitante_subdireccion: userSub,
+        fecha_entrega: `${dia} de ${mes} de ${ano}`,
+        dia: dia,
+        mes: mes,
+        año: ano,
+        fecha_inicio: '',
+        fecha_fin: '',
+        hora_inicio: '',
+        hora_fin: '',
+        equipos: baseData.map(eq => ({
+          tipo: eq['Descripción del Bien'] || 'Equipo',
+          marca_modelo: `${eq.Marca || ''} ${eq.Modelo || ''}`.trim(),
+          serie: eq['Nº de serie'] || '—',
+          codigo_interno: eq.id || eq['ID Publicación'] || '',
+          estado: eq.estado || '—',
+          fecha_asignacion: eq.fecha_asignacion || ''
+        }))
+      };
+
+      const result = await generateActaDocx(data, templateName);
+      if (!result.success) {
+         showLocalToast('Error', result.error || 'No se pudo generar el acta', 'error');
+      }
+    } catch(err) {
+       console.error(err);
+       showLocalToast('Error', 'Hubo un error al crear el acta.', 'error');
+    }
+  };
+
   const handleDragStart = (e) => {
     if (e.target.tagName.toLowerCase() === 'button' || e.target.closest('button')) return;
     isDragging.current = true;
@@ -1136,8 +1195,18 @@ export default function DashboardPage() {
                   </div>
                 )}
               </div>
-              <div className="text-sm font-medium text-[#25306B] flex items-center gap-2">
-                {selectedFunc ? <><CheckCircle size={16} className="text-green-600" /> Mostrando activos de {selectedFunc}</> : 'Seleccione un funcionario'}
+              <div className="flex items-center gap-4">
+                <div className="text-sm font-medium text-[#25306B] flex items-center gap-2">
+                  {selectedFunc ? <><CheckCircle size={16} className="text-green-600" /> Mostrando activos de {selectedFunc}</> : 'Seleccione un funcionario'}
+                </div>
+                {selectedFunc && baseData.length > 0 && (
+                  <button 
+                    onClick={handleGenerateActaMasivaFuncionario}
+                    className="px-3 py-1.5 text-blue-800 rounded-lg text-sm font-bold shadow-sm transition-colors bg-blue-100 hover:bg-blue-200 flex items-center gap-2 border border-blue-200"
+                  >
+                    <Download size={14} strokeWidth={2.5} /> Acta Consolidada
+                  </button>
+                )}
               </div>
             </div>
           )}
