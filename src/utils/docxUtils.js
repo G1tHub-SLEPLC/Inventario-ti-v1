@@ -31,7 +31,8 @@ export async function generateActaDocx(data, templateName = 'acta_prestamo.docx'
     });
 
     // Save the file
-    const fileName = `Acta_Entrega_${data.solicitante_nombre.replace(/\s+/g, '_')}_${new Date().getTime()}.docx`;
+    const prefix = templateName.includes('prestamo') ? 'Acta_Prestamo' : 'Acta_Entrega';
+    const fileName = `${prefix}_${data.solicitante_nombre.replace(/\s+/g, '_')}_${new Date().getTime()}.docx`;
     saveAs(out, fileName);
     
     return { success: true };
