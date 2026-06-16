@@ -52,6 +52,12 @@ export default function MisSolicitudesPage() {
       const serieStr = equipoObj ? equipoObj['Nº de serie'] : '—';
       const estadoStr = equipoObj ? equipoObj.estado : '—';
 
+      const d = new Date();
+      const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+      const dia = d.getDate().toString().padStart(2, '0');
+      const mes = meses[d.getMonth()];
+      const ano = d.getFullYear().toString();
+
       const data = {
         ti_nombre: adminName,
         ti_rut: adminRut,
@@ -64,6 +70,13 @@ export default function MisSolicitudesPage() {
         hora_inicio: sol.hora_inicio || '',
         hora_fin: sol.hora_fin || '',
         fecha_entrega: new Date().toLocaleDateString(),
+        dia: dia,
+        día: dia,
+        DIA: dia,
+        DÍA: dia,
+        Día: dia,
+        mes: mes,
+        año: ano,
         equipos: [
           {
             tipo: equipoObj ? equipoObj['Descripción del Bien'] || 'Equipo' : 'Equipo',

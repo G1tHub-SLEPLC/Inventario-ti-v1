@@ -204,6 +204,10 @@ export default function SolicitudesPendientesWidget() {
         hora_fin: sol.hora_fin || '',
         fecha_entrega: new Date().toLocaleDateString(),
         dia: dia,
+        día: dia,
+        DIA: dia,
+        DÍA: dia,
+        Día: dia,
         mes: mes,
         año: ano,
         equipos: [
