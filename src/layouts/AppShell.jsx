@@ -26,27 +26,48 @@ export default function AppShell() {
   const { toast, setToast } = useInventario();
   const { isAdmin, isSlep, perfil, session } = useAuth();
 
+  const [visibleToast, setVisibleToast] = useState(null);
+  const [isExiting, setIsExiting] = useState(false);
+  
   const toastTimeoutRef = useRef(null);
+  const exitTimeoutRef = useRef(null);
+
+  const handleCloseToast = useCallback(() => {
+    setIsExiting(true);
+    if (exitTimeoutRef.current) clearTimeout(exitTimeoutRef.current);
+    exitTimeoutRef.current = setTimeout(() => {
+      setVisibleToast(null);
+      setToast(null);
+      setIsExiting(false);
+    }, 250);
+  }, [setToast]);
 
   const startToastTimer = useCallback(() => {
     if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
     toastTimeoutRef.current = setTimeout(() => {
-      setToast(null);
+      handleCloseToast();
     }, 15000);
-  }, [setToast]);
+  }, [handleCloseToast]);
 
   const stopToastTimer = useCallback(() => {
     if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
   }, []);
 
   useEffect(() => {
-    if (toast) {
+    if (toast && toast.id !== visibleToast?.id) {
+      if (exitTimeoutRef.current) clearTimeout(exitTimeoutRef.current);
+      setVisibleToast(toast);
+      setIsExiting(false);
       startToastTimer();
     }
+  }, [toast, startToastTimer, visibleToast]);
+
+  useEffect(() => {
     return () => {
       if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+      if (exitTimeoutRef.current) clearTimeout(exitTimeoutRef.current);
     };
-  }, [toast, startToastTimer]);
+  }, []);
 
   const formatEmailName = (email) => {
     if (!email) return '';
