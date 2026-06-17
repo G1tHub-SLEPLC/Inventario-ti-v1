@@ -39,6 +39,8 @@ export default function AuditoriaPage() {
     insumos: false
   });
   
+  const [clearResultItems, setClearResultItems] = useState(null);
+  
   const isAnyOptionSelected = Object.values(deleteOptions).some(v => v);
 
   const handleClearDatabase = async (e) => {
@@ -149,7 +151,12 @@ export default function AuditoriaPage() {
       setAdminPassword('');
       setDeleteOptions({ auditoria: false, cumplimiento: false, prestamos_antiguos: false, prestamos_activos: false, entregas_borrar: false, entregas_restaurar: false, actas: false, equipos: false, insumos: false });
       
-      showToast('Borrado Exitoso', `Se eliminó correctamente: ${deletedItems.join(', ')}.`, 'success');
+      if (deletedItems.length > 0) {
+        setClearResultItems(deletedItems);
+      } else {
+        showToast('Nada que borrar', 'No se encontró información para eliminar según la selección.', 'info');
+      }
+      
       loadLogs();
     } catch (err) {
       console.error('Error al borrar:', err);
@@ -465,6 +472,38 @@ export default function AuditoriaPage() {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Resultados de Limpieza */}
+      {clearResultItems && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-fade-in">
+          <div className="bg-white rounded-xl shadow-2xl max-w-sm w-full overflow-hidden animate-scale-in">
+            <div className="bg-emerald-500 p-4 flex flex-col items-center justify-center text-white shrink-0">
+              <ShieldCheck className="w-10 h-10 mb-2" strokeWidth={2} />
+              <h2 className="text-xl font-bold text-center">¡Limpieza Exitosa!</h2>
+            </div>
+            <div className="p-6">
+              <p className="text-sm text-gray-600 mb-4 text-center">
+                Se han eliminado correctamente los siguientes registros de la base de datos:
+              </p>
+              <ul className="space-y-2 mb-6">
+                {clearResultItems.map((item, idx) => (
+                  <li key={idx} className="flex items-center gap-2 text-sm font-semibold text-gray-800 bg-gray-50 p-2 rounded-lg border border-gray-100">
+                    <Trash2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+              <button
+                type="button"
+                onClick={() => setClearResultItems(null)}
+                className="w-full px-4 py-2 bg-slate-900 text-white rounded-lg font-bold hover:bg-slate-800 transition-colors"
+              >
+                Cerrar
+              </button>
             </div>
           </div>
         </div>
