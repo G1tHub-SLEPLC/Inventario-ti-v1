@@ -369,12 +369,9 @@ export default function AuditoriaPage() {
           <div className="bg-white rounded-xl shadow-2xl max-w-md w-full overflow-hidden max-h-[90vh] flex flex-col">
             <div className="bg-red-600 p-6 flex flex-col items-center justify-center text-white shrink-0">
               <AlertTriangle className="w-12 h-12 mb-2" strokeWidth={1.5} />
-              <h2 className="text-xl font-bold text-center">¡Peligro! Borrado Permanente</h2>
+              <h2 className="text-xl font-bold text-center">¡Peligro! Borrado IRREVERSIBLE</h2>
             </div>
             <div className="p-6 overflow-y-auto">
-              <p className="text-sm text-gray-600 text-center mb-4 leading-normal">
-                Estás a punto de eliminar información de forma irreversible de la base de datos de Supabase. Esta acción no se puede deshacer.
-              </p>
 
               <div className="bg-emerald-50 p-4 rounded-lg mb-4 text-left border border-emerald-100">
                 <p className="text-sm font-semibold text-emerald-800 mb-2">Limpieza Segura (No borra equipos ni insumos):</p>
