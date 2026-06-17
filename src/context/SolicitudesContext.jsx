@@ -20,12 +20,12 @@ export function SolicitudesProvider({ children }) {
 
   const solicitudesChannelRef = useRef(null);
 
-  const broadcastSolicitudesChanges = () => {
+  const broadcastSolicitudesChanges = (data = null) => {
     if (solicitudesChannelRef.current) {
       solicitudesChannelRef.current.send({
         type: 'broadcast',
         event: 'solicitudes_changed',
-        payload: {}
+        payload: data || {}
       });
     }
   };
@@ -89,14 +89,12 @@ export function SolicitudesProvider({ children }) {
     const solicitudesChannel = supabase.channel('solicitudes-channel')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'solicitudes' }, (payload) => {
         loadData();
-        
-        // Mostrar Toast a los Admins si hay una nueva solicitud
-        if (isAdmin && payload.eventType === 'INSERT') {
-          showToast('Nueva Solicitud', `Se ha recibido una nueva solicitud de ${payload.new.tipo}.`, 'info');
-        }
       })
-      .on('broadcast', { event: 'solicitudes_changed' }, () => {
+      .on('broadcast', { event: 'solicitudes_changed' }, (payload) => {
         loadData();
+        if (isAdmin && payload.payload?.isNew) {
+          showToast('Nueva Solicitud', `Un funcionario ha solicitado un requerimiento de ${payload.payload.tipo}.`, 'info');
+        }
       })
       .subscribe();
 
@@ -167,7 +165,7 @@ export function SolicitudesProvider({ children }) {
     if (refetchInventario) {
       await refetchInventario();
     }
-    broadcastSolicitudesChanges();
+    broadcastSolicitudesChanges({ isNew: true, tipo: 'préstamo de equipo' });
     if (broadcastEquiposChanges) {
       broadcastEquiposChanges();
     }
@@ -186,7 +184,7 @@ export function SolicitudesProvider({ children }) {
     }
     showToast('Éxito', 'Solicitud de insumo enviada correctamente.', 'success');
     await loadData();
-    broadcastSolicitudesChanges();
+    broadcastSolicitudesChanges({ isNew: true, tipo: 'insumo' });
   };
 
   const updateEstadoSolicitud = async (id, estado, observaciones_admin) => {
