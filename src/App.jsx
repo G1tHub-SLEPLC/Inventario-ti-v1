@@ -31,6 +31,7 @@ const ImagenTablaShowcasePage = lazy(() => import('./pages/ImagenTablaShowcasePa
 const AlertShowcasePage = lazy(() => import('./pages/AlertShowcasePage'));
 const DateTimeShowcasePage = lazy(() => import('./pages/DateTimeShowcasePage'));
 const ToastShowcasePage = lazy(() => import('./pages/ToastShowcasePage'));
+const SoundShowcasePage = lazy(() => import('./pages/SoundShowcasePage'));
 
 function ProtectedRoute({ children }) {
   const { session, loading } = useAuth();
@@ -116,6 +117,7 @@ export default function App() {
                   <Route path="alert-showcase" element={<AlertShowcasePage />} />
                   <Route path="datetime-showcase" element={<DateTimeShowcasePage />} />
                   <Route path="toast-showcase" element={<ToastShowcasePage />} />
+                  <Route path="sound-showcase" element={<SoundShowcasePage />} />
                   
                 </Route>
                 <Route path="*" element={<Navigate to="/" replace />} />
