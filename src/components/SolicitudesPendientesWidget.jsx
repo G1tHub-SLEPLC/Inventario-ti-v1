@@ -92,7 +92,7 @@ export default function SolicitudesPendientesWidget() {
              }
           }
         }
-      } else if (accion === 'rechazado' && selectedSolicitud.tipo === 'prestamo') {
+      } else if (accion === 'rechazar' && selectedSolicitud.tipo === 'prestamo') {
         const equipoReal = equipos.find(eq => eq.id === selectedSolicitud.equipo_id || eq['Nº de serie'] === selectedSolicitud.equipo_id);
         
         if (equipoReal) {
@@ -356,7 +356,7 @@ export default function SolicitudesPendientesWidget() {
                             <Check size={12} strokeWidth={3} /> Aprobar
                           </button>
                           <button 
-                            onClick={() => handleOpenModal(sol, 'rechazado')} 
+                            onClick={() => handleOpenModal(sol, 'rechazar')} 
                             className="flex items-center gap-1 bg-rose-200 text-red-600 border border-red-600 hover:bg-rose-300 font-bold px-2.5 py-1 rounded text-xs transition shadow-sm cursor-pointer"
                           >
                             <X size={12} strokeWidth={3} /> Rechazar

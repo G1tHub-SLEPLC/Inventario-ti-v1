@@ -61,9 +61,9 @@ export default function SolicitudesAdminPage() {
     e.preventDefault();
     if (!selectedSolicitud) return;
 
-    let nuevoEstado = accion === 'aprobar' ? 'aprobado' : (accion === 'rechazado' ? 'rechazado' : (devolucionStatus === 'atrasado' ? 'devuelto_atrasado' : 'devuelto'));
+    let nuevoEstado = accion === 'aprobar' ? 'aprobado' : (accion === 'rechazar' ? 'rechazado' : (devolucionStatus === 'atrasado' ? 'devuelto_atrasado' : 'devuelto'));
     const adminName = perfil?.nombre || perfil?.email || 'Admin';
-    const obsPrefix = `[${accion === 'aprobar' ? 'Aprobado' : (accion === 'rechazado' ? 'Rechazado' : 'Devuelto')} por: ${adminName}]`;
+    const obsPrefix = `[${accion === 'aprobar' ? 'Aprobado' : (accion === 'rechazar' ? 'Rechazado' : 'Devuelto')} por: ${adminName}]`;
     const observacionFinal = observaciones.trim() ? `${obsPrefix} ${observaciones.trim()}` : obsPrefix;
 
     try {
@@ -116,7 +116,7 @@ export default function SolicitudesAdminPage() {
             }
           }
         }
-      } else if (accion === 'devolver' || (accion === 'rechazado' && selectedSolicitud.tipo === 'prestamo')) {
+      } else if (accion === 'devolver' || (accion === 'rechazar' && selectedSolicitud.tipo === 'prestamo')) {
         const equipoReal = equipos.find(eq => eq.id === selectedSolicitud.equipo_id || eq['Nº de serie'] === selectedSolicitud.equipo_id);
         if (equipoReal) {
           const idx = equipos.findIndex(eq => eq.id === equipoReal.id);
@@ -377,7 +377,7 @@ export default function SolicitudesAdminPage() {
                         <button onClick={() => handleOpenModal(sol, 'aprobar')} className="flex items-center gap-1 bg-green-300 text-green-800 border border-green-600 hover:bg-green-400 font-bold px-2.5 py-1 rounded text-xs transition shadow-sm">
                           <Check size={12} strokeWidth={3} /> Aprobar
                         </button>
-                        <button onClick={() => handleOpenModal(sol, 'rechazado')} className="flex items-center gap-1 bg-rose-200 text-red-600 border border-red-600 hover:bg-rose-300 font-bold px-2.5 py-1 rounded text-xs transition shadow-sm">
+                        <button onClick={() => handleOpenModal(sol, 'rechazar')} className="flex items-center gap-1 bg-rose-200 text-red-600 border border-red-600 hover:bg-rose-300 font-bold px-2.5 py-1 rounded text-xs transition shadow-sm">
                           <X size={12} strokeWidth={3} /> Rechazar
                         </button>
                       </div>
