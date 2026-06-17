@@ -71,3 +71,87 @@ export async function deleteEquipoImage(publicUrl) {
     console.error('Exception deleting image:', error);
   }
 }
+
+// --- ACTAS FIRMADAS ---
+const ACTAS_BUCKET_NAME = 'actas_firmadas';
+
+/**
+ * Uploads a signed document to Supabase Storage (Private Bucket).
+ * @param {File} file - The file to upload.
+ * @param {string} rut - The user's RUT to organize folders.
+ * @param {string} type - 'global', 'equipo', or 'prestamo' to organize subfolders.
+ * @returns {Promise<string|null>} The file path in the bucket or null if error.
+ */
+export async function uploadActaFirmada(file, rut, type = 'global') {
+  if (!file) return null;
+  
+  try {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${type}_${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
+    const filePath = `${rut}/${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from(ACTAS_BUCKET_NAME)
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: false
+      });
+
+    if (uploadError) {
+      console.error('Error uploading acta:', uploadError);
+      return null;
+    }
+
+    // Retornamos el path, no publicUrl, porque el bucket es privado.
+    return filePath;
+  } catch (error) {
+    console.error('Exception uploading acta:', error);
+    return null;
+  }
+}
+
+/**
+ * Gets a temporary signed URL to view or download the acta.
+ * @param {string} filePath - The path stored in the database.
+ * @returns {Promise<string|null>} The signed URL.
+ */
+export async function getActaFirmadaUrl(filePath) {
+  if (!filePath) return null;
+
+  try {
+    const { data, error } = await supabase.storage
+      .from(ACTAS_BUCKET_NAME)
+      .createSignedUrl(filePath, 60 * 60); // 1 hour expiration
+
+    if (error) {
+      console.error('Error creating signed url for acta:', error);
+      return null;
+    }
+
+    return data.signedUrl;
+  } catch (error) {
+    console.error('Exception creating signed url for acta:', error);
+    return null;
+  }
+}
+
+/**
+ * Deletes an acta from Supabase Storage given its path.
+ * @param {string} filePath - The path of the acta to delete.
+ */
+export async function deleteActaFirmada(filePath) {
+  if (!filePath) return;
+
+  try {
+    const { error } = await supabase.storage
+      .from(ACTAS_BUCKET_NAME)
+      .remove([filePath]);
+
+    if (error) {
+      console.error('Error deleting acta:', error);
+    }
+  } catch (error) {
+    console.error('Exception deleting acta:', error);
+  }
+}
+

@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useSolicitudes } from '../context/SolicitudesContext';
 import { useInventario } from '../context/InventarioContext';
 import { supabase } from '../lib/supabaseClient';
-import { Check, X, Clock, Download, Printer, AlertTriangle } from 'lucide-react';
+import { Check, X, Clock, Download, Printer, AlertTriangle, FileText } from 'lucide-react';
 import { logAuditoria } from '../utils/auditoria';
 import { exportToExcelAndPDF } from '../utils/exportUtils';
 import { sendInsumoAprobadoEmail } from '../utils/emailUtils';
@@ -10,6 +10,7 @@ import { useAuth } from '../context/AuthContext';
 import { useSort } from '../hooks/useSort';
 import { SortableHeader } from '../components/SortableHeader';
 import { generateActaDocx } from '../utils/docxUtils';
+import { getActaFirmadaUrl } from '../utils/storageUtils';
 
 export default function SolicitudesAdminPage() {
   const { solicitudes, updateEstadoSolicitud, refetch: refetchSolicitudes } = useSolicitudes();
@@ -154,6 +155,16 @@ export default function SolicitudesAdminPage() {
     } catch (error) {
       console.error(error);
       showToast('Error', 'No se pudo procesar la solicitud.', 'error');
+    }
+  };
+
+  const handleVerActa = async (path) => {
+    if (!path) return;
+    const url = await getActaFirmadaUrl(path);
+    if (url) {
+      window.open(url, '_blank');
+    } else {
+      showToast('Error', 'No se pudo abrir el acta', 'error');
     }
   };
 
@@ -373,9 +384,15 @@ export default function SolicitudesAdminPage() {
                     )}
                     {sol.estado === 'aprobado' && sol.tipo === 'prestamo' && (
                       <div className="flex items-center justify-center mt-2">
-                        <button onClick={() => handleGenerateActa(sol)} className="flex items-center gap-1 bg-indigo-100 text-indigo-700 border border-indigo-400 hover:bg-indigo-200 font-bold px-2.5 py-1 rounded text-xs transition shadow-sm">
-                          <Download size={12} strokeWidth={3} /> Acta
-                        </button>
+                        {sol.acta_firmada_url ? (
+                          <button onClick={() => handleVerActa(sol.acta_firmada_url)} className="flex items-center gap-1 bg-emerald-100 text-emerald-700 border border-emerald-400 hover:bg-emerald-200 font-bold px-2.5 py-1 rounded text-xs transition shadow-sm" title="Ver Acta Firmada">
+                            <FileText size={12} strokeWidth={3} /> Ver Acta Firmada
+                          </button>
+                        ) : (
+                          <button onClick={() => handleGenerateActa(sol)} className="flex items-center gap-1 bg-indigo-100 text-indigo-700 border border-indigo-400 hover:bg-indigo-200 font-bold px-2.5 py-1 rounded text-xs transition shadow-sm">
+                            <Download size={12} strokeWidth={3} /> Acta
+                          </button>
+                        )}
                       </div>
                     )}
                     {sol.estado === 'aprobado' && (

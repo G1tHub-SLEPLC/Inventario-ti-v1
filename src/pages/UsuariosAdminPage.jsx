@@ -2,10 +2,11 @@ import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { useInventario } from '../context/InventarioContext';
 import { useSolicitudes } from '../context/SolicitudesContext';
-import { PlusCircle, Edit2, Trash2, Users, UploadCloud, XCircle, CheckCircle, QrCode, Download, Printer, AlertTriangle } from 'lucide-react';
+import { PlusCircle, Edit2, Trash2, Users, UploadCloud, XCircle, CheckCircle, QrCode, Download, Printer, AlertTriangle, FileText } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import * as XLSX from 'xlsx';
 import { logAuditoria } from '../utils/auditoria';
+import { getActaFirmadaUrl } from '../utils/storageUtils';
 import { useSort } from '../hooks/useSort';
 import { SortableHeader } from '../components/SortableHeader';
 
@@ -85,6 +86,16 @@ export default function UsuariosAdminPage() {
       supabase.removeChannel(perfilesChannel);
     };
   }, []);
+
+  const handleVerActa = async (path) => {
+    if (!path) return;
+    const url = await getActaFirmadaUrl(path);
+    if (url) {
+      window.open(url, '_blank');
+    } else {
+      showToast('Error', 'No se pudo abrir el acta', 'error');
+    }
+  };
 
   const getSubdireccionUser = (user) => {
     if (!equipos || equipos.length === 0) return 'Sin Subdirección';
@@ -526,6 +537,11 @@ export default function UsuariosAdminPage() {
                     )}
                   </td>
                   <td className="px-6 py-4 text-center">
+                    {user.acta_firmada_url && (
+                      <button onClick={() => handleVerActa(user.acta_firmada_url)} className="text-indigo-600 hover:text-indigo-800 mr-4" title="Ver Acta Firmada">
+                        <FileText size={18} />
+                      </button>
+                    )}
                     <button onClick={() => setQrModalUser(user)} className="text-emerald-600 hover:text-emerald-800 mr-4" title="Generar QR de Funcionario">
                       <QrCode size={18} />
                     </button>

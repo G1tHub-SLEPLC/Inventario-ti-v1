@@ -1,17 +1,18 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { useInventario } from '../context/InventarioContext';
 import { useSolicitudes } from '../context/SolicitudesContext';
 import { useAuth } from '../context/AuthContext';
 import { useAlert } from '../context/AlertContext';
 import { useLicencias } from '../context/LicenciasContext';
-import { Monitor, Package, Calendar, Key, AlertTriangle, Download } from 'lucide-react';
+import { Monitor, Package, Calendar, Key, AlertTriangle, Download, UploadCloud, Eye, Trash2, FileText } from 'lucide-react';
 import CustomTimePicker from '../components/CustomTimePicker';
 import { supabase } from '../lib/supabaseClient';
 import { generateActaDocx } from '../utils/docxUtils';
+import { uploadActaFirmada, getActaFirmadaUrl, deleteActaFirmada } from '../utils/storageUtils';
 
 export default function SlepDashboardPage() {
-  const { session, perfil } = useAuth();
-  const { equipos, showToast } = useInventario();
+  const { session, perfil, refetchPerfil } = useAuth();
+  const { equipos, showToast, refetchInventario } = useInventario();
   const { showAlertPrompt } = useAlert();
   const { insumos, solicitarInsumo, solicitarPrestamo, solicitudes } = useSolicitudes();
   const { asignaciones } = useLicencias();
@@ -29,6 +30,104 @@ export default function SlepDashboardPage() {
   const [horaFin, setHoraFin] = useState('');
   const [motivo, setMotivo] = useState('');
   const [pendingWarningInfo, setPendingWarningInfo] = useState(null); // { applicantName, equipoId }
+
+  const fileInputGlobalRef = useRef(null);
+  const fileInputEquipoRef = useRef(null);
+  const [uploadingTarget, setUploadingTarget] = useState(null); // 'global', or equipoId
+  const [equipoToUpload, setEquipoToUpload] = useState(null); // { eq, isLoan, loanId }
+
+  const handleVerActaFirmada = async (path) => {
+    if (!path) return;
+    const url = await getActaFirmadaUrl(path);
+    if (url) {
+      window.open(url, '_blank');
+    } else {
+      showToast('Error', 'No se pudo abrir el acta', 'error');
+    }
+  };
+
+  const handleUploadActaGlobal = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file || !perfil?.rut) return;
+    setUploadingTarget('global');
+    try {
+      const path = await uploadActaFirmada(file, perfil.rut, 'global');
+      if (path) {
+        const { error } = await supabase.from('perfiles').update({ acta_firmada_url: path }).eq('id', session.user.id);
+        if (!error) {
+          await refetchPerfil();
+          showToast('Éxito', 'Acta subida correctamente', 'success');
+        } else {
+          showToast('Error', 'No se pudo vincular el acta', 'error');
+        }
+      }
+    } finally {
+      setUploadingTarget(null);
+      if (fileInputGlobalRef.current) fileInputGlobalRef.current.value = '';
+    }
+  };
+
+  const handleDeleteActaGlobal = async () => {
+    if (!perfil?.acta_firmada_url) return;
+    if (!window.confirm('¿Estás seguro de eliminar tu acta firmada?')) return;
+    try {
+      await deleteActaFirmada(perfil.acta_firmada_url);
+      const { error } = await supabase.from('perfiles').update({ acta_firmada_url: null }).eq('id', session.user.id);
+      if (!error) {
+         await refetchPerfil();
+         showToast('Éxito', 'Acta eliminada correctamente', 'success');
+      }
+    } catch (err) {
+      console.error(err);
+      showToast('Error', 'No se pudo eliminar el acta', 'error');
+    }
+  };
+
+  const handleUploadActaEquipo = async (e) => {
+    const { eq, isLoan, loanId } = equipoToUpload;
+    const file = e.target.files?.[0];
+    if (!file || !perfil?.rut) return;
+    setUploadingTarget(eq.id);
+    try {
+      const path = await uploadActaFirmada(file, perfil.rut, isLoan ? 'prestamo' : 'equipo');
+      if (path) {
+        if (isLoan && loanId) {
+          const { error } = await supabase.from('solicitudes').update({ acta_firmada_url: path }).eq('id', loanId);
+          if (error) throw error;
+        } else {
+          const { error } = await supabase.from('equipos').update({ acta_firmada_url: path }).eq('id', eq.id);
+          if (error) throw error;
+        }
+        await refetchInventario();
+        showToast('Éxito', 'Acta subida correctamente', 'success');
+      }
+    } catch (error) {
+      console.error(error);
+      showToast('Error', 'No se pudo vincular el acta', 'error');
+    } finally {
+      setUploadingTarget(null);
+      setEquipoToUpload(null);
+      if (fileInputEquipoRef.current) fileInputEquipoRef.current.value = '';
+    }
+  };
+
+  const handleDeleteActaEquipo = async (path, eqId, isLoan, loanId) => {
+    if (!window.confirm('¿Estás seguro de eliminar esta acta firmada?')) return;
+    try {
+      await deleteActaFirmada(path);
+      if (isLoan && loanId) {
+        await supabase.from('solicitudes').update({ acta_firmada_url: null }).eq('id', loanId);
+      } else {
+        await supabase.from('equipos').update({ acta_firmada_url: null }).eq('id', eqId);
+      }
+      await refetchInventario();
+      showToast('Éxito', 'Acta eliminada correctamente', 'success');
+    } catch (err) {
+      console.error(err);
+      showToast('Error', 'No se pudo eliminar el acta', 'error');
+    }
+  };
+
 
   const formatEmailName = (email) => {
     if (!email) return '';
@@ -429,12 +528,40 @@ export default function SlepDashboardPage() {
                   <p className="text-xs font-medium text-slate-500 mt-0.5">Dispositivos a tu cargo</p>
                 </div>
               </div>
-              <button 
-                onClick={handleGenerateActaMasiva}
-                className="px-3 py-1.5 text-blue-800 rounded-lg text-xs font-bold shadow-sm transition-colors bg-blue-100 hover:bg-blue-200 flex items-center gap-1.5"
-              >
-                <Download size={14} strokeWidth={2.5} /> Acta Completa
-              </button>
+              {perfil?.acta_firmada_url ? (
+                <div className="flex gap-2">
+                  <button 
+                    onClick={() => handleVerActaFirmada(perfil.acta_firmada_url)}
+                    className="px-3 py-1.5 text-emerald-800 rounded-lg text-xs font-bold shadow-sm transition-colors bg-emerald-100 hover:bg-emerald-200 flex items-center gap-1.5"
+                  >
+                    <Eye size={14} strokeWidth={2.5} /> Ver Acta Firmada
+                  </button>
+                  <button 
+                    onClick={handleDeleteActaGlobal}
+                    className="px-3 py-1.5 text-rose-800 rounded-lg text-xs font-bold shadow-sm transition-colors bg-rose-100 hover:bg-rose-200 flex items-center gap-1.5"
+                    title="Borrar Acta Firmada"
+                  >
+                    <Trash2 size={14} strokeWidth={2.5} />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <button 
+                    onClick={handleGenerateActaMasiva}
+                    className="px-3 py-1.5 text-blue-800 rounded-lg text-xs font-bold shadow-sm transition-colors bg-blue-100 hover:bg-blue-200 flex items-center gap-1.5"
+                  >
+                    <Download size={14} strokeWidth={2.5} /> Descargar Acta
+                  </button>
+                  <button 
+                    onClick={() => fileInputGlobalRef.current?.click()}
+                    disabled={uploadingTarget === 'global'}
+                    className="px-3 py-1.5 text-indigo-800 rounded-lg text-xs font-bold shadow-sm transition-colors bg-indigo-100 hover:bg-indigo-200 flex items-center gap-1.5"
+                  >
+                    <UploadCloud size={14} strokeWidth={2.5} /> {uploadingTarget === 'global' ? 'Subiendo...' : 'Subir Firmada'}
+                  </button>
+                  <input type="file" ref={fileInputGlobalRef} className="hidden" accept=".pdf,image/*" onChange={handleUploadActaGlobal} />
+                </div>
+              )}
             </div>
             
             <div className="flex-1 overflow-auto bg-slate-50/50 p-5">
@@ -491,13 +618,43 @@ export default function SlepDashboardPage() {
                           )}
                         </td>
                         <td className="px-4 py-3 text-center">
-                          <button
-                            onClick={() => handleGenerateActa(myActiveLoan, eq)}
-                            className="flex items-center justify-center mx-auto gap-1 bg-indigo-100 text-indigo-700 border border-indigo-400 hover:bg-indigo-200 font-bold px-3 py-1.5 rounded-lg text-xs transition shadow-sm"
-                            title="Descargar Acta"
-                          >
-                            <Download size={14} className="stroke-[2.5]" /> Acta
-                          </button>
+                          {(() => {
+                             const pathFirmada = isEnPrestamo ? myActiveLoan?.acta_firmada_url : eq.acta_firmada_url;
+                             if (pathFirmada) {
+                               return (
+                                 <div className="flex justify-center gap-1">
+                                    <button onClick={() => handleVerActaFirmada(pathFirmada)} className="p-1.5 text-emerald-700 bg-emerald-100 hover:bg-emerald-200 rounded-lg" title="Ver Acta Firmada">
+                                      <Eye size={14} strokeWidth={2.5} />
+                                    </button>
+                                    <button onClick={() => handleDeleteActaEquipo(pathFirmada, eq.id, isEnPrestamo, myActiveLoan?.id)} className="p-1.5 text-rose-700 bg-rose-100 hover:bg-rose-200 rounded-lg" title="Borrar Acta Firmada">
+                                      <Trash2 size={14} strokeWidth={2.5} />
+                                    </button>
+                                 </div>
+                               );
+                             }
+                             return (
+                               <div className="flex justify-center gap-1">
+                                  <button
+                                    onClick={() => handleGenerateActa(myActiveLoan, eq)}
+                                    className="flex items-center justify-center gap-1 bg-indigo-100 text-indigo-700 hover:bg-indigo-200 font-bold px-2 py-1.5 rounded-lg text-[10px] transition shadow-sm"
+                                    title="Descargar Acta"
+                                  >
+                                    <Download size={14} className="stroke-[2.5]" />
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      setEquipoToUpload({ eq, isLoan: isEnPrestamo, loanId: myActiveLoan?.id });
+                                      setTimeout(() => fileInputEquipoRef.current?.click(), 0);
+                                    }}
+                                    disabled={uploadingTarget === eq.id}
+                                    className="flex items-center justify-center gap-1 bg-teal-100 text-teal-700 hover:bg-teal-200 font-bold px-2 py-1.5 rounded-lg text-[10px] transition shadow-sm"
+                                    title="Subir Acta Firmada"
+                                  >
+                                    <UploadCloud size={14} className="stroke-[2.5]" />
+                                  </button>
+                               </div>
+                             );
+                          })()}
                         </td>
                       </tr>
                       );
@@ -507,6 +664,7 @@ export default function SlepDashboardPage() {
               </div>
             )}
             </div>
+            <input type="file" ref={fileInputEquipoRef} className="hidden" accept=".pdf,image/*" onChange={handleUploadActaEquipo} />
           </div>
         )}
 
@@ -654,13 +812,43 @@ export default function SlepDashboardPage() {
                           <td className="px-4 py-3 text-center">
                             {isEnPrestamo ? (
                               activeLoan?.usuario_id === session?.user?.id ? (
-                                <button
-                                  onClick={() => handleGenerateActa(activeLoan, eq)}
-                                  className="flex items-center justify-center mx-auto gap-1 bg-indigo-100 text-indigo-700 border border-indigo-400 hover:bg-indigo-200 font-bold px-3 py-1.5 rounded-lg text-xs transition shadow-sm"
-                                  title="Descargar Acta de Préstamo"
-                                >
-                                  <Download size={14} className="stroke-[2.5]" /> Acta
-                                </button>
+                                (() => {
+                                  const pathFirmada = activeLoan?.acta_firmada_url;
+                                  if (pathFirmada) {
+                                    return (
+                                      <div className="flex justify-center gap-1">
+                                        <button onClick={() => handleVerActaFirmada(pathFirmada)} className="p-1.5 text-emerald-700 bg-emerald-100 hover:bg-emerald-200 rounded-lg" title="Ver Acta Firmada">
+                                          <Eye size={14} strokeWidth={2.5} />
+                                        </button>
+                                        <button onClick={() => handleDeleteActaEquipo(pathFirmada, eq.id, true, activeLoan?.id)} className="p-1.5 text-rose-700 bg-rose-100 hover:bg-rose-200 rounded-lg" title="Borrar Acta Firmada">
+                                          <Trash2 size={14} strokeWidth={2.5} />
+                                        </button>
+                                      </div>
+                                    );
+                                  }
+                                  return (
+                                    <div className="flex justify-center gap-1">
+                                      <button
+                                        onClick={() => handleGenerateActa(activeLoan, eq)}
+                                        className="flex items-center justify-center gap-1 bg-indigo-100 text-indigo-700 hover:bg-indigo-200 font-bold px-2 py-1.5 rounded-lg text-[10px] transition shadow-sm"
+                                        title="Descargar Acta de Préstamo"
+                                      >
+                                        <Download size={14} className="stroke-[2.5]" />
+                                      </button>
+                                      <button
+                                        onClick={() => {
+                                          setEquipoToUpload({ eq, isLoan: true, loanId: activeLoan?.id });
+                                          setTimeout(() => fileInputEquipoRef.current?.click(), 0);
+                                        }}
+                                        disabled={uploadingTarget === eq.id}
+                                        className="flex items-center justify-center gap-1 bg-teal-100 text-teal-700 hover:bg-teal-200 font-bold px-2 py-1.5 rounded-lg text-[10px] transition shadow-sm"
+                                        title="Subir Acta Firmada"
+                                      >
+                                        <UploadCloud size={14} className="stroke-[2.5]" />
+                                      </button>
+                                    </div>
+                                  );
+                                })()
                               ) : (
                                 <button
                                   disabled

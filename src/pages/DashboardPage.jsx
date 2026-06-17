@@ -14,6 +14,7 @@ import { isSameUser } from '../utils/userUtils';
 import AutocompleteInput from '../components/AutocompleteInput';
 import { supabase } from '../lib/supabaseClient';
 import { generateActaDocx } from '../utils/docxUtils';
+import { getActaFirmadaUrl } from '../utils/storageUtils';
 
 const COLUMNS = [
   'Descripción del Bien', 'Marca', 'Modelo', 'Nº de serie',
@@ -223,6 +224,16 @@ export default function DashboardPage() {
   const handleToastMouseLeave = () => {
     if (localToast) {
       startToastTimer(localToast.title, 4000);
+    }
+  };
+
+  const handleVerActa = async (path) => {
+    if (!path) return;
+    const url = await getActaFirmadaUrl(path);
+    if (url) {
+      window.open(url, '_blank');
+    } else {
+      showLocalToast('Error', 'No se pudo abrir el acta', 'error');
     }
   };
 
@@ -1430,13 +1441,23 @@ export default function DashboardPage() {
                           <div className="flex justify-center items-center gap-2">
                             {/* Acta Button */}
                             {!isAvailable(row['Usuario']) && (
-                              <button
-                                onClick={() => handleGenerateActaAsignacion(row)}
-                                className="p-2 text-indigo-600 hover:text-white hover:bg-indigo-600 border border-indigo-200 hover:border-indigo-600 rounded-lg transition-all shadow-xs flex items-center justify-center cursor-pointer"
-                                title="Generar Acta de Asignación"
-                              >
-                                <Download size={14} className="stroke-[2.5]" />
-                              </button>
+                              row.acta_firmada_url ? (
+                                <button
+                                  onClick={() => handleVerActa(row.acta_firmada_url)}
+                                  className="p-2 text-emerald-600 hover:text-white hover:bg-emerald-600 border border-emerald-200 hover:border-emerald-600 rounded-lg transition-all shadow-xs flex items-center justify-center cursor-pointer"
+                                  title="Ver Acta Firmada"
+                                >
+                                  <FileText size={14} className="stroke-[2.5]" />
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={() => handleGenerateActaAsignacion(row)}
+                                  className="p-2 text-indigo-600 hover:text-white hover:bg-indigo-600 border border-indigo-200 hover:border-indigo-600 rounded-lg transition-all shadow-xs flex items-center justify-center cursor-pointer"
+                                  title="Generar Acta de Asignación"
+                                >
+                                  <Download size={14} className="stroke-[2.5]" />
+                                </button>
+                              )
                             )}
                             <button
                               disabled={!isQRSupported(row['Descripción del Bien'])}

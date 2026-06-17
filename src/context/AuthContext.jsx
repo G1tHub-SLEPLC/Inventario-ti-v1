@@ -67,11 +67,27 @@ export function AuthProvider({ children }) {
     }
   }
 
+  async function refetchPerfil() {
+    if (!session?.user?.id) return
+    setLoading(true)
+    try {
+      const { data, error } = await supabase.from('perfiles').select('*').eq('id', session.user.id).single()
+      if (error) {
+        console.error('Error refetching perfil:', error)
+        setAuthError(error)
+      } else {
+        setPerfil(data)
+      }
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const isAdmin = perfil?.rol === 'admin_ti'
   const isSlep = perfil?.rol === 'slep'
 
   return (
-    <AuthContext.Provider value={{ session, perfil, isAdmin, isSlep, loading, authError }}>
+    <AuthContext.Provider value={{ session, perfil, isAdmin, isSlep, loading, authError, refetchPerfil }}>
       {children}
     </AuthContext.Provider>
   )
