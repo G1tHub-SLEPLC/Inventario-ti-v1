@@ -140,7 +140,24 @@ export const playSpecificSound = (soundId) => {
   }
 };
 
+let loopInterval = null;
+
 export const playNotificationSound = () => {
+  stopNotificationSound(); // Ensure any previous loop is stopped
   const chosenSound = localStorage.getItem('notificationSound') || 'classic_ding';
+  
+  // Play first time immediately
   playSpecificSound(chosenSound);
+  
+  // Start loop (every 2 seconds)
+  loopInterval = setInterval(() => {
+    playSpecificSound(chosenSound);
+  }, 2000);
+};
+
+export const stopNotificationSound = () => {
+  if (loopInterval) {
+    clearInterval(loopInterval);
+    loopInterval = null;
+  }
 };
