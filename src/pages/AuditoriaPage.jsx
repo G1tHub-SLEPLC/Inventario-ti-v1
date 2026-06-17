@@ -366,12 +366,12 @@ export default function AuditoriaPage() {
 
       {isClearModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-fade-in">
-          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full overflow-hidden">
-            <div className="bg-red-600 p-6 flex flex-col items-center justify-center text-white">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full overflow-hidden max-h-[90vh] flex flex-col">
+            <div className="bg-red-600 p-6 flex flex-col items-center justify-center text-white shrink-0">
               <AlertTriangle className="w-12 h-12 mb-2" strokeWidth={1.5} />
               <h2 className="text-xl font-bold text-center">¡Peligro! Borrado Permanente</h2>
             </div>
-            <div className="p-6">
+            <div className="p-6 overflow-y-auto">
               <p className="text-sm text-gray-600 text-center mb-4 leading-normal">
                 Estás a punto de eliminar información de forma irreversible de la base de datos de Supabase. Esta acción no se puede deshacer.
               </p>
