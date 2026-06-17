@@ -83,8 +83,11 @@ export default function InsumosPage() {
   }, [insumos]);
   
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
-  const [assignData, setAssignData] = useState({ insumo_id: null, insumo_nombre: '', usuario_id: '', cantidad: 1, stock_actual: 0, observaciones: '' });
+  const [assignData, setAssignData] = useState({ insumo_id: null, insumo_nombre: '', usuario_id: '', cantidad: 1, stock_actual: 0, observaciones: '', fecha_entrega: '' });
   const [userSearchTerm, setUserSearchTerm] = useState('');
+  
+  const [isEditDateModalOpen, setIsEditDateModalOpen] = useState(false);
+  const [editDateData, setEditDateData] = useState({ id: null, insumo_nombre: '', cantidad: 0, current_date: '' });
   const [entregasPrevias, setEntregasPrevias] = useState(null);
   const [isMultiAssign, setIsMultiAssign] = useState(false);
   const [selectedUsuarios, setSelectedUsuarios] = useState([]);
@@ -374,7 +377,11 @@ export default function InsumosPage() {
   };
 
   const openAssignModal = (insumo) => {
-    setAssignData({ insumo_id: insumo.id, insumo_nombre: insumo.nombre, usuario_id: '', cantidad: 1, stock_actual: insumo.cantidad_disponible, observaciones: '' });
+    const now = new Date();
+    const tzoffset = now.getTimezoneOffset() * 60000;
+    const localISOTime = (new Date(now - tzoffset)).toISOString().slice(0, 16);
+
+    setAssignData({ insumo_id: insumo.id, insumo_nombre: insumo.nombre, usuario_id: '', cantidad: 1, stock_actual: insumo.cantidad_disponible, observaciones: '', fecha_entrega: localISOTime });
     setUserSearchTerm('');
     setIsMultiAssign(false);
     setSelectedUsuarios([]);
@@ -462,6 +469,8 @@ export default function InsumosPage() {
       if (errorUpd) throw errorUpd;
 
       // 2. Registrar en solicitudes como entregado (aprobado)
+      const dateToUse = assignData.fecha_entrega ? new Date(assignData.fecha_entrega).toISOString() : undefined;
+
       if (isMultiAssign) {
         const inserts = selectedUsuarios.map(u => ({
           usuario_id: u.id,
@@ -469,7 +478,8 @@ export default function InsumosPage() {
           insumo_id: assignData.insumo_id,
           cantidad: assignData.cantidad,
           estado: 'aprobado',
-          observaciones_admin: assignData.observaciones || ''
+          observaciones_admin: assignData.observaciones || '',
+          ...(dateToUse ? { created_at: dateToUse } : {})
         }));
         const { error: errorSol } = await supabase.from('solicitudes').insert(inserts);
         if (errorSol) throw errorSol;
@@ -487,7 +497,8 @@ export default function InsumosPage() {
           insumo_id: assignData.insumo_id,
           cantidad: assignData.cantidad,
           estado: 'aprobado',
-          observaciones_admin: assignData.observaciones || ''
+          observaciones_admin: assignData.observaciones || '',
+          ...(dateToUse ? { created_at: dateToUse } : {})
         });
         if (errorSol) throw errorSol;
 
@@ -533,6 +544,66 @@ export default function InsumosPage() {
     } catch (err) {
       console.error(err);
       showToast('Error', 'Hubo un error al intentar revertir la entrega.', 'error');
+    }
+  };
+
+  const handleOpenEditDateModal = (histItem) => {
+    const d = new Date(histItem.created_at);
+    const tzoffset = d.getTimezoneOffset() * 60000;
+    const localISOTime = (new Date(d - tzoffset)).toISOString().slice(0, 16);
+
+    setEditDateData({
+      id: histItem.id,
+      insumo_nombre: histItem.insumos?.nombre || 'Insumo',
+      cantidad: histItem.cantidad,
+      current_date: localISOTime
+    });
+    setIsEditDateModalOpen(true);
+  };
+
+  const handleSaveEditDate = async (e) => {
+    e.preventDefault();
+    try {
+      const dateToUse = new Date(editDateData.current_date).toISOString();
+      const { error } = await supabase.from('solicitudes').update({ created_at: dateToUse }).eq('id', editDateData.id);
+      if (error) throw error;
+      
+      await logAuditoria('insumos', 'Editar Fecha Entrega', `Se actualizó la fecha de entrega para ${editDateData.cantidad}x ${editDateData.insumo_nombre}`);
+      showToast('Fecha actualizada', 'La fecha de entrega ha sido actualizada correctamente.', 'success');
+      
+      setIsEditDateModalOpen(false);
+      await refetch();
+      await fetchHistorial();
+      if (isViewModalOpen && viewInsumo) {
+        // refrescar modal de vista
+        const { data: sols } = await supabase
+          .from('solicitudes')
+          .select('id, cantidad, created_at, usuario_id, observaciones_admin, insumos(nombre, tipo, marca, modelo)')
+          .eq('tipo', 'insumo')
+          .eq('insumo_id', viewInsumo.id)
+          .eq('estado', 'aprobado')
+          .order('created_at', { ascending: false });
+        if (sols) {
+          const { data: perfs } = await supabase.from('perfiles').select('id, nombre, email');
+          const hist = sols.map(s => {
+            const user = perfs?.find(p => p.id === s.usuario_id);
+            const obsTrimmed = (s.observaciones_admin || '').trim();
+            const obsClean = (obsTrimmed.toUpperCase() === 'ENTREGA DIRECTA' || obsTrimmed.toUpperCase() === 'ENTREGA DIRECTA (MÚLTIPLE)' || obsTrimmed.toUpperCase() === 'ENTREGA DIRECTA (MULTIPLE)') ? '' : s.observaciones_admin;
+            return {
+              ...s,
+              observaciones_admin: obsClean,
+              insumo_id: viewInsumo.id,
+              perfiles: user || null,
+              usuario_nombre: user?.nombre || user?.email || 'Desconocido'
+            };
+          });
+          setViewInsumoAsignaciones(hist);
+        }
+      }
+      if (broadcast) broadcast();
+    } catch (err) {
+      console.error(err);
+      showToast('Error', 'Hubo un error al actualizar la fecha.', 'error');
     }
   };
 
@@ -823,13 +894,22 @@ export default function InsumosPage() {
                             {asig.observaciones_admin || '—'}
                           </td>
                           <td className="px-3 py-2.5 text-center">
-                            <button 
-                              onClick={() => handleDeleteEntrega(asig)}
-                              className="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 p-1.5 rounded-lg transition-colors border border-red-100 inline-flex items-center justify-center shrink-0 cursor-pointer"
-                              title="Revocar Entrega (Devolver Stock)"
-                            >
-                              <Trash2 size={14} />
-                            </button>
+                            <div className="flex items-center justify-center gap-1.5">
+                              <button 
+                                onClick={() => handleOpenEditDateModal(asig)}
+                                className="text-blue-500 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 p-1.5 rounded-lg transition-colors border border-blue-100 inline-flex items-center justify-center shrink-0 cursor-pointer"
+                                title="Editar fecha de entrega"
+                              >
+                                <Edit2 size={14} />
+                              </button>
+                              <button 
+                                onClick={() => handleDeleteEntrega(asig)}
+                                className="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 p-1.5 rounded-lg transition-colors border border-red-100 inline-flex items-center justify-center shrink-0 cursor-pointer"
+                                title="Revocar Entrega (Devolver Stock)"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))
@@ -929,13 +1009,22 @@ export default function InsumosPage() {
                               {asig.observaciones_admin || '—'}
                             </td>
                             <td className="px-3 py-2.5 text-center">
-                              <button 
-                                onClick={() => handleDeleteEntrega(asig)}
-                                className="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 p-1.5 rounded-lg transition-colors border border-red-100 inline-flex items-center justify-center shrink-0 cursor-pointer"
-                                title="Revocar Entrega (Devolver Stock)"
-                              >
-                                <Trash2 size={14} />
-                              </button>
+                              <div className="flex items-center justify-center gap-1.5">
+                                <button 
+                                  onClick={() => handleOpenEditDateModal(asig)}
+                                  className="text-blue-500 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 p-1.5 rounded-lg transition-colors border border-blue-100 inline-flex items-center justify-center shrink-0 cursor-pointer"
+                                  title="Editar fecha de entrega"
+                                >
+                                  <Edit2 size={14} />
+                                </button>
+                                <button 
+                                  onClick={() => handleDeleteEntrega(asig)}
+                                  className="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 p-1.5 rounded-lg transition-colors border border-red-100 inline-flex items-center justify-center shrink-0 cursor-pointer"
+                                  title="Revocar Entrega (Devolver Stock)"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         ))
@@ -1174,24 +1263,39 @@ export default function InsumosPage() {
                 )}
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
-                  {isMultiAssign ? 'Cantidad por funcionario *' : 'Cantidad a entregar *'}
-                  {isMultiAssign && selectedUsuarios.length > 0 && (
-                    <span className="text-[10px] text-gray-500 lowercase font-normal ml-1">
-                      (Total: {assignData.cantidad * selectedUsuarios.length} uds, Stock disp: {assignData.stock_actual})
-                    </span>
-                  )}
-                </label>
-                <input 
-                  required 
-                  type="number" 
-                  min="1" 
-                  max={isMultiAssign && selectedUsuarios.length > 0 ? Math.floor(assignData.stock_actual / selectedUsuarios.length) : assignData.stock_actual} 
-                  value={assignData.cantidad} 
-                  onChange={e => setAssignData({...assignData, cantidad: parseInt(e.target.value) || 1})} 
-                  className="w-full rounded-lg border-gray-300 shadow-sm border p-2.5 text-sm focus:border-emerald-500 focus:ring-emerald-500" 
-                />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                    Fecha de Entrega *
+                  </label>
+                  <input 
+                    required 
+                    type="datetime-local" 
+                    value={assignData.fecha_entrega} 
+                    onChange={e => setAssignData({...assignData, fecha_entrega: e.target.value})} 
+                    className="w-full rounded-lg border-gray-300 shadow-sm border p-2.5 text-sm focus:border-emerald-500 focus:ring-emerald-500" 
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                    {isMultiAssign ? 'Cantidad por func. *' : 'Cantidad *'}
+                    {isMultiAssign && selectedUsuarios.length > 0 && (
+                      <span className="text-[10px] text-gray-500 lowercase font-normal ml-1">
+                        (Total: {assignData.cantidad * selectedUsuarios.length} uds)
+                      </span>
+                    )}
+                  </label>
+                  <input 
+                    required 
+                    type="number" 
+                    min="1" 
+                    max={isMultiAssign && selectedUsuarios.length > 0 ? Math.floor(assignData.stock_actual / selectedUsuarios.length) : assignData.stock_actual} 
+                    value={assignData.cantidad} 
+                    onChange={e => setAssignData({...assignData, cantidad: parseInt(e.target.value) || 1})} 
+                    className="w-full rounded-lg border-gray-300 shadow-sm border p-2.5 text-sm focus:border-emerald-500 focus:ring-emerald-500" 
+                  />
+                </div>
               </div>
 
               <div>
@@ -1366,13 +1470,22 @@ export default function InsumosPage() {
                               </div>
                             </td>
                             <td className="px-4 py-2 text-center whitespace-nowrap">
-                              <button
-                                onClick={() => handleRevocarDesdeModal(a)}
-                                className="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 p-1.5 rounded-lg transition-colors border border-red-100 inline-flex items-center justify-center shrink-0 cursor-pointer"
-                                title="Revocar Entrega (Devolver Stock)"
-                              >
-                                <Trash2 size={14} />
-                              </button>
+                              <div className="flex items-center justify-center gap-1.5">
+                                <button
+                                  onClick={() => handleOpenEditDateModal(a)}
+                                  className="text-blue-500 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 p-1.5 rounded-lg transition-colors border border-blue-100 inline-flex items-center justify-center shrink-0 cursor-pointer"
+                                  title="Editar fecha de entrega"
+                                >
+                                  <Edit2 size={14} />
+                                </button>
+                                <button
+                                  onClick={() => handleRevocarDesdeModal(a)}
+                                  className="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 p-1.5 rounded-lg transition-colors border border-red-100 inline-flex items-center justify-center shrink-0 cursor-pointer"
+                                  title="Revocar Entrega (Devolver Stock)"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         );
@@ -1392,6 +1505,36 @@ export default function InsumosPage() {
                 Cerrar
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Editar Fecha Entrega */}
+      {isEditDateModalOpen && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white p-6 rounded-xl shadow-2xl w-full max-w-sm animate-scale-in border-t-4 border-blue-500">
+            <h2 className="text-xl font-bold mb-2 text-gray-800">Modificar Fecha</h2>
+            <p className="text-sm text-gray-500 mb-4 border-b pb-3">
+              Insumo: <strong>{editDateData.cantidad}x {editDateData.insumo_nombre}</strong>
+            </p>
+            <form onSubmit={handleSaveEditDate} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                  Nueva Fecha y Hora de Entrega *
+                </label>
+                <input 
+                  required 
+                  type="datetime-local" 
+                  value={editDateData.current_date} 
+                  onChange={e => setEditDateData({...editDateData, current_date: e.target.value})} 
+                  className="w-full rounded-lg border-gray-300 shadow-sm border p-2.5 text-sm focus:border-blue-500 focus:ring-blue-500" 
+                />
+              </div>
+              <div className="flex justify-end gap-3 pt-4 mt-2">
+                <button type="button" onClick={() => setIsEditDateModalOpen(false)} className="px-4 py-2 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition-colors text-sm">Cancelar</button>
+                <button type="submit" className="px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors shadow-sm text-sm">Guardar</button>
+              </div>
+            </form>
           </div>
         </div>
       )}
