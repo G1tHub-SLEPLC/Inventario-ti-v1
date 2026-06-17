@@ -28,11 +28,15 @@ export default function AuditoriaPage() {
   const [clearError, setClearError] = useState('');
   const [isClearing, setIsClearing] = useState(false);
   const [deleteOptions, setDeleteOptions] = useState({
-    equipos: true,
-    insumos: false,
-    solicitudes: false,
-    entregas: false,
-    auditoria: false
+    auditoria: false,
+    cumplimiento: false,
+    prestamos_antiguos: false,
+    prestamos_activos: false,
+    entregas_borrar: false,
+    entregas_restaurar: false,
+    actas: false,
+    equipos: false,
+    insumos: false
   });
   
   const isAnyOptionSelected = Object.values(deleteOptions).some(v => v);
@@ -56,16 +60,74 @@ export default function AuditoriaPage() {
       
       const deletedItems = [];
 
-      if (deleteOptions.solicitudes) {
-        const { error } = await supabase.from('solicitudes').delete().not('created_at', 'is', null);
-        if (error) throw new Error('Error al borrar Solicitudes: ' + error.message);
-        deletedItems.push('Solicitudes y Préstamos');
-      } else if (deleteOptions.entregas) {
+      if (deleteOptions.cumplimiento) {
+        const { error } = await supabase.from('solicitudes').update({ estado: 'devuelto' }).eq('estado', 'devuelto_atrasado');
+        if (error) throw new Error('Error al resetear cumplimiento: ' + error.message);
+        deletedItems.push('Atrasos de Usuarios (Cumplimiento)');
+      }
+
+      if (deleteOptions.prestamos_antiguos) {
+        const { error } = await supabase.from('solicitudes')
+          .delete()
+          .eq('tipo', 'prestamo')
+          .in('estado', ['devuelto', 'devuelto_atrasado', 'rechazado']);
+        if (error) throw new Error('Error al borrar préstamos antiguos: ' + error.message);
+        deletedItems.push('Préstamos Antiguos');
+      }
+
+      if (deleteOptions.prestamos_activos) {
+        const { data: prestamosActivos } = await supabase.from('solicitudes')
+          .select('id, equipo_id')
+          .eq('tipo', 'prestamo')
+          .in('estado', ['pendiente', 'aprobado']);
+        
+        if (prestamosActivos && prestamosActivos.length > 0) {
+          const equipoIds = prestamosActivos.map(p => p.equipo_id).filter(Boolean);
+          if (equipoIds.length > 0) {
+            await supabase.from('equipos').update({ Usuario: 'Disponible' }).in('id', equipoIds);
+          }
+          const solIds = prestamosActivos.map(p => p.id);
+          const { error } = await supabase.from('solicitudes').delete().in('id', solIds);
+          if (error) throw new Error('Error al borrar préstamos activos: ' + error.message);
+        }
+        deletedItems.push('Préstamos Activos');
+      }
+
+      if (deleteOptions.entregas_restaurar || deleteOptions.entregas_borrar) {
+        if (deleteOptions.entregas_restaurar) {
+          const { data: entregas } = await supabase.from('solicitudes').select('insumo_id, cantidad').eq('tipo', 'insumo').eq('estado', 'aprobado');
+          if (entregas && entregas.length > 0) {
+            const stockToAdd = {};
+            entregas.forEach(e => {
+              if (e.insumo_id) stockToAdd[e.insumo_id] = (stockToAdd[e.insumo_id] || 0) + (e.cantidad || 1);
+            });
+            const { data: insumosData } = await supabase.from('insumos').select('id, cantidad_disponible').in('id', Object.keys(stockToAdd));
+            if (insumosData) {
+              for (const ins of insumosData) {
+                const newStock = (ins.cantidad_disponible || 0) + (stockToAdd[ins.id] || 0);
+                await supabase.from('insumos').update({ cantidad_disponible: newStock }).eq('id', ins.id);
+              }
+            }
+          }
+        }
+        
         const { error } = await supabase.from('solicitudes').delete().eq('tipo', 'insumo').eq('estado', 'aprobado');
         if (error) throw new Error('Error al borrar Entregas: ' + error.message);
-        deletedItems.push('Historial de Entregas');
+        
+        if (deleteOptions.entregas_restaurar) {
+           deletedItems.push('Historial de Entregas (Restaurando Stock)');
+        } else {
+           deletedItems.push('Historial de Entregas (Sin restaurar stock)');
+        }
       }
-      
+
+      if (deleteOptions.actas) {
+        await supabase.from('equipos').update({ acta_firmada_url: null }).not('acta_firmada_url', 'is', null);
+        await supabase.from('perfiles').update({ acta_firmada_url: null }).not('acta_firmada_url', 'is', null);
+        await supabase.from('solicitudes').update({ acta_firmada_url: null }).not('acta_firmada_url', 'is', null);
+        deletedItems.push('Actas Firmadas (Referencias DB)');
+      }
+
       if (deleteOptions.insumos) {
         const { error } = await supabase.from('insumos').delete().not('created_at', 'is', null);
         if (error) throw new Error('Error al borrar Insumos: ' + error.message);
@@ -85,7 +147,7 @@ export default function AuditoriaPage() {
 
       setIsClearModalOpen(false);
       setAdminPassword('');
-      setDeleteOptions({ equipos: true, insumos: false, solicitudes: false, entregas: false, auditoria: false });
+      setDeleteOptions({ auditoria: false, cumplimiento: false, prestamos_antiguos: false, prestamos_activos: false, entregas_borrar: false, entregas_restaurar: false, actas: false, equipos: false, insumos: false });
       
       showToast('Borrado Exitoso', `Se eliminó correctamente: ${deletedItems.join(', ')}.`, 'success');
       loadLogs();
@@ -314,28 +376,57 @@ export default function AuditoriaPage() {
                 Estás a punto de eliminar información de forma irreversible de la base de datos de Supabase. Esta acción no se puede deshacer.
               </p>
 
-              <div className="bg-red-50 p-4 rounded-lg mb-4 text-left border border-red-100">
-                <p className="text-sm font-semibold text-red-800 mb-2">Selecciona qué información borrar:</p>
+              <div className="bg-emerald-50 p-4 rounded-lg mb-4 text-left border border-emerald-100">
+                <p className="text-sm font-semibold text-emerald-800 mb-2">Limpieza Segura (No borra equipos ni insumos):</p>
                 <div className="space-y-2">
                   <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={deleteOptions.auditoria} onChange={(e) => setDeleteOptions({...deleteOptions, auditoria: e.target.checked})} className="rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4 cursor-pointer" />
+                    <span className="text-sm text-emerald-900">Historial de Auditoría</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={deleteOptions.cumplimiento} onChange={(e) => setDeleteOptions({...deleteOptions, cumplimiento: e.target.checked})} className="rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4 cursor-pointer" />
+                    <span className="text-sm text-emerald-900">Cumplimiento de Usuarios (Poner Atrasos a Cero)</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={deleteOptions.prestamos_antiguos} onChange={(e) => setDeleteOptions({...deleteOptions, prestamos_antiguos: e.target.checked})} className="rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4 cursor-pointer" />
+                    <span className="text-sm text-emerald-900">Préstamos Históricos (Devueltos/Rechazados)</span>
+                  </label>
+                  <label className="flex flex-col gap-1 cursor-pointer">
+                    <div className="flex items-center gap-2">
+                      <input type="checkbox" checked={deleteOptions.entregas_borrar} onChange={(e) => {
+                          const checked = e.target.checked;
+                          setDeleteOptions({...deleteOptions, entregas_borrar: checked, entregas_restaurar: checked ? deleteOptions.entregas_restaurar : false});
+                        }} className="rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4 cursor-pointer" />
+                      <span className="text-sm text-emerald-900">Historial de Entregas (Insumos)</span>
+                    </div>
+                    {deleteOptions.entregas_borrar && (
+                      <div className="flex items-center gap-2 ml-6 cursor-pointer">
+                        <input type="checkbox" checked={deleteOptions.entregas_restaurar} onChange={(e) => setDeleteOptions({...deleteOptions, entregas_restaurar: e.target.checked})} className="rounded text-indigo-600 focus:ring-indigo-500 w-4 h-4 cursor-pointer" id="entregas-restaurar" />
+                        <label htmlFor="entregas-restaurar" className="text-xs text-indigo-800 italic cursor-pointer">Restaurar stock de los insumos borrados</label>
+                      </div>
+                    )}
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={deleteOptions.actas} onChange={(e) => setDeleteOptions({...deleteOptions, actas: e.target.checked})} className="rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4 cursor-pointer" />
+                    <span className="text-sm text-emerald-900">Actas Firmadas (Referencias)</span>
+                  </label>
+                </div>
+              </div>
+
+              <div className="bg-red-50 p-4 rounded-lg mb-4 text-left border border-red-100">
+                <p className="text-sm font-semibold text-red-800 mb-2">Zona Peligrosa (Destrucción de Catálogos):</p>
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={deleteOptions.prestamos_activos} onChange={(e) => setDeleteOptions({...deleteOptions, prestamos_activos: e.target.checked})} className="rounded text-red-600 focus:ring-red-500 w-4 h-4 cursor-pointer" />
+                    <span className="text-sm text-red-900">Préstamos Activos (Libera los equipos en préstamo)</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
                     <input type="checkbox" checked={deleteOptions.equipos} onChange={(e) => setDeleteOptions({...deleteOptions, equipos: e.target.checked})} className="rounded text-red-600 focus:ring-red-500 w-4 h-4 cursor-pointer" />
-                    <span className="text-sm text-red-900">Equipos ({equipos.length} registros)</span>
+                    <span className="text-sm text-red-900 font-bold">Todo el Catálogo de Equipos ({equipos.length} registros)</span>
                   </label>
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input type="checkbox" checked={deleteOptions.insumos} onChange={(e) => setDeleteOptions({...deleteOptions, insumos: e.target.checked})} className="rounded text-red-600 focus:ring-red-500 w-4 h-4 cursor-pointer" />
-                    <span className="text-sm text-red-900">Insumos y Stock</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" checked={deleteOptions.solicitudes} onChange={(e) => setDeleteOptions({...deleteOptions, solicitudes: e.target.checked})} className="rounded text-red-600 focus:ring-red-500 w-4 h-4 cursor-pointer" />
-                    <span className="text-sm text-red-900">Solicitudes y Préstamos</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" checked={deleteOptions.entregas} onChange={(e) => setDeleteOptions({...deleteOptions, entregas: e.target.checked})} className="rounded text-red-600 focus:ring-red-500 w-4 h-4 cursor-pointer" />
-                    <span className="text-sm text-red-900">Historial de Entregas (Insumos)</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" checked={deleteOptions.auditoria} onChange={(e) => setDeleteOptions({...deleteOptions, auditoria: e.target.checked})} className="rounded text-red-600 focus:ring-red-500 w-4 h-4 cursor-pointer" />
-                    <span className="text-sm text-red-900">Historial de Auditoría</span>
+                    <span className="text-sm text-red-900 font-bold">Todo el Catálogo de Insumos y Stock</span>
                   </label>
                 </div>
               </div>
