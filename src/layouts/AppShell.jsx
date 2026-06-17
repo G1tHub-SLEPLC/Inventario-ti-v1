@@ -150,48 +150,48 @@ export default function AppShell() {
       </main>
 
       {/* Floating Toast Notification */}
-      {toast && (
+      {visibleToast && (
         <div 
           onMouseEnter={stopToastTimer}
           onMouseLeave={startToastTimer}
-          className={`fixed top-5 left-1/2 -translate-x-1/2 z-[9999] flex items-center gap-3 px-4 py-3 rounded-xl shadow-2xl border w-[90%] max-w-md animate-slide-in text-sm transition-all duration-300 ${toast.type === 'success' ? 'bg-emerald-50 border-emerald-200 text-emerald-800' :
-          toast.type === 'warning' ? 'bg-amber-50 border-amber-200 text-amber-800' :
-          toast.type === 'info' ? 'bg-blue-50 border-blue-200 text-blue-800' :
+          className={`fixed top-5 left-1/2 -translate-x-1/2 z-[9999] flex items-center gap-3 px-4 py-3 rounded-xl shadow-2xl border w-[90%] max-w-md text-sm transition-all duration-300 ${isExiting ? 'animate-slide-out' : 'animate-slide-in'} ${visibleToast.type === 'success' ? 'bg-emerald-50 border-emerald-200 text-emerald-800' :
+          visibleToast.type === 'warning' ? 'bg-amber-50 border-amber-200 text-amber-800' :
+          visibleToast.type === 'info' ? 'bg-blue-50 border-blue-200 text-blue-800' :
             'bg-red-50 border-red-200 text-red-800'
           }`}>
-          {toast.type === 'success' && <CheckCircle className="w-5 h-5 text-emerald-600 shrink-0" />}
-          {toast.type === 'warning' && <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" />}
-          {toast.type === 'error' && <AlertCircle className="w-5 h-5 text-red-600 shrink-0" />}
-          {toast.type === 'info' && <Info className="w-5 h-5 text-blue-600 shrink-0" />}
+          {visibleToast.type === 'success' && <CheckCircle className="w-5 h-5 text-emerald-600 shrink-0" />}
+          {visibleToast.type === 'warning' && <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" />}
+          {visibleToast.type === 'error' && <AlertCircle className="w-5 h-5 text-red-600 shrink-0" />}
+          {visibleToast.type === 'info' && <Info className="w-5 h-5 text-blue-600 shrink-0" />}
 
           <div className="flex-1">
-            <p className="font-bold text-xs uppercase tracking-wider">{toast.title}</p>
+            <p className="font-bold text-xs uppercase tracking-wider">{visibleToast.title}</p>
 
-            {toast.addedCount !== undefined || (toast.duplicateSerials && toast.duplicateSerials.length > 0) ? (
+            {visibleToast.addedCount !== undefined || (visibleToast.duplicateSerials && visibleToast.duplicateSerials.length > 0) ? (
               <div className="text-xs opacity-90 mt-1.5 space-y-1.5">
-                {toast.addedCount !== undefined && (
+                {visibleToast.addedCount !== undefined && (
                   <p>
-                    {toast.addedCount > 0
-                      ? `Se agregaron ${toast.addedCount} equipos en total.`
+                    {visibleToast.addedCount > 0
+                      ? `Se agregaron ${visibleToast.addedCount} equipos en total.`
                       : 'No se agregaron nuevos equipos.'}
                   </p>
                 )}
-                {toast.noSerialCount > 0 && (
+                {visibleToast.noSerialCount > 0 && (
                   <div>
-                    <p className={toast.isFirstUpload ? "text-amber-900 font-bold" : ""}>
-                      • {toast.noSerialCount} equipos {toast.isFirstUpload ? "ingresados SIN N° de Serie." : "omitidos por falta de N° de Serie."}
+                    <p className={visibleToast.isFirstUpload ? "text-amber-900 font-bold" : ""}>
+                      • {visibleToast.noSerialCount} equipos {visibleToast.isFirstUpload ? "ingresados SIN N° de Serie." : "omitidos por falta de N° de Serie."}
                     </p>
-                    {toast.isFirstUpload && (
+                    {visibleToast.isFirstUpload && (
                       <p className="mt-1 text-[10px] leading-tight text-amber-800 bg-amber-100 p-1.5 rounded border border-amber-200">
                         ⚠️ <strong>¡CRUCIAL!</strong> Es necesario que edites estos equipos a la brevedad y les asignes un número de serie o identificador único por seguridad.
                       </p>
                     )}
                   </div>
                 )}
-                {toast.duplicateSerials && toast.duplicateSerials.length > 0 && (
+                {visibleToast.duplicateSerials && visibleToast.duplicateSerials.length > 0 && (
                   <div className="group relative cursor-help inline-block mt-1">
                     <span className="border-b border-dashed border-amber-500 font-medium text-amber-900">
-                      • {toast.duplicateSerials.length} equipos omitidos por duplicidad (Ver detalle)
+                      • {visibleToast.duplicateSerials.length} equipos omitidos por duplicidad (Ver detalle)
                     </span>
 
                     {/* Tooltip Wrapper (bridges gap to prevent hover loss) */}
@@ -200,7 +200,7 @@ export default function AppShell() {
                       <div className="bg-slate-800 text-white p-2.5 rounded-lg shadow-xl w-64 max-h-48 overflow-y-auto leading-relaxed font-mono whitespace-normal normal-case border border-slate-700">
                         <strong className="text-slate-300 block border-b border-slate-700 pb-1 mb-1">Series duplicadas omitidas:</strong>
                         <div className="flex flex-wrap gap-1">
-                          {toast.duplicateSerials.map((s, idx) => (
+                          {visibleToast.duplicateSerials.map((s, idx) => (
                             <span key={idx} className="bg-slate-700 px-1 py-0.5 rounded text-[9px]">{s}</span>
                           ))}
                         </div>
@@ -210,11 +210,11 @@ export default function AppShell() {
                 )}
               </div>
             ) : (
-              <p className="text-xs opacity-90 mt-0.5 whitespace-pre-line">{toast.message}</p>
+              <p className="text-xs opacity-90 mt-0.5 whitespace-pre-line">{visibleToast.message}</p>
             )}
           </div>
 
-          <button onClick={() => setToast(null)} className="text-gray-400 hover:text-gray-600 font-bold ml-2 shrink-0 text-lg leading-none focus:outline-none">
+          <button onClick={handleCloseToast} className="text-gray-400 hover:text-gray-600 font-bold ml-2 shrink-0 text-lg leading-none focus:outline-none">
             &times;
           </button>
         </div>
