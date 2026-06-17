@@ -92,9 +92,9 @@ export function InventarioProvider({ children }) {
   }, []);
   const [toast, setToast] = useState(null);
 
-  const showToast = (title, message, type = 'success', details = null) => {
+  const showToast = useCallback((title, message, type = 'success', details = null) => {
     setToast({ title, message, type, id: Date.now(), ...details });
-  };
+  }, []);
 
   const loadData = useCallback(async () => {
     // First check if user is logged in

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Database, PlusCircle, Monitor, CheckCircle, AlertCircle, AlertTriangle, LogOut, Users, User, ShieldCheck, Key, ChevronDown } from 'lucide-react';
+import { LayoutDashboard, Database, PlusCircle, Monitor, CheckCircle, AlertCircle, AlertTriangle, LogOut, Users, User, ShieldCheck, Key, ChevronDown, Info } from 'lucide-react';
 import { useInventario } from '../context/InventarioContext';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabaseClient';
@@ -156,11 +156,13 @@ export default function AppShell() {
           onMouseLeave={startToastTimer}
           className={`fixed top-5 left-1/2 -translate-x-1/2 z-[9999] flex items-center gap-3 px-4 py-3 rounded-xl shadow-2xl border w-[90%] max-w-md animate-slide-in text-sm transition-all duration-300 ${toast.type === 'success' ? 'bg-emerald-50 border-emerald-200 text-emerald-800' :
           toast.type === 'warning' ? 'bg-amber-50 border-amber-200 text-amber-800' :
+          toast.type === 'info' ? 'bg-blue-50 border-blue-200 text-blue-800' :
             'bg-red-50 border-red-200 text-red-800'
           }`}>
           {toast.type === 'success' && <CheckCircle className="w-5 h-5 text-emerald-600 shrink-0" />}
           {toast.type === 'warning' && <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" />}
           {toast.type === 'error' && <AlertCircle className="w-5 h-5 text-red-600 shrink-0" />}
+          {toast.type === 'info' && <Info className="w-5 h-5 text-blue-600 shrink-0" />}
 
           <div className="flex-1">
             <p className="font-bold text-xs uppercase tracking-wider">{toast.title}</p>
