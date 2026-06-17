@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { LayoutDashboard, Database, PlusCircle, Monitor, CheckCircle, AlertCircle, AlertTriangle, LogOut, Users, User, ShieldCheck, Key, ChevronDown } from 'lucide-react';
 import { useInventario } from '../context/InventarioContext';
@@ -25,6 +25,28 @@ export default function AppShell() {
   const { pathname } = useLocation();
   const { toast, setToast } = useInventario();
   const { isAdmin, isSlep, perfil, session } = useAuth();
+
+  const toastTimeoutRef = useRef(null);
+
+  const startToastTimer = useCallback(() => {
+    if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+    toastTimeoutRef.current = setTimeout(() => {
+      setToast(null);
+    }, 15000);
+  }, [setToast]);
+
+  const stopToastTimer = useCallback(() => {
+    if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+  }, []);
+
+  useEffect(() => {
+    if (toast) {
+      startToastTimer();
+    }
+    return () => {
+      if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+    };
+  }, [toast, startToastTimer]);
 
   const formatEmailName = (email) => {
     if (!email) return '';
@@ -129,7 +151,10 @@ export default function AppShell() {
 
       {/* Floating Toast Notification */}
       {toast && (
-        <div className={`fixed top-5 left-1/2 -translate-x-1/2 z-[9999] flex items-center gap-3 px-4 py-3 rounded-xl shadow-2xl border w-[90%] max-w-md animate-slide-in text-sm transition-all duration-300 ${toast.type === 'success' ? 'bg-emerald-50 border-emerald-200 text-emerald-800' :
+        <div 
+          onMouseEnter={stopToastTimer}
+          onMouseLeave={startToastTimer}
+          className={`fixed top-5 left-1/2 -translate-x-1/2 z-[9999] flex items-center gap-3 px-4 py-3 rounded-xl shadow-2xl border w-[90%] max-w-md animate-slide-in text-sm transition-all duration-300 ${toast.type === 'success' ? 'bg-emerald-50 border-emerald-200 text-emerald-800' :
           toast.type === 'warning' ? 'bg-amber-50 border-amber-200 text-amber-800' :
             'bg-red-50 border-red-200 text-red-800'
           }`}>

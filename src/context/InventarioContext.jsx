@@ -8,10 +8,7 @@ export function useInventario() {
   return useContext(InventarioContext);
 }
 
-// Configuración de duración de los toasts en milisegundos
-const TOAST_DURATION_DEFAULT = 8000;   // Tiempo por defecto (8 segundos)
-const TOAST_DURATION_WARNING = 15000;  // Tiempo para advertencias y duplicados (15 segundos)
-
+// Este archivo maneja el estado global del inventario
 // Función utilitaria para asegurar consistencia en los archivos compartidos
 function consolidateFileStatuses(list) {
   const ocHasFile = new Set();
@@ -95,13 +92,8 @@ export function InventarioProvider({ children }) {
   }, []);
   const [toast, setToast] = useState(null);
 
-  const showToast = (title, message, type = 'success', details = null, customDuration = null) => {
-    const duration = customDuration || (type === 'warning' ? TOAST_DURATION_WARNING : TOAST_DURATION_DEFAULT);
-    
-    setToast({ title, message, type, ...details });
-    setTimeout(() => {
-      setToast(prev => (prev && prev.title === title ? null : prev));
-    }, duration);
+  const showToast = (title, message, type = 'success', details = null) => {
+    setToast({ title, message, type, id: Date.now(), ...details });
   };
 
   const loadData = useCallback(async () => {
