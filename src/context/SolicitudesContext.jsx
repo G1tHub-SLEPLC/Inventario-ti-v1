@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabaseClient';
 import { useAuth } from './AuthContext';
 import { useInventario } from './InventarioContext';
 import { sendPrestamoEmail } from '../utils/emailUtils';
+import { playNotificationSound } from '../utils/audioUtils';
 
 const SolicitudesContext = createContext(null);
 
@@ -93,6 +94,7 @@ export function SolicitudesProvider({ children }) {
       .on('broadcast', { event: 'solicitudes_changed' }, (payload) => {
         loadData();
         if (isAdmin && payload.payload?.isNew) {
+          playNotificationSound();
           showToast('Nueva Solicitud', `Un funcionario ha solicitado un requerimiento de ${payload.payload.tipo}.`, 'info');
         }
       })
