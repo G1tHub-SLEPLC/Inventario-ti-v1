@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabaseClient';
 import { useInventario } from '../context/InventarioContext';
 import { useAuth } from '../context/AuthContext';
 import { useAlert } from '../context/AlertContext';
-import { PlusCircle, Edit2, Trash2, UserPlus, History, Package, Upload, Download, Printer, UploadCloud, AlertCircle, CheckCircle, AlertTriangle, Eye, Users, Search, Box } from 'lucide-react';
+import { PlusCircle, Edit2, Trash2, UserPlus, History, Package, Upload, Download, Printer, UploadCloud, AlertCircle, CheckCircle, AlertTriangle, Eye, Users, Search, Box, RotateCcw, Undo2 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { logAuditoria, getDiffString } from '../utils/auditoria';
 import { exportToExcelAndPDF } from '../utils/exportUtils';
@@ -957,26 +957,26 @@ export default function InsumosPage() {
                                 <>
                                   <button 
                                     onClick={() => handleDejarDisponible(asig)}
-                                    className="text-emerald-600 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 p-1.5 rounded-lg transition-colors border border-emerald-100 inline-flex items-center justify-center shrink-0 cursor-pointer font-bold text-[10px] uppercase tracking-wide gap-1"
+                                    className="text-emerald-600 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 p-1.5 rounded-lg transition-colors border border-emerald-100 inline-flex items-center justify-center shrink-0 cursor-pointer"
                                     title="Devolver al stock disponible"
                                   >
-                                    <CheckCircle size={12} strokeWidth={3} /> Disp.
+                                    <RotateCcw size={14} />
                                   </button>
                                   <button 
                                     onClick={() => handleDarDeBaja(asig)}
-                                    className="text-rose-600 hover:text-rose-800 bg-rose-50 hover:bg-rose-100 p-1.5 rounded-lg transition-colors border border-rose-100 inline-flex items-center justify-center shrink-0 cursor-pointer font-bold text-[10px] uppercase tracking-wide gap-1"
+                                    className="text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100 p-1.5 rounded-lg transition-colors border border-red-100 inline-flex items-center justify-center shrink-0 cursor-pointer"
                                     title="Dar de baja (Pérdida/Daño) sin devolver stock"
                                   >
-                                    <AlertTriangle size={12} strokeWidth={3} /> Baja
+                                    <Trash2 size={14} />
                                   </button>
                                 </>
                               ) : (
                                 <button 
                                   onClick={() => handleDeleteEntrega(asig)}
-                                  className="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 p-1.5 rounded-lg transition-colors border border-red-100 inline-flex items-center justify-center shrink-0 cursor-pointer"
+                                  className="text-orange-500 hover:text-orange-700 bg-orange-50 hover:bg-orange-100 p-1.5 rounded-lg transition-colors border border-orange-100 inline-flex items-center justify-center shrink-0 cursor-pointer"
                                   title="Revocar Entrega (Devolver Stock)"
                                 >
-                                  <Trash2 size={14} />
+                                  <Undo2 size={14} />
                                 </button>
                               )}
                             </div>
@@ -1566,26 +1566,26 @@ export default function InsumosPage() {
                                   <>
                                     <button
                                       onClick={() => handleDejarDisponible(a)}
-                                      className="text-emerald-600 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 p-1.5 rounded-lg transition-colors border border-emerald-100 inline-flex items-center justify-center shrink-0 cursor-pointer font-bold text-[10px] uppercase tracking-wide gap-1"
+                                      className="text-emerald-600 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 p-1.5 rounded-lg transition-colors border border-emerald-100 inline-flex items-center justify-center shrink-0 cursor-pointer"
                                       title="Devolver al stock disponible"
                                     >
-                                      <CheckCircle size={12} strokeWidth={3} /> Disponible
+                                      <RotateCcw size={14} />
                                     </button>
                                     <button
                                       onClick={() => handleDarDeBaja(a)}
-                                      className="text-rose-600 hover:text-rose-800 bg-rose-50 hover:bg-rose-100 p-1.5 rounded-lg transition-colors border border-rose-100 inline-flex items-center justify-center shrink-0 cursor-pointer font-bold text-[10px] uppercase tracking-wide gap-1"
+                                      className="text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100 p-1.5 rounded-lg transition-colors border border-red-100 inline-flex items-center justify-center shrink-0 cursor-pointer"
                                       title="Dar de baja (Pérdida/Daño) sin devolver stock"
                                     >
-                                      <AlertTriangle size={12} strokeWidth={3} /> Baja
+                                      <Trash2 size={14} />
                                     </button>
                                   </>
                                 ) : (
                                   <button
                                     onClick={() => handleRevocarDesdeModal(a)}
-                                    className="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 p-1.5 rounded-lg transition-colors border border-red-100 inline-flex items-center justify-center shrink-0 cursor-pointer"
+                                    className="text-orange-500 hover:text-orange-700 bg-orange-50 hover:bg-orange-100 p-1.5 rounded-lg transition-colors border border-orange-100 inline-flex items-center justify-center shrink-0 cursor-pointer"
                                     title="Revocar Entrega (Devolver Stock)"
                                   >
-                                    <Trash2 size={14} />
+                                    <Undo2 size={14} />
                                   </button>
                                 )}
                               </div>
