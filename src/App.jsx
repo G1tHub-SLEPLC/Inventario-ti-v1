@@ -101,6 +101,7 @@ export default function App() {
                   <Route path="usuarios" element={<AdminRoute><UsuariosAdminPage /></AdminRoute>} />
                   <Route path="licencias" element={<AdminRoute><LicenciasAdminPage /></AdminRoute>} />
                   <Route path="auditoria" element={<AdminRoute><AuditoriaPage /></AdminRoute>} />
+                  <Route path="bajas" element={<AdminRoute><BajasPage /></AdminRoute>} />
 
                   {/* SLEP Routes */}
                   <Route path="slep/dashboard" element={<SlepRoute><SlepDashboardPage /></SlepRoute>} />
