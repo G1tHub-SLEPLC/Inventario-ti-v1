@@ -23,7 +23,7 @@ export default function InsumosPage() {
   const { insumos, refetch, broadcast } = useSolicitudes();
   const { showToast } = useInventario();
   const { session } = useAuth();
-  const { showAlertConfirm } = useAlert();
+  const { showAlertConfirm, showAlertPrompt } = useAlert();
   const { sorted: sortedInsumos, sortKey: insSortKey, sortDir: insSortDir, handleSort: handleInsSort } = useSort(insumos, 'nombre', 'asc');
   
   const [activeTab, setActiveTab] = useState('insumos'); // 'insumos' | 'func' | 'insumo'
@@ -304,17 +304,22 @@ export default function InsumosPage() {
   };
 
   const handleDarDeBaja = async (histItem) => {
-    const confirmacion = await showAlertConfirm(
+    const motivo = await showAlertPrompt(
       'Dar de Baja',
-      `¿Dar de baja <strong>${histItem.cantidad}x ${histItem.insumos?.nombre}</strong> asignado a ${histItem.usuario_nombre}?<br/><br/>Esto quitará el insumo del funcionario sin devolver stock (ej. pérdida o daño).`
+      `¿Dar de baja <strong>${histItem.cantidad}x ${histItem.insumos?.nombre}</strong> asignado a ${histItem.usuario_nombre}?<br/><br/>Esto quitará el insumo del funcionario sin devolver stock (ej. pérdida o daño).<br/><br/><strong>Por favor, indique el motivo de la baja:</strong>`,
+      'Ej: Robo con denuncia policial, teclado mojado con café, irrecuperable...',
+      'textarea'
     );
-    if (!confirmacion) return;
+    if (!motivo) {
+      showToast('Operación cancelada', 'Debe ingresar un motivo para dar de baja el insumo.', 'warning');
+      return;
+    }
 
     try {
-      const { error: updateError } = await supabase.from('solicitudes').update({ estado: 'baja' }).eq('id', histItem.id);
+      const { error: updateError } = await supabase.from('solicitudes').update({ estado: 'baja', motivo_baja: motivo }).eq('id', histItem.id);
       if (updateError) throw updateError;
 
-      await logAuditoria('insumos', 'Insumo Dado de Baja', `Se dio de baja ${histItem.cantidad}x ${histItem.insumos?.nombre} que estaba asignado a ${histItem.usuario_nombre}.`, histItem.usuario_nombre);
+      await logAuditoria('insumos', 'Insumo Dado de Baja', `Se dio de baja ${histItem.cantidad}x ${histItem.insumos?.nombre} que estaba asignado a ${histItem.usuario_nombre}. Motivo: ${motivo}`, histItem.usuario_nombre);
       showToast('Insumo Dado de Baja', 'El insumo fue dado de baja correctamente.', 'success');
       await refetch();
       await fetchHistorial();

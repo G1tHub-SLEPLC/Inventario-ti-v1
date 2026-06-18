@@ -394,6 +394,20 @@ export default function EditarEquipoModal({ equipo, onClose }) {
       }
     }
 
+    // VALIDACIÓN: Si el estado es "BAJA", verificar que exista un motivo
+    if (updatedEquipo.estado === 'BAJA') {
+      if (!updatedEquipo.motivo_baja || updatedEquipo.motivo_baja.trim() === '') {
+        showToast(
+          'Motivo Requerido', 
+          'Debe ingresar un motivo para dar de baja el equipo (ej. pérdida, daño).', 
+          'error'
+        );
+        return;
+      }
+    } else {
+      updatedEquipo.motivo_baja = null; // Limpiar si ya no es baja
+    }
+
     const currentSerial = updatedEquipo['Nº de serie']?.trim() || '';
 
     // Check if user is assigning a serial number that already exists on ANOTHER equipment
@@ -1033,6 +1047,26 @@ export default function EditarEquipoModal({ equipo, onClose }) {
                   </div>
                 </div>
               </div>
+
+              {/* Motivo de Baja Condicional */}
+              {formData.estado === 'BAJA' && (
+                <div className="grid grid-cols-1 gap-2 mt-2 bg-red-50 p-3 rounded-lg border border-red-200 animate-fade-in">
+                  <div className="space-y-0.5">
+                    <label className="block text-[10px] font-bold text-red-800 uppercase tracking-wide">
+                      Motivo de Baja *
+                    </label>
+                    <textarea
+                      name="motivo_baja"
+                      required
+                      value={formData.motivo_baja || ''}
+                      onChange={handleChange}
+                      placeholder="Describa por qué se da de baja este equipo (ej: Robo con constancia, Pantalla rota, Obsoleto...)"
+                      rows="2"
+                      className="w-full px-2 py-1.5 border border-red-300 rounded-lg text-xs focus:ring-1.5 focus:ring-red-500 focus:outline-none shadow-xs bg-white text-gray-800 placeholder:text-red-300"
+                    ></textarea>
+                  </div>
+                </div>
+              )}
 
               {/* Código QR (Sólo para Notebooks, AIO, Tablets) */}
               {isQRSupported() && (

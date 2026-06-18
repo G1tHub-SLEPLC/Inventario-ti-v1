@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Database, PlusCircle, Monitor, CheckCircle, AlertCircle, AlertTriangle, LogOut, Users, User, ShieldCheck, Key, ChevronDown, Info } from 'lucide-react';
+import { LayoutDashboard, Database, PlusCircle, Monitor, CheckCircle, AlertCircle, AlertTriangle, LogOut, Users, User, ShieldCheck, Key, ChevronDown, Info, Trash2 } from 'lucide-react';
 import { useInventario } from '../context/InventarioContext';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabaseClient';
@@ -14,6 +14,7 @@ const ADMIN_NAV_ITEMS = [
   { to: '/solicitudes', icon: AlertCircle, label: 'Solicitudes', desc: 'Aprobar o rechazar solicitudes de usuarios' },
   { to: '/usuarios', icon: Users, label: 'Usuarios', desc: 'Administrar perfiles y accesos al sistema' },
   { to: '/auditoria', icon: ShieldCheck, label: 'Auditoría', desc: 'Registro de todos los movimientos del sistema' },
+  { to: '/bajas', icon: Trash2, label: 'De Baja', desc: 'Registro de activos dados de baja' },
 ];
 
 const SLEP_NAV_ITEMS = [

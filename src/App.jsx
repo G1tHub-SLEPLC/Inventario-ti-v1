@@ -32,6 +32,8 @@ const AlertShowcasePage = lazy(() => import('./pages/AlertShowcasePage'));
 const DateTimeShowcasePage = lazy(() => import('./pages/DateTimeShowcasePage'));
 const ToastShowcasePage = lazy(() => import('./pages/ToastShowcasePage'));
 const SoundShowcasePage = lazy(() => import('./pages/SoundShowcasePage'));
+const IconShowcasePage = lazy(() => import('./pages/IconShowcasePage'));
+const BajasPage = lazy(() => import('./pages/BajasPage'));
 
 function ProtectedRoute({ children }) {
   const { session, loading } = useAuth();
@@ -83,6 +85,7 @@ export default function App() {
               <Routes>
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/qr-info" element={<QRInfoPage />} />
+                <Route path="/icons" element={<IconShowcasePage />} />
                 <Route path="/" element={<ProtectedRoute><AppShell /></ProtectedRoute>}>
                   
                   {/* Common Route */}
