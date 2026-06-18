@@ -70,44 +70,32 @@ export default function BajasPage() {
 
   const handleExportPDF = () => {
     const title = activeTab === 'equipos' ? 'Reporte de Equipos de Baja' : 'Reporte de Insumos de Baja';
-    const filename = activeTab === 'equipos' ? 'Equipos_de_Baja.pdf' : 'Insumos_de_Baja.pdf';
+    const filename = activeTab === 'equipos' ? 'Equipos_de_Baja' : 'Insumos_de_Baja';
     
     let columns = [];
     let rows = [];
 
     if (activeTab === 'equipos') {
-      columns = [
-        { header: 'Descripción', dataKey: 'desc' },
-        { header: 'Marca', dataKey: 'marca' },
-        { header: 'Modelo', dataKey: 'modelo' },
-        { header: 'Serie', dataKey: 'serie' },
-        { header: 'Motivo de Baja', dataKey: 'motivo' }
-      ];
+      columns = ['Descripción', 'Marca', 'Modelo', 'Serie', 'Motivo de Baja'];
       rows = sortedEquipos.map(eq => ({
-        desc: eq['Descripción del Bien'],
-        marca: eq['Marca'],
-        modelo: eq['Modelo'],
-        serie: eq['Nº de serie'],
-        motivo: eq.motivo_baja || 'No especificado'
+        'Descripción': eq['Descripción del Bien'] || '—',
+        'Marca': eq['Marca'] || '—',
+        'Modelo': eq['Modelo'] || '—',
+        'Serie': eq['Nº de serie'] || '—',
+        'Motivo de Baja': eq.motivo_baja || 'No especificado'
       }));
     } else {
-      columns = [
-        { header: 'Fecha', dataKey: 'fecha' },
-        { header: 'Insumo', dataKey: 'insumo' },
-        { header: 'Cant.', dataKey: 'cant' },
-        { header: 'Usuario', dataKey: 'usuario' },
-        { header: 'Motivo de Baja', dataKey: 'motivo' }
-      ];
+      columns = ['Fecha', 'Insumo', 'Cant.', 'Usuario', 'Motivo de Baja'];
       rows = sortedInsumos.map(sol => ({
-        fecha: new Date(sol.created_at).toLocaleDateString(),
-        insumo: sol.insumo?.nombre || 'Desconocido',
-        cant: sol.cantidad,
-        usuario: sol.usuario_nombre || sol.perfil?.nombre || 'Desconocido',
-        motivo: sol.motivo_baja || 'No especificado'
+        'Fecha': new Date(sol.created_at).toLocaleDateString(),
+        'Insumo': sol.insumo?.nombre || 'Desconocido',
+        'Cant.': sol.cantidad,
+        'Usuario': sol.usuario_nombre || sol.perfil?.nombre || 'Desconocido',
+        'Motivo de Baja': sol.motivo_baja || 'No especificado'
       }));
     }
 
-    exportToExcelAndPDF([], columns, rows, title, filename);
+    exportToExcelAndPDF('pdf', rows, columns, title, filename);
   };
 
   return (
