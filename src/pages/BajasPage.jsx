@@ -56,6 +56,8 @@ export default function BajasPage() {
       dataToExport = sortedInsumos.map(sol => ({
         'Fecha de Baja': new Date(sol.created_at).toLocaleString(),
         'Insumo': sol.insumo?.nombre || 'Desconocido',
+        'Marca': sol.insumo?.marca || '—',
+        'Modelo': sol.insumo?.modelo || '—',
         'Cantidad': sol.cantidad,
         'Usuario Asignado': sol.usuario_nombre || sol.perfil?.nombre || 'Desconocido',
         'Motivo de Baja': sol.motivo_baja || 'No especificado'
@@ -85,10 +87,12 @@ export default function BajasPage() {
         'Motivo de Baja': eq.motivo_baja || 'No especificado'
       }));
     } else {
-      columns = ['Fecha', 'Insumo', 'Cant.', 'Usuario', 'Motivo de Baja'];
+      columns = ['Fecha', 'Insumo', 'Marca', 'Modelo', 'Cant.', 'Usuario', 'Motivo de Baja'];
       rows = sortedInsumos.map(sol => ({
         'Fecha': new Date(sol.created_at).toLocaleDateString(),
         'Insumo': sol.insumo?.nombre || 'Desconocido',
+        'Marca': sol.insumo?.marca || '—',
+        'Modelo': sol.insumo?.modelo || '—',
         'Cant.': sol.cantidad,
         'Usuario': sol.usuario_nombre || sol.perfil?.nombre || 'Desconocido',
         'Motivo de Baja': sol.motivo_baja || 'No especificado'
@@ -184,6 +188,8 @@ export default function BajasPage() {
                 <tr>
                   <SortableHeader label="Fecha" sortKey="created_at" currentKey={insSortKey} currentDir={insSortDir} onSort={handleInsSort} className="px-6 py-4" />
                   <SortableHeader label="Insumo" sortKey="insumo" currentKey={insSortKey} currentDir={insSortDir} onSort={handleInsSort} className="px-6 py-4" />
+                  <SortableHeader label="Marca" sortKey="marca" currentKey={insSortKey} currentDir={insSortDir} onSort={handleInsSort} className="px-6 py-4" />
+                  <SortableHeader label="Modelo" sortKey="modelo" currentKey={insSortKey} currentDir={insSortDir} onSort={handleInsSort} className="px-6 py-4" />
                   <SortableHeader label="Cant." sortKey="cantidad" currentKey={insSortKey} currentDir={insSortDir} onSort={handleInsSort} className="px-6 py-4 text-center" />
                   <SortableHeader label="Último Asignado" sortKey="usuario_nombre" currentKey={insSortKey} currentDir={insSortDir} onSort={handleInsSort} className="px-6 py-4" />
                   <SortableHeader label="Motivo de Baja" sortKey="motivo_baja" currentKey={insSortKey} currentDir={insSortDir} onSort={handleInsSort} className="px-6 py-4 text-red-700" />
@@ -191,7 +197,7 @@ export default function BajasPage() {
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {sortedInsumos.length === 0 ? (
-                  <tr><td colSpan="5" className="text-center py-10 text-gray-500">No hay insumos registrados como baja.</td></tr>
+                  <tr><td colSpan="7" className="text-center py-10 text-gray-500">No hay insumos registrados como baja.</td></tr>
                 ) : (
                   sortedInsumos.map(sol => (
                     <tr key={sol.id} className="hover:bg-gray-50 transition-colors">
@@ -199,6 +205,8 @@ export default function BajasPage() {
                         {new Date(sol.created_at).toLocaleDateString()} {new Date(sol.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                       </td>
                       <td className="px-6 py-3 font-medium text-slate-800">{sol.insumo?.nombre || '—'}</td>
+                      <td className="px-6 py-3 text-slate-600">{sol.insumo?.marca || '—'}</td>
+                      <td className="px-6 py-3 text-slate-600">{sol.insumo?.modelo || '—'}</td>
                       <td className="px-6 py-3 text-center font-bold text-[#006BB9] bg-blue-50/50">{sol.cantidad}</td>
                       <td className="px-6 py-3 text-slate-600">{sol.usuario_nombre || sol.perfil?.nombre || '—'}</td>
                       <td className="px-6 py-3 text-red-600 font-medium whitespace-normal min-w-[250px]">{sol.motivo_baja || <span className="text-gray-400 italic">No especificado</span>}</td>
