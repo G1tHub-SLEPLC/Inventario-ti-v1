@@ -44,12 +44,14 @@ export default function AppShell() {
     }, 250);
   }, [setToast]);
 
-  const startToastTimer = useCallback(() => {
+  const startToastTimer = useCallback((currentToast) => {
     if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+    const toastToCheck = currentToast || visibleToast;
+    if (toastToCheck?.requireClose) return; // Do not start timer if manual close is required
     toastTimeoutRef.current = setTimeout(() => {
       handleCloseToast();
     }, 15000);
-  }, [handleCloseToast]);
+  }, [handleCloseToast, visibleToast]);
 
   const stopToastTimer = useCallback(() => {
     if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
@@ -60,7 +62,7 @@ export default function AppShell() {
       if (exitTimeoutRef.current) clearTimeout(exitTimeoutRef.current);
       setVisibleToast(toast);
       setIsExiting(false);
-      startToastTimer();
+      startToastTimer(toast); // Pass the new toast directly
     }
   }, [toast, startToastTimer, visibleToast]);
 
@@ -175,8 +177,8 @@ export default function AppShell() {
       {/* Floating Toast Notification */}
       {visibleToast && (
         <div 
-          onMouseEnter={stopToastTimer}
-          onMouseLeave={startToastTimer}
+          onMouseEnter={() => stopToastTimer()}
+          onMouseLeave={() => startToastTimer(visibleToast)}
           className={`fixed top-5 left-1/2 -translate-x-1/2 z-[9999] flex items-center gap-3 px-4 py-3 rounded-xl shadow-2xl border w-[90%] max-w-md text-sm transition-all duration-300 ${isExiting ? 'animate-slide-out' : 'animate-slide-in'} ${visibleToast.type === 'success' ? 'bg-emerald-50 border-emerald-200 text-emerald-800' :
           visibleToast.type === 'warning' ? 'bg-amber-50 border-amber-200 text-amber-800' :
           visibleToast.type === 'info' ? 'bg-blue-50 border-blue-200 text-blue-800' :

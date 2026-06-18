@@ -95,7 +95,7 @@ export function SolicitudesProvider({ children }) {
         loadData();
         if (isAdmin && payload.payload?.isNew) {
           playNotificationSound();
-          showToast('Nueva Solicitud', `Un funcionario ha solicitado un requerimiento de ${payload.payload.tipo}.`, 'info');
+          showToast('Nueva Solicitud', `Un funcionario ha solicitado un requerimiento de ${payload.payload.tipo}.`, 'info', { requireClose: true });
         }
       })
       .subscribe();
