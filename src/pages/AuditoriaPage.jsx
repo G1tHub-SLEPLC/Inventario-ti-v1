@@ -36,7 +36,11 @@ export default function AuditoriaPage() {
     entregas_restaurar: false,
     actas: false,
     equipos: false,
-    insumos: false
+    insumos: false,
+    equipos_baja: false,
+    insumos_baja: false,
+    historial_equipos: false,
+    asignamiento_equipos: false
   });
   
   const [clearResultItems, setClearResultItems] = useState(null);
@@ -128,6 +132,37 @@ export default function AuditoriaPage() {
         await supabase.from('perfiles').update({ acta_firmada_url: null }).not('acta_firmada_url', 'is', null);
         await supabase.from('solicitudes').update({ acta_firmada_url: null }).not('acta_firmada_url', 'is', null);
         deletedItems.push('Actas Firmadas (Referencias DB)');
+      }
+
+      if (deleteOptions.historial_equipos) {
+        const { error } = await supabase.from('equipos').update({ historialUsuarios: null }).not('historialUsuarios', 'is', null);
+        if (error) throw new Error('Error al borrar Historial de Equipos: ' + error.message);
+        deletedItems.push('Historial de asignaciones de equipos');
+      }
+
+      if (deleteOptions.asignamiento_equipos) {
+        const { error } = await supabase.from('equipos')
+          .update({ 
+            Usuario: 'Disponible',
+            estado: 'ACTIVO',
+            usuario_asignado_id: null,
+            fecha_asignacion: null
+          })
+          .not('Usuario', 'eq', 'Disponible');
+        if (error) throw new Error('Error al resetear Asignaciones de Equipos: ' + error.message);
+        deletedItems.push('Asignamiento de Equipos');
+      }
+
+      if (deleteOptions.equipos_baja) {
+        const { error } = await supabase.from('equipos').delete().in('estado', ['BAJA', 'DE BAJA']);
+        if (error) throw new Error('Error al borrar Equipos dados de baja: ' + error.message);
+        deletedItems.push('Equipos dados de baja');
+      }
+
+      if (deleteOptions.insumos_baja) {
+        const { error } = await supabase.from('solicitudes').delete().eq('estado', 'baja');
+        if (error) throw new Error('Error al borrar Insumos dados de baja: ' + error.message);
+        deletedItems.push('Insumos dados de baja');
       }
 
       if (deleteOptions.insumos) {
@@ -414,6 +449,10 @@ export default function AuditoriaPage() {
                     <input type="checkbox" checked={deleteOptions.actas} onChange={(e) => setDeleteOptions({...deleteOptions, actas: e.target.checked})} className="rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4 cursor-pointer" />
                     <span className="text-sm text-emerald-900">Actas Firmadas (Referencias)</span>
                   </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={deleteOptions.historial_equipos} onChange={(e) => setDeleteOptions({...deleteOptions, historial_equipos: e.target.checked})} className="rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4 cursor-pointer" />
+                    <span className="text-sm text-emerald-900">Historial de Asignaciones de Equipos</span>
+                  </label>
                 </div>
               </div>
 
@@ -423,6 +462,18 @@ export default function AuditoriaPage() {
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input type="checkbox" checked={deleteOptions.prestamos_activos} onChange={(e) => setDeleteOptions({...deleteOptions, prestamos_activos: e.target.checked})} className="rounded text-red-600 focus:ring-red-500 w-4 h-4 cursor-pointer" />
                     <span className="text-sm text-red-900">Préstamos Activos (Libera los equipos en préstamo)</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={deleteOptions.asignamiento_equipos} onChange={(e) => setDeleteOptions({...deleteOptions, asignamiento_equipos: e.target.checked})} className="rounded text-red-600 focus:ring-red-500 w-4 h-4 cursor-pointer" />
+                    <span className="text-sm text-red-900">Asignamiento de Equipos (Libera los equipos asignados)</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={deleteOptions.equipos_baja} onChange={(e) => setDeleteOptions({...deleteOptions, equipos_baja: e.target.checked})} className="rounded text-red-600 focus:ring-red-500 w-4 h-4 cursor-pointer" />
+                    <span className="text-sm text-red-900">Equipos Dados de Baja</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={deleteOptions.insumos_baja} onChange={(e) => setDeleteOptions({...deleteOptions, insumos_baja: e.target.checked})} className="rounded text-red-600 focus:ring-red-500 w-4 h-4 cursor-pointer" />
+                    <span className="text-sm text-red-900">Insumos Dados de Baja</span>
                   </label>
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input type="checkbox" checked={deleteOptions.equipos} onChange={(e) => setDeleteOptions({...deleteOptions, equipos: e.target.checked})} className="rounded text-red-600 focus:ring-red-500 w-4 h-4 cursor-pointer" />
