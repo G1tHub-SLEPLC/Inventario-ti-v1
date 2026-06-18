@@ -395,7 +395,7 @@ export default function SolicitudesAdminPage() {
                         )}
                       </div>
                     )}
-                    {sol.estado === 'aprobado' && (
+                    {sol.estado === 'aprobado' && sol.tipo === 'prestamo' && (
                       <div className="flex items-center justify-center mt-2 gap-2">
                         <button onClick={() => handleOpenModal(sol, 'devolver')} className="flex items-center gap-1 bg-blue-200 text-blue-700 border border-blue-600 hover:bg-blue-300 font-bold px-2.5 py-1 rounded text-xs transition shadow-sm">
                           <Clock size={12} strokeWidth={3} /> Registrar Devolución

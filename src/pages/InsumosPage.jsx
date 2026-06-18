@@ -73,7 +73,7 @@ export default function InsumosPage() {
   
   // Modals state
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState({ id: null, nombre: '', descripcion: '', categoria: '', tipo: '', marca: '', modelo: '', cantidad_disponible: 0 });
+  const [formData, setFormData] = useState({ id: null, nombre: '', descripcion: '', categoria: '', tipo: '', marca: '', modelo: '', cantidad_disponible: 0, retornable: false });
   const [selectTipoVal, setSelectTipoVal] = useState('');
 
   const dynamicTipos = useMemo(() => {
@@ -145,7 +145,7 @@ export default function InsumosPage() {
   const fetchHistorial = async () => {
     const { data: sols } = await supabase
       .from('solicitudes')
-      .select('id, cantidad, created_at, usuario_id, insumo_id, observaciones_admin, insumos(id, nombre, tipo, marca, modelo)')
+      .select('id, cantidad, created_at, usuario_id, insumo_id, observaciones_admin, insumos(id, nombre, tipo, marca, modelo, retornable)')
       .eq('tipo', 'insumo')
       .eq('estado', 'aprobado')
       .order('created_at', { ascending: false });
@@ -216,7 +216,7 @@ export default function InsumosPage() {
 
     const { data: sols } = await supabase
       .from('solicitudes')
-      .select('id, cantidad, created_at, usuario_id, observaciones_admin, insumos(nombre, tipo, marca, modelo)')
+      .select('id, cantidad, created_at, usuario_id, observaciones_admin, insumos(nombre, tipo, marca, modelo, retornable)')
       .eq('tipo', 'insumo')
       .eq('insumo_id', insumo.id)
       .eq('estado', 'aprobado')
@@ -274,12 +274,63 @@ export default function InsumosPage() {
     }
   };
 
+  const handleDejarDisponible = async (histItem) => {
+    const confirmacion = await showAlertConfirm(
+      'Dejar Disponible',
+      `¿Marcar <strong>${histItem.cantidad}x ${histItem.insumos?.nombre}</strong> como disponible?<br/><br/>Esto devolverá el stock al inventario.`
+    );
+    if (!confirmacion) return;
+
+    try {
+      const { error: updateError } = await supabase.from('solicitudes').update({ estado: 'devuelto' }).eq('id', histItem.id);
+      if (updateError) throw updateError;
+
+      if (histItem.insumo_id) {
+        const { data: currentInsumo } = await supabase.from('insumos').select('cantidad_disponible').eq('id', histItem.insumo_id).single();
+        if (currentInsumo) {
+          await supabase.from('insumos').update({ cantidad_disponible: currentInsumo.cantidad_disponible + histItem.cantidad }).eq('id', histItem.insumo_id);
+        }
+      }
+
+      await logAuditoria('insumos', 'Insumo Devuelto', `Se devolvió ${histItem.cantidad}x ${histItem.insumos?.nombre} al inventario. Stock restaurado.`, histItem.usuario_nombre);
+      showToast('Insumo Disponible', 'El stock fue restaurado correctamente.', 'success');
+      await refetch();
+      await fetchHistorial();
+      setViewInsumoAsignaciones(prev => prev.filter(a => a.id !== histItem.id));
+    } catch (err) {
+      console.error(err);
+      showToast('Error', 'Hubo un error al devolver el insumo.', 'error');
+    }
+  };
+
+  const handleDarDeBaja = async (histItem) => {
+    const confirmacion = await showAlertConfirm(
+      'Dar de Baja',
+      `¿Dar de baja <strong>${histItem.cantidad}x ${histItem.insumos?.nombre}</strong> asignado a ${histItem.usuario_nombre}?<br/><br/>Esto quitará el insumo del funcionario sin devolver stock (ej. pérdida o daño).`
+    );
+    if (!confirmacion) return;
+
+    try {
+      const { error: updateError } = await supabase.from('solicitudes').update({ estado: 'baja' }).eq('id', histItem.id);
+      if (updateError) throw updateError;
+
+      await logAuditoria('insumos', 'Insumo Dado de Baja', `Se dio de baja ${histItem.cantidad}x ${histItem.insumos?.nombre} que estaba asignado a ${histItem.usuario_nombre}.`, histItem.usuario_nombre);
+      showToast('Insumo Dado de Baja', 'El insumo fue dado de baja correctamente.', 'success');
+      await refetch();
+      await fetchHistorial();
+      setViewInsumoAsignaciones(prev => prev.filter(a => a.id !== histItem.id));
+    } catch (err) {
+      console.error(err);
+      showToast('Error', 'Hubo un error al dar de baja el insumo.', 'error');
+    }
+  };
+
   const handleOpenModal = (insumo = null) => {
     if (insumo) {
       setFormData(insumo);
       setSelectTipoVal(insumo.tipo || '');
     } else {
-      setFormData({ id: null, nombre: '', descripcion: '', categoria: '', tipo: '', marca: '', modelo: '', cantidad_disponible: 0 });
+      setFormData({ id: null, nombre: '', descripcion: '', categoria: '', tipo: '', marca: '', modelo: '', cantidad_disponible: 0, retornable: false });
       setSelectTipoVal('');
     }
     setIsModalOpen(true);
@@ -578,7 +629,7 @@ export default function InsumosPage() {
         // refrescar modal de vista
         const { data: sols } = await supabase
           .from('solicitudes')
-          .select('id, cantidad, created_at, usuario_id, observaciones_admin, insumos(nombre, tipo, marca, modelo)')
+          .select('id, cantidad, created_at, usuario_id, observaciones_admin, insumos(nombre, tipo, marca, modelo, retornable)')
           .eq('tipo', 'insumo')
           .eq('insumo_id', viewInsumo.id)
           .eq('estado', 'aprobado')
@@ -902,13 +953,32 @@ export default function InsumosPage() {
                               >
                                 <Edit2 size={14} />
                               </button>
-                              <button 
-                                onClick={() => handleDeleteEntrega(asig)}
-                                className="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 p-1.5 rounded-lg transition-colors border border-red-100 inline-flex items-center justify-center shrink-0 cursor-pointer"
-                                title="Revocar Entrega (Devolver Stock)"
-                              >
-                                <Trash2 size={14} />
-                              </button>
+                              {asig.insumos?.retornable ? (
+                                <>
+                                  <button 
+                                    onClick={() => handleDejarDisponible(asig)}
+                                    className="text-emerald-600 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 p-1.5 rounded-lg transition-colors border border-emerald-100 inline-flex items-center justify-center shrink-0 cursor-pointer font-bold text-[10px] uppercase tracking-wide gap-1"
+                                    title="Devolver al stock disponible"
+                                  >
+                                    <CheckCircle size={12} strokeWidth={3} /> Disp.
+                                  </button>
+                                  <button 
+                                    onClick={() => handleDarDeBaja(asig)}
+                                    className="text-rose-600 hover:text-rose-800 bg-rose-50 hover:bg-rose-100 p-1.5 rounded-lg transition-colors border border-rose-100 inline-flex items-center justify-center shrink-0 cursor-pointer font-bold text-[10px] uppercase tracking-wide gap-1"
+                                    title="Dar de baja (Pérdida/Daño) sin devolver stock"
+                                  >
+                                    <AlertTriangle size={12} strokeWidth={3} /> Baja
+                                  </button>
+                                </>
+                              ) : (
+                                <button 
+                                  onClick={() => handleDeleteEntrega(asig)}
+                                  className="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 p-1.5 rounded-lg transition-colors border border-red-100 inline-flex items-center justify-center shrink-0 cursor-pointer"
+                                  title="Revocar Entrega (Devolver Stock)"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              )}
                             </div>
                           </td>
                         </tr>
@@ -1096,6 +1166,20 @@ export default function InsumosPage() {
                 <div className="col-span-2">
                   <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">Descripción (Opcional)</label>
                   <textarea value={formData.descripcion} onChange={e => setFormData({...formData, descripcion: e.target.value})} className="w-full rounded-lg border-gray-300 shadow-sm border p-2.5 text-sm focus:border-blue-500 focus:ring-blue-500" rows="2"></textarea>
+                </div>
+                <div className="col-span-2 mt-2">
+                  <label className="flex items-start gap-3 cursor-pointer bg-blue-50 border border-blue-200 p-3 rounded-lg hover:bg-blue-100 transition-colors">
+                    <input 
+                      type="checkbox" 
+                      checked={formData.retornable || false} 
+                      onChange={e => setFormData({...formData, retornable: e.target.checked})} 
+                      className="rounded text-[#006BB9] focus:ring-[#006BB9] h-5 w-5 mt-0.5"
+                    />
+                    <div className="flex flex-col">
+                      <span className="text-sm font-bold text-gray-900">¿Este insumo es retornable al inventario?</span>
+                      <span className="text-xs text-gray-600 mt-0.5">Marcar para activos que se devuelven al dejar el puesto (Ej: Teclados, Soportes). <br/>No marcar para consumibles (Ej: Tinta, Pilas).</span>
+                    </div>
+                  </label>
                 </div>
               </div>
               <div className="flex justify-end gap-3 pt-4 border-t mt-4">
@@ -1478,13 +1562,32 @@ export default function InsumosPage() {
                                 >
                                   <Edit2 size={14} />
                                 </button>
-                                <button
-                                  onClick={() => handleRevocarDesdeModal(a)}
-                                  className="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 p-1.5 rounded-lg transition-colors border border-red-100 inline-flex items-center justify-center shrink-0 cursor-pointer"
-                                  title="Revocar Entrega (Devolver Stock)"
-                                >
-                                  <Trash2 size={14} />
-                                </button>
+                                {viewInsumo?.retornable ? (
+                                  <>
+                                    <button
+                                      onClick={() => handleDejarDisponible(a)}
+                                      className="text-emerald-600 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 p-1.5 rounded-lg transition-colors border border-emerald-100 inline-flex items-center justify-center shrink-0 cursor-pointer font-bold text-[10px] uppercase tracking-wide gap-1"
+                                      title="Devolver al stock disponible"
+                                    >
+                                      <CheckCircle size={12} strokeWidth={3} /> Disponible
+                                    </button>
+                                    <button
+                                      onClick={() => handleDarDeBaja(a)}
+                                      className="text-rose-600 hover:text-rose-800 bg-rose-50 hover:bg-rose-100 p-1.5 rounded-lg transition-colors border border-rose-100 inline-flex items-center justify-center shrink-0 cursor-pointer font-bold text-[10px] uppercase tracking-wide gap-1"
+                                      title="Dar de baja (Pérdida/Daño) sin devolver stock"
+                                    >
+                                      <AlertTriangle size={12} strokeWidth={3} /> Baja
+                                    </button>
+                                  </>
+                                ) : (
+                                  <button
+                                    onClick={() => handleRevocarDesdeModal(a)}
+                                    className="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 p-1.5 rounded-lg transition-colors border border-red-100 inline-flex items-center justify-center shrink-0 cursor-pointer"
+                                    title="Revocar Entrega (Devolver Stock)"
+                                  >
+                                    <Trash2 size={14} />
+                                  </button>
+                                )}
                               </div>
                             </td>
                           </tr>
