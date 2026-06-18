@@ -107,7 +107,7 @@ export default function AppShell() {
     <div className="flex flex-col h-screen bg-gray-50 font-sans overflow-hidden">
       {/* Top Navbar */}
       <header className="bg-white border-b border-gray-200 flex-shrink-0 z-20 shadow-sm flex items-center justify-between px-3 md:px-6 py-2">
-        <div className="flex items-center justify-start">
+        <div className="flex items-center justify-start flex-shrink-0">
           <img
             src="/logo.png"
             alt="Logo SLEP Los Copihues"
@@ -121,7 +121,11 @@ export default function AppShell() {
             }}
           />
         </div>
-        <nav className="flex items-center gap-2 flex-1 justify-end min-w-0 overflow-hidden">
+        
+        {/* Línea divisoria entre logo y menú */}
+        <div className="w-px h-6 bg-gray-300 mx-3 flex-shrink-0"></div>
+
+        <nav className="flex items-center gap-2 flex-1 justify-start min-w-0 overflow-hidden">
           <div className="flex items-center gap-1 xl:gap-1.5 overflow-x-auto hide-scrollbar py-1 px-1">
             {NAV_ITEMS.map(({ to, icon: Icon, label, desc }) => {
               const active = pathname === to;
@@ -136,7 +140,7 @@ export default function AppShell() {
             })}
           </div>
         </nav>
-        <div className="w-px h-6 bg-gray-300 mx-1 flex-shrink-0"></div>
+        <div className="w-px h-6 bg-gray-300 mx-3 flex-shrink-0"></div>
         <div className="relative ml-1 sm:ml-2 flex-shrink-0">
           <button
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
