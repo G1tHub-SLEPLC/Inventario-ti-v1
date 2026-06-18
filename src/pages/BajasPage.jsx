@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useInventario } from '../context/InventarioContext';
 import { useSolicitudes } from '../context/SolicitudesContext';
 import { Trash2, Monitor, Database, Download, Printer } from 'lucide-react';
@@ -8,9 +8,14 @@ import { useSort } from '../hooks/useSort';
 import { SortableHeader } from '../components/SortableHeader';
 
 export default function BajasPage() {
-  const { equipos } = useInventario();
-  const { solicitudes, insumos } = useSolicitudes();
+  const { equipos, refetchInventario } = useInventario();
+  const { solicitudes, insumos, refetch: refetchSolicitudes } = useSolicitudes();
   const [activeTab, setActiveTab] = useState('equipos'); // 'equipos' | 'insumos'
+
+  useEffect(() => {
+    if (refetchInventario) refetchInventario();
+    if (refetchSolicitudes) refetchSolicitudes();
+  }, []);
 
   const equiposBaja = useMemo(() => {
     return equipos.filter(eq => {
