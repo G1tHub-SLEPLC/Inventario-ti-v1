@@ -9,6 +9,8 @@ import { logAuditoria } from '../utils/auditoria';
 import { getActaFirmadaUrl } from '../utils/storageUtils';
 import { useSort } from '../hooks/useSort';
 import { SortableHeader } from '../components/SortableHeader';
+import { encodeQRData } from '../utils/cryptoUtils';
+import Badge from '../components/Badge';
 
 const formatEmailName = (email) => {
   if (!email) return '';
@@ -507,33 +509,18 @@ export default function UsuariosAdminPage() {
               sortedUsuarios.map((user) => (
                 <tr key={user.id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-800 p-0.5 pr-2.5 rounded-full text-[12px] font-bold border border-blue-200 shadow-sm">
-                      <span className="w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center text-[9px] font-black uppercase shrink-0">
-                        {getInitials(user.nombre || formatEmailName(user.email))}
-                      </span>
-                      <span title={user.nombre || formatEmailName(user.email)}>
-                        {user.nombre || formatEmailName(user.email)}
-                      </span>
-                    </span>
+                    <Badge variant="user" categoria="nombres" estado="Funcionario" text={user.nombre || formatEmailName(user.email)} />
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-gray-600">{user.email}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-gray-700 font-medium">{user.subdireccion || '—'}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-gray-500">
-                    <span className={`px-2.5 py-1 rounded text-[11px] font-bold tracking-wide uppercase border whitespace-nowrap ${
-                      user.rol === 'admin_ti' ? 'bg-purple-50 text-purple-700 border-purple-200' : 'bg-blue-50 text-blue-700 border-blue-200'
-                    }`}>
-                      {user.rol === 'admin_ti' ? 'Administrador' : 'Funcionario'}
-                    </span>
+                    <Badge categoria="usuarios" estado={user.rol === 'admin_ti' ? 'Admin TI' : 'Usuario'} />
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-center">
                     {atrasosPorUsuario[user.id] > 0 ? (
-                      <span className="inline-flex items-center gap-1 bg-red-50 text-red-700 border border-red-200 px-2 py-1 rounded text-xs font-bold shadow-sm">
-                        <AlertTriangle size={12} /> {atrasosPorUsuario[user.id]} Atraso(s)
-                      </span>
+                      <Badge categoria="cumplimiento" estado="Atrasos" text={`${atrasosPorUsuario[user.id]} Atraso(s)`} />
                     ) : (
-                      <span className="inline-flex items-center gap-1 text-emerald-600 text-xs font-bold">
-                        <CheckCircle size={12} /> Óptimo
-                      </span>
+                      <Badge categoria="cumplimiento" estado="Óptimo" />
                     )}
                   </td>
                   <td className="px-6 py-4 text-center">
@@ -820,14 +807,23 @@ export default function UsuariosAdminPage() {
 
             {/* Body */}
             <div className="p-5 flex flex-col items-center gap-4 text-xs">
-              <div className="bg-slate-50 border border-slate-200 p-3 rounded-xl shadow-inner flex items-center justify-center">
+              <div className="bg-slate-50 border border-slate-200 p-3 rounded-xl shadow-inner flex flex-col items-center justify-center gap-3">
                 <QRCodeSVG
                   id="user-qr-code-svg"
-                  value={`${window.location.origin}/qr-info?usuario=${encodeURIComponent(qrModalUser.nombre || formatEmailName(qrModalUser.email))}`}
+                  value={`${window.location.origin}/qr-info?q=${encodeURIComponent(encodeQRData('U', `${qrModalUser.id}||${qrModalUser.nombre || qrModalUser.email}`))}`}
                   size={180}
                   level="H"
                   includeMargin={true}
                 />
+                <a 
+                  href={`${window.location.origin}/qr-info?q=${encodeURIComponent(encodeQRData('U', `${qrModalUser.id}||${qrModalUser.nombre || qrModalUser.email}`))}`}
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-[#006BB9] hover:underline font-bold text-xs flex items-center justify-center gap-1.5 bg-blue-50 px-3 py-1.5 rounded-lg w-full border border-blue-100"
+                  title="Abrir información en nueva pestaña"
+                >
+                  <QrCode size={14} /> Abrir Link del Código QR
+                </a>
               </div>
 
               {/* Detalles */}

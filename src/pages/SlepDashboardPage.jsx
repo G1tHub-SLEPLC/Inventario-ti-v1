@@ -9,6 +9,7 @@ import CustomTimePicker from '../components/CustomTimePicker';
 import { supabase } from '../lib/supabaseClient';
 import { generateActaDocx } from '../utils/docxUtils';
 import { uploadActaFirmada, getActaFirmadaUrl, deleteActaFirmada } from '../utils/storageUtils';
+import Badge from '../components/Badge';
 
 export default function SlepDashboardPage() {
   const { session, perfil, refetchPerfil } = useAuth();
@@ -608,13 +609,9 @@ export default function SlepDashboardPage() {
                         <td className="px-4 py-3 whitespace-nowrap">{eq['SubDirección'] || '—'}</td>
                         <td className="px-4 py-3 text-center">
                           {eq.estado === 'EN PRESTAMO' || eq.estado === 'EN PRÉSTAMO' ? (
-                            <span className="font-sans bg-amber-100 text-amber-700 border border-amber-300 px-2.5 py-1 rounded text-[11px] font-bold tracking-wide uppercase whitespace-nowrap">
-                              EN PRESTAMO
-                            </span>
+                            <Badge categoria="equipos" estado="EN PRESTAMO" />
                           ) : (
-                            <span className="font-sans bg-lime-300 text-lime-800 border border-lime-400 px-2.5 py-1 rounded text-[11px] font-bold tracking-wide uppercase whitespace-nowrap">
-                              ASIGNADO
-                            </span>
+                            <Badge categoria="equipos" estado="ASIGNADO" />
                           )}
                         </td>
                         <td className="px-4 py-3 text-center">
@@ -699,9 +696,14 @@ export default function SlepDashboardPage() {
                           <td className="px-4 py-3">{ins.marca || '—'}</td>
                           <td className="px-4 py-3">{ins.modelo || '—'}</td>
                           <td className="px-4 py-3 text-center">
-                            <span className={`font-sans px-2.5 py-1 rounded text-[11px] font-bold tracking-wide border uppercase whitespace-nowrap ${disponible ? 'bg-green-300 text-green-800 border-green-400' : 'bg-rose-50 text-rose-700 border-rose-200'}`}>
-                              {disponible ? 'DISPONIBLE' : 'AGOTADO'}
-                            </span>
+                            <div className="inline-flex items-center justify-center gap-2">
+                              <span className="font-semibold text-gray-800 font-mono text-sm w-6 text-right">{ins.cantidad_disponible}</span>
+                              <Badge 
+                                categoria="insumos" 
+                                estado={ins.cantidad_disponible > 5 ? 'Stock > 5' : ins.cantidad_disponible > 0 ? 'Stock > 0' : 'Agotado (0)'} 
+                                variant="icon" 
+                              />
+                            </div>
                           </td>
                           <td className="px-4 py-3 text-center">
                             <button
@@ -796,17 +798,11 @@ export default function SlepDashboardPage() {
 
                           <td className="px-4 py-3 text-center">
                             {isEnPrestamo ? (
-                              <span className="bg-amber-100 text-amber-700 border border-amber-300 px-2.5 py-1 rounded text-[11px] font-bold tracking-wide uppercase whitespace-nowrap">
-                                EN PRESTAMO
-                              </span>
+                              <Badge categoria="prestamos" estado="EN PRESTAMO" />
                             ) : isEsperandoRespuesta ? (
-                              <span className="bg-gray-100 text-gray-600 border border-gray-300 px-2.5 py-1 rounded text-[11px] font-bold tracking-wide uppercase whitespace-nowrap">
-                                EN TRÁMITE
-                              </span>
+                              <Badge categoria="prestamos" estado="EN TRÁMITE" />
                             ) : (
-                              <span className="bg-indigo-100 text-indigo-700 border border-indigo-300 px-2.5 py-1 rounded text-[11px] font-bold tracking-wide uppercase whitespace-nowrap">
-                                PARA PRESTAMO
-                              </span>
+                              <Badge categoria="prestamos" estado="PARA PRESTAMO" />
                             )}
                           </td>
                           <td className="px-4 py-3 text-center">

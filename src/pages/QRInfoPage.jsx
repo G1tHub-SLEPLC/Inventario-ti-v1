@@ -2,18 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 import { Package } from 'lucide-react';
+import { decodeQRData } from '../utils/cryptoUtils';
+import Badge from '../components/Badge';
 
-const EstadoBadge = ({ estado }) => {
-  const est = (estado || 'DISPONIBLE').toUpperCase();
-  const isDisp = est === 'DISPONIBLE';
-  return (
-    <span className={`px-2.5 py-1 rounded text-[11px] font-bold tracking-wide uppercase border whitespace-nowrap ${
-      isDisp ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'
-    }`}>
-      {est}
-    </span>
-  );
-};
+
 
 // Misma función fromDbRow usada en InventarioContext
 function fromDbRow(dbRow) {
@@ -37,10 +29,31 @@ function fromDbRow(dbRow) {
 
 export default function QRInfoPage() {
   const [searchParams] = useSearchParams();
-  const equipoId = searchParams.get('equipo');
-  const usuarioNombre = searchParams.get('usuario');
+  const rawQ = searchParams.get('q');
+  let equipoId = searchParams.get('equipo');
+  let legacyUsuarioNombre = searchParams.get('usuario');
+  let usuarioId = null;
+
+  if (rawQ) {
+    const decoded = decodeQRData(rawQ);
+    if (decoded) {
+      if (decoded.type === 'E') equipoId = decoded.id;
+      if (decoded.type === 'U') {
+        const parts = decoded.id.split('||');
+        if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(parts[0])) {
+          usuarioId = parts[0];
+          if (parts.length > 1) {
+            legacyUsuarioNombre = parts.slice(1).join('||');
+          }
+        } else {
+          legacyUsuarioNombre = parts.join('||');
+        }
+      }
+    }
+  }
 
   const [equipos, setEquipos] = useState([]);
+  const [displayUserName, setDisplayUserName] = useState('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -51,19 +64,20 @@ export default function QRInfoPage() {
           let foundData = null;
           const searchVal = equipoId.trim();
           
-          // Intentar buscar por ID numérico
-          if (!isNaN(searchVal) && searchVal !== '') {
-            const { data } = await supabase.from('equipos').select('*').eq('id', Number(searchVal)).limit(1);
-            if (data && data.length > 0) foundData = data[0];
-          }
-          
-          // Buscar por columna "serial" (nombre real en la DB)
-          if (!foundData) {
-            const { data } = await supabase.from('equipos').select('*').eq('serial', searchVal).limit(1);
-            if (data && data.length > 0) foundData = data[0];
+          if (searchVal !== '') {
+            // Primero intentar por ID exacto
+            const { data } = await supabase.from('equipos').select('*').eq('id', searchVal).limit(1);
+            if (data && data.length > 0) {
+              foundData = data[0];
+            } else {
+              // Si no se encuentra por ID, intentar por serial
+              const { data: bySerial } = await supabase.from('equipos').select('*').eq('serial', searchVal).limit(1);
+              if (bySerial && bySerial.length > 0) {
+                foundData = bySerial[0];
+              }
+            }
           }
 
-          // Buscar con ilike en serial por si hay diferencias de case
           if (!foundData) {
             const { data } = await supabase.from('equipos').select('*').ilike('serial', `%${searchVal}%`).limit(1);
             if (data && data.length > 0) foundData = data[0];
@@ -72,14 +86,35 @@ export default function QRInfoPage() {
           if (foundData) {
             setEquipos([fromDbRow(foundData)]);
           }
-        } else if (usuarioNombre) {
-          // Traer todos y filtrar por usuario (que está dentro de detalles JSON)
+        } else if (usuarioId || legacyUsuarioNombre) {
+          let nameToDisplay = legacyUsuarioNombre || 'Usuario';
+          let dbUser = null;
+          
+          if (usuarioId) {
+             const { data: userData } = await supabase.from('perfiles').select('nombre, email').eq('id', usuarioId).single();
+             if (userData) {
+                dbUser = userData;
+                nameToDisplay = userData.nombre || userData.email || nameToDisplay;
+             }
+          }
+          setDisplayUserName(nameToDisplay);
+
           const { data } = await supabase.from('equipos').select('*');
           if (data) {
+            const normalizeStr = (str) => {
+               if (!str) return '';
+               return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+            };
             const parsed = data.map(fromDbRow);
             const filtered = parsed.filter(eq => {
-              const user = (eq['Usuario'] || '').toLowerCase();
-              return user.includes(usuarioNombre.toLowerCase());
+              if (usuarioId && eq.usuario_asignado_id === usuarioId) return true;
+              if (eq['Usuario']) {
+                 const eqUser = normalizeStr(eq['Usuario']);
+                 if (dbUser && dbUser.nombre && eqUser.includes(normalizeStr(dbUser.nombre))) return true;
+                 if (dbUser && dbUser.email && eqUser.includes(normalizeStr(dbUser.email))) return true;
+                 if (legacyUsuarioNombre && eqUser.includes(normalizeStr(legacyUsuarioNombre))) return true;
+              }
+              return false;
             });
             setEquipos(filtered);
           }
@@ -91,7 +126,7 @@ export default function QRInfoPage() {
       }
     }
     loadData();
-  }, [equipoId, usuarioNombre]);
+  }, [equipoId, usuarioId, legacyUsuarioNombre]);
 
   if (loading) {
     return (
@@ -111,7 +146,7 @@ export default function QRInfoPage() {
     );
   }
 
-  const isUserView = !!usuarioNombre;
+  const isUserView = !!usuarioId || !!legacyUsuarioNombre;
 
   return (
     <div className="min-h-screen bg-slate-50 p-2 sm:p-4 md:p-8">
@@ -121,7 +156,7 @@ export default function QRInfoPage() {
             {isUserView ? `Equipos Asignados` : `Información del Equipo`}
           </h1>
           <p className="text-sm sm:text-base opacity-90 mt-1 font-medium">
-            {isUserView ? usuarioNombre : 'SLEP LOS COPIHUES'}
+            {isUserView ? displayUserName : 'SLEP LOS COPIHUES'}
           </p>
         </div>
         
@@ -135,7 +170,7 @@ export default function QRInfoPage() {
                     <h3 className="font-bold text-gray-900 text-base">{equipo['Descripción del Bien'] || 'Equipo sin descripción'}</h3>
                     <p className="text-xs text-gray-500 mt-0.5">{equipo['Marca'] || 'Sin Marca'} - {equipo['Modelo'] || 'Sin Modelo'}</p>
                   </div>
-                  <EstadoBadge estado={equipo.estado} />
+                  <Badge categoria="equipos" estado={equipo.estado} />
                 </div>
                 
                 <div className="grid grid-cols-2 gap-y-3 gap-x-2 text-sm pt-1">
@@ -192,7 +227,7 @@ export default function QRInfoPage() {
                     </td>
                     <td className="py-3 px-4 font-mono text-gray-700">{equipo['Nº de serie'] || '—'}</td>
                     <td className="py-3 px-4">
-                      <EstadoBadge estado={equipo.estado} />
+                      <Badge categoria="equipos" estado={equipo.estado} />
                     </td>
                     {!isUserView && (
                       <td className="py-3 px-4 text-gray-700">

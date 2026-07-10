@@ -15,6 +15,8 @@ import AutocompleteInput from '../components/AutocompleteInput';
 import { supabase } from '../lib/supabaseClient';
 import { generateActaDocx } from '../utils/docxUtils';
 import { getActaFirmadaUrl } from '../utils/storageUtils';
+import { encodeQRData } from '../utils/cryptoUtils';
+import Badge from '../components/Badge';
 
 const COLUMNS = [
   'Descripción del Bien', 'Marca', 'Modelo', 'Nº de serie',
@@ -94,17 +96,6 @@ function getEstadoFinal(row) {
 
 function safe(v) {
   return (v == null || String(v).trim() === '') ? '—' : String(v).trim();
-}
-
-function getBadgeClass(estado, isUserBadge = false) {
-  const base = "font-sans px-2.5 py-1 rounded text-[11px] font-bold tracking-wide uppercase whitespace-nowrap border";
-  if (isUserBadge) return `${base} bg-blue-50 text-blue-700 border-blue-200`;
-
-  if (estado === 'DISPONIBLE') return `${base} bg-green-300 text-green-700 border-green-600`;
-  if (estado === 'PARA PRESTAMO' || estado === 'PARA PRÉSTAMO') return `${base} bg-indigo-300 text-indigo-700 border-indigo-600`;
-  if (estado === 'EN PRESTAMO' || estado === 'EN PRÉSTAMO') return `${base} bg-amber-300 text-amber-700 border-amber-600`;
-  if (estado === 'BAJA' || estado === 'DE BAJA') return `${base} bg-rose-300 text-red-700 border-red-600`;
-  return `${base} bg-lime-300 text-lime-700 border-lime-600`; // ASIGNADO
 }
 
 function getInitials(name) {
@@ -662,7 +653,35 @@ export default function DashboardPage() {
 
     try {
       const eq = equipos.find(item => item.id === uploadTarget.id);
-      const code = eq ? (uploadTarget.type === 'factura' ? eq['Factura'] : eq['Orden de Compra']) : '';
+      const originalCode = eq ? (uploadTarget.type === 'factura' ? eq['Factura'] : eq['Orden de Compra']) : '';
+      let code = originalCode;
+
+      // Extract from filename if code is empty
+      if (!code || code.trim() === '—' || code.trim() === '') {
+        const cleanName = file.name.replace(/\.[^/.]+$/, "");
+        const prefix = uploadTarget.type === 'factura' ? /(?:factura|fact|f)[\s_.-]*([a-z0-9-]+)/i : /(?:oc|orden|compra)[\s_.-]*([a-z0-9-]+)/i;
+        const match = cleanName.match(prefix);
+        
+        let extractedCode = null;
+        if (match && match[1]) {
+           extractedCode = match[1].toUpperCase();
+        } else {
+           const numMatch = cleanName.match(/\d{4,}/);
+           if (numMatch) extractedCode = numMatch[0];
+        }
+
+        if (extractedCode && !['PDF', 'JPG', 'PNG', 'DOC', 'DOCK'].includes(extractedCode)) {
+           code = extractedCode;
+           // Update DB record
+           const fieldName = uploadTarget.type === 'factura' ? 'Factura' : 'Orden de Compra';
+           const index = equipos.findIndex(item => item.id === uploadTarget.id);
+           if (index !== -1) {
+             const updated = { ...eq, [fieldName]: code };
+             await updateEquipo(index, updated);
+           }
+        }
+      }
+
       const storageKey = (code && code.trim() !== '—' && code.trim() !== '')
         ? `${uploadTarget.type}_${code.trim().toLowerCase()}`
         : uploadTarget.id;
@@ -748,6 +767,16 @@ export default function DashboardPage() {
 
   // Define active columns dynamically
   const activeCols = useMemo(() => {
+    const transformCols = (cols) => {
+      let newCols = [];
+      cols.forEach(c => {
+        if (c === 'Orden de Compra') newCols.push('Respaldo');
+        else if (c === 'Factura') {} // Skip
+        else newCols.push(c);
+      });
+      return newCols;
+    };
+
     if (isSearchingQR) {
       const cols = ['Imagen'];
       COLUMNS.forEach(c => {
@@ -756,12 +785,12 @@ export default function DashboardPage() {
         }
         cols.push(c);
       });
-      return cols;
+      return transformCols(cols);
     }
     if (activeTab === 'disp') {
       const cols = ['Imagen', ...COLUMNS.filter(c => c !== 'Usuario' && c !== 'SubDirección')];
       cols.push('Estado');
-      return cols;
+      return transformCols(cols);
     }
     const cols = ['Imagen'];
     COLUMNS.forEach(c => {
@@ -770,7 +799,7 @@ export default function DashboardPage() {
       }
       cols.push(c);
     });
-    return cols;
+    return transformCols(cols);
   }, [activeTab, isSearchingQR]);
 
   // Apply Sort
@@ -804,8 +833,17 @@ export default function DashboardPage() {
       return;
     }
 
-    const activeCols = COLUMNS.filter(c => activeTab === 'disp' ? (c !== 'Usuario' && c !== 'SubDirección') : true);
-    activeCols.push('Estado');
+    const activeCols = (function() {
+      const cols = COLUMNS.filter(c => activeTab === 'disp' ? (c !== 'Usuario' && c !== 'SubDirección') : true);
+      cols.push('Estado');
+      let newCols = [];
+      cols.forEach(c => {
+        if (c === 'Orden de Compra') newCols.push('Respaldo');
+        else if (c === 'Factura') {}
+        else newCols.push(c);
+      });
+      return newCols;
+    })();
 
     const stamp = new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-');
     const baseName = `inventario_${activeTab}_${stamp}`;
@@ -834,7 +872,15 @@ export default function DashboardPage() {
         const rowData = {};
         activeCols.forEach(c => {
           const estadoFinal = getEstadoFinal(r);
-          rowData[c] = c === 'Estado' ? estadoFinal : safe(r[c]);
+          if (c === 'Estado') {
+            rowData[c] = estadoFinal;
+          } else if (c === 'Respaldo') {
+            const fac = safe(r['Factura']);
+            const oc = safe(r['Orden de Compra']);
+            rowData[c] = [fac ? `Factura: ${fac}` : '', oc ? `OC: ${oc}` : ''].filter(Boolean).join(' / ');
+          } else {
+            rowData[c] = safe(r[c]);
+          }
         });
         const row = ws.addRow(rowData);
 
@@ -873,7 +919,13 @@ export default function DashboardPage() {
       const doc = new jsPDF('landscape', 'pt', 'a4');
       const tableRows = baseData.map(r => activeCols.map(c => {
         const estadoFinal = getEstadoFinal(r);
-        return c === 'Estado' ? estadoFinal : safe(r[c]);
+        if (c === 'Estado') return estadoFinal;
+        if (c === 'Respaldo') {
+          const fac = safe(r['Factura']);
+          const oc = safe(r['Orden de Compra']);
+          return [fac ? `Factura: ${fac}` : '', oc ? `OC: ${oc}` : ''].filter(Boolean).join(' / ');
+        }
+        return safe(r[c]);
       }));
 
       doc.setFontSize(16);
@@ -909,7 +961,15 @@ export default function DashboardPage() {
         const o = {};
         activeCols.forEach(c => {
           const estadoFinal = getEstadoFinal(r);
-          o[c] = c === 'Estado' ? estadoFinal : safe(r[c]);
+          if (c === 'Estado') {
+            o[c] = estadoFinal;
+          } else if (c === 'Respaldo') {
+            const fac = safe(r['Factura']);
+            const oc = safe(r['Orden de Compra']);
+            o[c] = [fac ? `Factura: ${fac}` : '', oc ? `OC: ${oc}` : ''].filter(Boolean).join(' / ');
+          } else {
+            o[c] = safe(r[c]);
+          }
         });
         return o;
       });
@@ -1210,12 +1270,7 @@ export default function DashboardPage() {
                           onMouseDown={() => { setSelectedFunc(u); setFuncSearch(u); setShowFuncSug(false); setFocusedIndex(-1); }}
                           className={`flex items-center gap-3 px-3 py-2 cursor-pointer transition-colors ${focusedIndex === idx ? 'bg-blue-100' : 'hover:bg-slate-50'}`}
                         >
-                          <span className="w-7 h-7 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px] font-black uppercase shrink-0 shadow-sm">
-                            {getInitials(u)}
-                          </span>
-                          <div className="flex flex-col">
-                            <span className="text-sm font-semibold text-gray-800">{u}</span>
-                          </div>
+                          <Badge variant="user" categoria="nombres" estado="Funcionario" text={u} />
                         </div>
                       )) : <div className="px-4 py-3 text-slate-500 italic text-center text-sm">Sin coincidencias...</div>}
                     </div>
@@ -1315,6 +1370,7 @@ export default function DashboardPage() {
                 <tbody>
                   {baseData.map((row, i) => {
                     const disp = isAvailable(row['Usuario']);
+                    const estadoFinal = getEstadoFinal(row);
                     return (
                       <tr key={i} className="hover:bg-blue-50 even:bg-slate-50 transition-colors">
                         {activeCols.map(c => {
@@ -1336,53 +1392,51 @@ export default function DashboardPage() {
                           }
 
                           if (c === 'Estado') {
-                            const estadoFinal = getEstadoFinal(row);
                             return (
-                              <td key={c} className="px-3 py-2 text-[12px] whitespace-nowrap">
-                                <span className={getBadgeClass(estadoFinal)}>
-                                  {estadoFinal}
-                                </span>
+                              <td key={c} className="px-4 py-3 align-middle">
+                                <Badge categoria="equipos" estado={estadoFinal} />
                               </td>
                             );
                           }
 
-                          if (c === 'Factura') {
-                            const hasFile = row.hasFacturaFile;
+                          if (c === 'Respaldo') {
+                            const fac = row['Factura'];
+                            const oc = row['Orden de Compra'];
+                            const hasFacFile = row.hasFacturaFile;
+                            const hasOcFile = row.hasOcFile;
                             return (
-                              <td key={c} className="px-3 py-2 text-[12px] text-gray-700 min-w-[100px]">
-                                <div className="flex items-center gap-3 justify-between">
-                                  {hasFile ? (
-                                    <button
-                                      onClick={() => handlePreview(itemId, 'factura')}
-                                      className="text-[#006BB9] hover:text-[#25306B] hover:underline text-left transition-colors"
-                                      title="Abrir/Descargar Factura"
-                                    >
-                                      {value}
-                                    </button>
-                                  ) : (
-                                    <span>{value}</span>
-                                  )}
-                                </div>
-                              </td>
-                            );
-                          }
-
-                          if (c === 'Orden de Compra') {
-                            const hasFile = row.hasOcFile;
-                            return (
-                              <td key={c} className="px-3 py-2 text-[12px] text-gray-700 min-w-[100px]">
-                                <div className="flex items-center gap-3 justify-between">
-                                  {hasFile ? (
-                                    <button
-                                      onClick={() => handlePreview(itemId, 'oc')}
-                                      className="text-[#006BB9] hover:text-[#25306B] hover:underline text-left transition-colors"
-                                      title="Abrir/Descargar Orden de Compra"
-                                    >
-                                      {value}
-                                    </button>
-                                  ) : (
-                                    <span>{value}</span>
-                                  )}
+                              <td key={c} className="px-3 py-2 text-[12px] text-gray-700 min-w-[150px]">
+                                <div className="flex flex-col gap-1.5">
+                                  <div className="flex items-center gap-2">
+                                    {fac ? (
+                                      <button
+                                        onClick={() => hasFacFile ? handlePreview(itemId, 'factura') : null}
+                                        className={`flex items-center gap-1.5 transition-colors ${hasFacFile ? 'text-[#006BB9] hover:text-blue-800 text-[11px] font-bold cursor-pointer' : 'text-gray-500 text-[11px] font-bold cursor-default'}`}
+                                        title={hasFacFile ? `Ver Factura ${fac}` : `Factura: ${fac} (Sin archivo)`}
+                                      >
+                                        <FileText size={12} /> FACTURA N° {fac}
+                                      </button>
+                                    ) : (
+                                      <span className="flex items-center gap-1 text-amber-700 text-[10px] font-bold uppercase" title="Falta Factura">
+                                        <AlertCircle size={10} /> Sin Factura
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    {oc ? (
+                                      <button
+                                        onClick={() => hasOcFile ? handlePreview(itemId, 'oc') : null}
+                                        className={`flex items-center gap-1.5 transition-colors ${hasOcFile ? 'text-emerald-700 hover:text-emerald-900 text-[11px] font-bold cursor-pointer' : 'text-gray-500 text-[11px] font-bold cursor-default'}`}
+                                        title={hasOcFile ? `Ver OC ${oc}` : `OC: ${oc} (Sin archivo)`}
+                                      >
+                                        <FileText size={12} /> OC N° {oc}
+                                      </button>
+                                    ) : (
+                                      <span className="flex items-center gap-1 text-amber-700 text-[10px] font-bold uppercase" title="Falta Orden de Compra">
+                                        <AlertCircle size={10} /> Sin OC
+                                      </span>
+                                    )}
+                                  </div>
                                 </div>
                               </td>
                             );
@@ -1414,25 +1468,11 @@ export default function DashboardPage() {
                           }
 
                           if (c === 'Usuario') {
-                            const isDisp = isAvailable(value);
-                            if (!isDisp) {
-                              return (
-                                <td key={c} className="px-3 py-2 text-[12px] whitespace-nowrap">
-                                  <span className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-800 p-0.5 pr-2.5 rounded-full text-[12px] font-bold border border-blue-200 shadow-sm">
-                                    <span className="w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center text-[9px] font-black uppercase shrink-0">
-                                      {getInitials(value)}
-                                    </span>
-                                    <span title={value}>{value}</span>
-                                  </span>
-                                </td>
-                              );
-                            } else {
-                              return (
-                                <td key={c} className="px-3 py-2 text-[12px] text-gray-500 whitespace-nowrap">
-                                  —
-                                </td>
-                              );
-                            }
+                            return (
+                              <td key={c} className="px-3 py-2 text-[12px] whitespace-nowrap">
+                                <Badge variant="user" categoria="nombres" estado="Funcionario" text={isAvailable(value) ? '—' : value} />
+                              </td>
+                            );
                           }
 
                           return <td key={c} className="px-3 py-2 text-[12px] text-gray-700 max-w-[200px] break-words">{value}</td>;
@@ -1802,14 +1842,23 @@ export default function DashboardPage() {
 
             {/* Body */}
             <div className="p-5 flex flex-col items-center gap-4 text-xs">
-              <div className="bg-slate-50 border border-slate-200 p-3 rounded-xl shadow-inner flex items-center justify-center">
+              <div className="bg-slate-50 border border-slate-200 p-3 rounded-xl shadow-inner flex flex-col items-center justify-center gap-3">
                 <QRCodeSVG
                   id="qr-code-svg"
-                  value={`${window.location.origin}/qr-info?equipo=${qrModalData.id}`}
+                  value={`${window.location.origin}/qr-info?q=${encodeURIComponent(encodeQRData('E', qrModalData.id))}`}
                   size={180}
                   level="H"
                   includeMargin={true}
                 />
+                <a 
+                  href={`${window.location.origin}/qr-info?q=${encodeURIComponent(encodeQRData('E', qrModalData.id))}`}
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-[#006BB9] hover:underline font-bold text-xs flex items-center justify-center gap-1.5 bg-blue-50 px-3 py-1.5 rounded-lg w-full border border-blue-100"
+                  title="Abrir información en nueva pestaña"
+                >
+                  <QrCode size={14} /> Abrir Link del Código QR
+                </a>
               </div>
 
               {/* Detalles */}

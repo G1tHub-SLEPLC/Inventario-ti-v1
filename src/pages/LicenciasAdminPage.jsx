@@ -11,6 +11,8 @@ import { useAuth } from '../context/AuthContext';
 import { useSort } from '../hooks/useSort';
 import { SortableHeader } from '../components/SortableHeader';
 import { useAlert } from '../context/AlertContext';
+import Badge from '../components/Badge';
+import { BADGE_CONFIG } from '../config/badgeConfig';
 
 const TIPOS_LICENCIA = [
   'SAAS', 'Perpetua', 'SW Propietario', 'SW Libre (Open Source)', 'Freemium / Shareware', 'PAAS (Plataforma como Servicio)', 'IAAS (Infraestructura como Servicio)'
@@ -814,7 +816,6 @@ export default function LicenciasAdminPage() {
                     <SortableHeader label="Nombre" sortKey="software" currentKey={dispSortKey} currentDir={dispSortDir} onSort={handleDispSort} className="text-white text-left" />
                     <SortableHeader label="Respaldo" sortKey="tiene_respaldo" currentKey={dispSortKey} currentDir={dispSortDir} onSort={handleDispSort} className="text-white text-left" />
                     <th className="px-3 py-3 text-center font-bold text-white">Disponibles</th>
-                    <SortableHeader label="Total" sortKey="cantidad_total" currentKey={dispSortKey} currentDir={dispSortDir} onSort={handleDispSort} className="text-white text-center" />
                     <th className="px-3 py-3 text-center font-bold text-white">% Restante</th>
                     <SortableHeader label="Estado" sortKey="estado" currentKey={dispSortKey} currentDir={dispSortDir} onSort={handleDispSort} className="text-white text-center" />
                     <SortableHeader label="Expiración" sortKey="fecha_expiracion" currentKey={dispSortKey} currentDir={dispSortDir} onSort={handleDispSort} className="text-white text-center" />
@@ -865,13 +866,13 @@ export default function LicenciasAdminPage() {
                                 {lic.factura ? (
                                   <button
                                     onClick={() => lic.has_factura_file ? handlePreview(lic.id, 'factura') : null}
-                                    className={`flex items-center gap-1.5 border transition-colors ${lic.has_factura_file ? 'bg-blue-200 text-[#006BB9] border border-blue-400 px-2 py-0.5 rounded text-[11px] font-bold hover:bg-blue-300 cursor-pointer' : 'bg-gray-50 text-gray-500 border border-gray-200 px-2 py-0.5 rounded text-[11px] font-bold cursor-default'}`}
+                                    className={`flex items-center gap-1.5 transition-colors ${lic.has_factura_file ? 'text-[#006BB9] hover:text-blue-800 text-[11px] font-bold cursor-pointer' : 'text-gray-500 text-[11px] font-bold cursor-default'}`}
                                     title={lic.has_factura_file ? `Ver Factura ${lic.factura}` : `Factura: ${lic.factura} (Sin archivo)`}
                                   >
                                     <FileText size={12} /> FACTURA N° {lic.factura}
                                   </button>
                                 ) : (
-                                  <span className="flex items-center gap-1 px-2 py-0.5 rounded bg-amber-100 text-amber-700 border border-amber-400 text-[10px] font-bold uppercase" title="Falta Factura">
+                                  <span className="flex items-center gap-1 text-amber-700 text-[10px] font-bold uppercase" title="Falta Factura">
                                     <AlertCircle size={10} /> Sin Factura
                                   </span>
                                 )}
@@ -880,57 +881,97 @@ export default function LicenciasAdminPage() {
                                 {lic.orden_compra ? (
                                   <button
                                     onClick={() => lic.has_oc_file ? handlePreview(lic.id, 'orden_compra') : null}
-                                    className={`flex items-center gap-1.5 border transition-colors ${lic.has_oc_file ? 'bg-emerald-200 text-emerald-700 border border-emerald-400 px-2 py-0.5 rounded text-[11px] font-bold hover:bg-emerald-300 cursor-pointer' : 'bg-gray-50 text-gray-500 border border-gray-200 px-2 py-0.5 rounded text-[11px] font-bold cursor-default'}`}
+                                    className={`flex items-center gap-1.5 transition-colors ${lic.has_oc_file ? 'text-emerald-700 hover:text-emerald-900 text-[11px] font-bold cursor-pointer' : 'text-gray-500 text-[11px] font-bold cursor-default'}`}
                                     title={lic.has_oc_file ? `Ver OC ${lic.orden_compra}` : `OC: ${lic.orden_compra} (Sin archivo)`}
                                   >
                                     <FileText size={12} /> OC N° {lic.orden_compra}
                                   </button>
                                 ) : (
-                                  <span className="flex items-center gap-1 px-2 py-0.5 rounded bg-amber-100 text-amber-700 border border-amber-400 text-[10px] font-bold uppercase" title="Falta Orden de Compra">
+                                  <span className="flex items-center gap-1 text-amber-700 text-[10px] font-bold uppercase" title="Falta Orden de Compra">
                                     <AlertCircle size={10} /> Sin OC
                                   </span>
                                 )}
                               </div>
                             </div>
                           </td>
-                          <td className="px-3 py-2.5 text-center font-bold text-[#112A46]">
-                            {disponibles}
-                          </td>
-                          <td className="px-3 py-2.5 text-center font-bold text-[#112A46]">
-                            {lic.cantidad_total}
+                          <td className="px-3 py-2.5 text-center">
+                            <div className="flex flex-col items-center justify-center gap-1">
+                              <span className="font-bold text-gray-800 font-mono text-lg leading-none">{disponibles}</span>
+                              {(() => {
+                                const cant = disponibles;
+                                if (cant === 0) return <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-rose-100 text-rose-700 border border-rose-200 uppercase tracking-wider">Agotado</span>;
+                                if (cant <= 5) return <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-700 border border-orange-200 uppercase tracking-wider">Muy Bajo</span>;
+                                if (cant <= 15) return <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200 uppercase tracking-wider">Medio</span>;
+                                return <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200 uppercase tracking-wider">Normal</span>;
+                              })()}
+                            </div>
                           </td>
                           <td className="px-3 py-2.5 text-center">
                             {(() => {
                               const total = lic.cantidad_total || 0;
                               const r = total > 0 ? (disponibles / total) : 0;
-                              let color = 'bg-emerald-500';
-                              let border = 'border-emerald-500/20';
                               
-                              if (r < 0.2) {
-                                color = 'bg-red-500';
-                                border = 'border-red-500/20';
-                              } else if (r < 0.4) {
-                                color = 'bg-amber-500';
-                                border = 'border-amber-500/20';
-                              }
+                              let configLabel = '';
+                              if (r < 0.2) configLabel = '% Restante < 20%';
+                              else if (r < 0.4) configLabel = '% Restante 20-40%';
+                              else configLabel = '% Restante > 40%';
+
+                              const normalizeString = (str) => str?.toString().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
+                              const licenciasConfig = BADGE_CONFIG.licencias || [];
+                              const config = licenciasConfig.find(c => normalizeString(c.label) === normalizeString(configLabel)) || {};
+
+                              const color = config.bg || 'bg-emerald-500';
+                              const borderColor = config.border || 'border-emerald-500/20';
+                              const fontClass = config.font || 'font-mono';
+                              const weightClass = config.weight || 'font-black';
+                              const italicClass = config.italic ? 'italic' : '';
+                              const textClass = config.text || 'text-slate-800';
+                              const uppercaseClass = config.uppercase !== false ? 'uppercase' : '';
 
                               return (
-                                <div className={`w-full max-w-[130px] h-6 bg-slate-100 border ${border} rounded-lg overflow-hidden relative flex items-center justify-center font-mono text-[10px] font-black shadow-inner mx-auto`}>
+                                <div className={`w-full max-w-[130px] h-6 bg-slate-100 border ${borderColor} rounded-lg overflow-hidden relative flex items-center justify-center shadow-inner mx-auto ${fontClass} text-[10px]`}>
+                                  
+                                  {/* Fondo de color de la barra (z-0) */}
                                   <div 
-                                    className={`absolute left-0 top-0 h-full transition-all duration-300 ${color}`}
+                                    className={`absolute left-0 top-0 h-full transition-all duration-300 ${color} z-0`}
                                     style={{ width: `${r * 100}%` }}
                                   />
-                                  <span className="z-10 text-slate-800 mix-blend-difference uppercase tracking-wider font-extrabold">
-                                    {disponibles} / {total} ({(r * 100).toFixed(0)}%)
-                                  </span>
+                                  
+                                  {/* Texto base oscuro (z-10) visible en la zona vacía */}
+                                  <div className="absolute inset-0 flex items-center justify-center text-slate-800 z-10">
+                                    <span className={`tracking-wider ${weightClass} ${italicClass} ${uppercaseClass}`}>
+                                      {disponibles} / {total} ({(r * 100).toFixed(0)}%)
+                                    </span>
+                                  </div>
+
+                                  {/* Texto con color personalizado (z-20) visible SÓLO sobre la barra usando clip-path */}
+                                  <div 
+                                    className={`absolute inset-0 flex items-center justify-center ${textClass} z-20`}
+                                    style={{ clipPath: `inset(0 ${100 - (r * 100)}% 0 0)` }}
+                                  >
+                                    <span className={`tracking-wider ${weightClass} ${italicClass} ${uppercaseClass}`}>
+                                      {disponibles} / {total} ({(r * 100).toFixed(0)}%)
+                                    </span>
+                                  </div>
                                 </div>
                               );
                             })()}
                           </td>
                           <td className="px-3 py-2.5 text-center">
-                            <span className={`bg-green-200 text-green-800 border border-green-400 px-2 py-0.5 rounded font-semibold uppercase w-full block text-center text-[11px] ${hasStock ? 'bg-green-200 text-green-800 border border-green-400 px-2 py-0.5 rounded font-semibold uppercase w-full block text-center text-[11px]' : 'bg-rose-200 text-rose-700 border border-rose-400 px-2 py-0.5 rounded font-semibold uppercase w-full block text-center text-[11px]'}`}>
-                              {hasStock ? 'DISPONIBLE' : 'AGOTADO'}
-                            </span>
+                            {(() => {
+                              let estadoLic = 'ACTIVA';
+                              const today = new Date();
+                              today.setHours(0, 0, 0, 0);
+                              const isExpired = lic.fecha_termino && new Date(lic.fecha_termino) < today;
+                              
+                              if (isExpired) {
+                                estadoLic = 'SUSPENDIDA';
+                              } else if (!hasStock) {
+                                estadoLic = 'Sin Stock';
+                              }
+                              
+                              return <Badge categoria="licencias" estado={estadoLic} className="w-full block text-center" />;
+                            })()}
                           </td>
                           <td className="px-3 py-2.5 text-center">
                             <div className="flex items-center justify-center">
@@ -1054,13 +1095,7 @@ export default function LicenciasAdminPage() {
                             onMouseDown={() => { setSelectedFunc(u); setFuncSearch(u.nombre || u.email); setShowFuncSug(false); setFocusedFuncIndex(-1); }} 
                             className={`flex items-center gap-3 px-3 py-2 cursor-pointer transition-colors ${focusedFuncIndex === idx ? 'bg-blue-100' : 'hover:bg-slate-50'}`}
                           >
-                            <span className="w-7 h-7 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px] font-black uppercase shrink-0 shadow-sm">
-                              {getInitials(u.nombre || u.email)}
-                            </span>
-                            <div className="flex flex-col">
-                              <span className="text-sm font-semibold text-gray-800">{u.nombre || 'Sin nombre'}</span>
-                              <span className="text-xs text-gray-500">{u.email}</span>
-                            </div>
+                            <Badge variant="user" categoria="nombres" estado="Funcionario" text={u.nombre || u.email} />
                           </div>
                         )) : <div className="px-4 py-3 text-slate-500 italic text-center text-sm">Sin coincidencias...</div>}
                       </div>
@@ -1151,13 +1186,13 @@ export default function LicenciasAdminPage() {
                                     {licDetail.factura ? (
                                       <button
                                         onClick={() => licDetail.has_factura_file ? handlePreview(licDetail.id, 'factura') : null}
-                                        className={`flex items-center gap-1.5 border transition-colors ${licDetail.has_factura_file ? 'bg-blue-200 text-[#006BB9] border border-blue-400 px-2 py-0.5 rounded text-[11px] font-bold hover:bg-blue-300 cursor-pointer' : 'bg-gray-50 text-gray-500 border border-gray-200 px-2 py-0.5 rounded text-[11px] font-bold cursor-default'}`}
+                                        className={`flex items-center gap-1.5 transition-colors ${licDetail.has_factura_file ? 'text-[#006BB9] hover:text-blue-800 text-[11px] font-bold cursor-pointer' : 'text-gray-500 text-[11px] font-bold cursor-default'}`}
                                         title={licDetail.has_factura_file ? `Ver Factura ${licDetail.factura}` : `Factura: ${licDetail.factura} (Sin archivo)`}
                                       >
                                         <FileText size={12} /> FACTURA N° {licDetail.factura}
                                       </button>
                                     ) : (
-                                      <span className="flex items-center gap-1 px-2 py-0.5 rounded bg-amber-100 text-amber-700 border border-amber-400 text-[10px] font-bold uppercase" title="Falta Factura">
+                                      <span className="flex items-center gap-1 text-amber-700 text-[10px] font-bold uppercase" title="Falta Factura">
                                         <AlertCircle size={10} /> Sin Factura
                                       </span>
                                     )}
@@ -1166,13 +1201,13 @@ export default function LicenciasAdminPage() {
                                     {licDetail.orden_compra ? (
                                       <button
                                         onClick={() => licDetail.has_oc_file ? handlePreview(licDetail.id, 'orden_compra') : null}
-                                        className={`flex items-center gap-1.5 border transition-colors ${licDetail.has_oc_file ? 'bg-emerald-200 text-emerald-700 border border-emerald-400 px-2 py-0.5 rounded text-[11px] font-bold hover:bg-emerald-300 cursor-pointer' : 'bg-gray-50 text-gray-500 border border-gray-200 px-2 py-0.5 rounded text-[11px] font-bold cursor-default'}`}
+                                        className={`flex items-center gap-1.5 transition-colors ${licDetail.has_oc_file ? 'text-emerald-700 hover:text-emerald-900 text-[11px] font-bold cursor-pointer' : 'text-gray-500 text-[11px] font-bold cursor-default'}`}
                                         title={licDetail.has_oc_file ? `Ver OC ${licDetail.orden_compra}` : `OC: ${licDetail.orden_compra} (Sin archivo)`}
                                       >
                                         <FileText size={12} /> OC N° {licDetail.orden_compra}
                                       </button>
                                     ) : (
-                                      <span className="flex items-center gap-1 px-2 py-0.5 rounded bg-amber-100 text-amber-700 border border-amber-400 text-[10px] font-bold uppercase" title="Falta Orden de Compra">
+                                      <span className="flex items-center gap-1 text-amber-700 text-[10px] font-bold uppercase" title="Falta Orden de Compra">
                                         <AlertCircle size={10} /> Sin OC
                                       </span>
                                     )}
@@ -1284,12 +1319,7 @@ export default function LicenciasAdminPage() {
                             return (
                               <tr key={asig.id} className="hover:bg-gray-50 transition-colors">
                                 <td className="px-3 py-2.5">
-                                  <div className="flex items-center gap-3">
-                                    <span className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px] font-black uppercase shrink-0 shadow-sm">
-                                      {getInitials(asig.perfiles?.nombre || asig.perfiles?.email)}
-                                    </span>
-                                    <span className="font-semibold text-gray-800">{asig.perfiles?.nombre || 'Sin nombre'}</span>
-                                  </div>
+                                  <Badge variant="user" categoria="nombres" estado="Funcionario" text={asig.perfiles?.nombre || 'Sin nombre'} />
                                 </td>
                                 <td className="px-3 py-2.5 text-gray-700">
                                   {asig.perfiles?.email || '—'}
@@ -1723,12 +1753,7 @@ export default function LicenciasAdminPage() {
                         return (
                           <tr key={a.id} className="hover:bg-slate-50 transition-colors">
                             <td className="px-3 py-1">
-                              <div className="flex items-center gap-2">
-                                <span className="w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center text-[9px] font-black uppercase shrink-0 shadow-xs">
-                                  {getInitials(uName)}
-                                </span>
-                                <span className="font-semibold text-slate-800">{uName}</span>
-                              </div>
+                              <Badge variant="user" categoria="nombres" estado="Funcionario" text={uName} />
                             </td>
                             <td className="px-3 py-1 text-slate-650">{uEmail}</td>
                             <td className="px-3 py-1 text-slate-500">{dateStr}</td>

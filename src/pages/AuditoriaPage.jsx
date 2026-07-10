@@ -6,6 +6,7 @@ import { useInventario } from '../context/InventarioContext';
 import { useAuth } from '../context/AuthContext';
 import { useSort } from '../hooks/useSort';
 import { SortableHeader } from '../components/SortableHeader';
+import Badge from '../components/Badge';
 
 function getInitials(name) {
   if (!name || name === '—' || name === '-') return '??';
@@ -365,21 +366,11 @@ export default function AuditoriaPage() {
                       <td className="px-6 py-3 text-gray-500 font-mono text-xs">{new Date(log.created_at).toLocaleString()}</td>
                       <td className="px-6 py-3"><span className="px-2 py-1 bg-gray-100 text-gray-600 rounded text-[10px] font-bold uppercase">{log.modulo}</span></td>
                       <td className="px-6 py-3 whitespace-nowrap">
-                        <span className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-800 p-0.5 pr-2.5 rounded-full text-[12px] font-bold border border-blue-200 shadow-sm">
-                          <span className="w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center text-[9px] font-black uppercase shrink-0">
-                            {getInitials(log.usuario_nombre)}
-                          </span>
-                          <span title={log.usuario_nombre}>{log.usuario_nombre}</span>
-                        </span>
+                        <Badge variant="user" categoria="nombres" estado="Funcionario" text={log.usuario_nombre} />
                       </td>
                       <td className="px-6 py-3 whitespace-nowrap bg-emerald-50/50">
                         {log.usuario_afectado && log.usuario_afectado !== '-' ? (
-                          <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-800 p-0.5 pr-2.5 rounded-full text-[12px] font-bold border border-emerald-200 shadow-sm">
-                            <span className="w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[9px] font-black uppercase shrink-0">
-                              {getInitials(log.usuario_afectado)}
-                            </span>
-                            <span title={log.usuario_afectado}>{log.usuario_afectado}</span>
-                          </span>
+                          <Badge variant="user" categoria="nombres" estado="Funcionario" text={log.usuario_afectado} className="!bg-emerald-50 !text-emerald-800 !border-emerald-200" />
                         ) : (
                           <span className="text-emerald-700 font-medium">-</span>
                         )}

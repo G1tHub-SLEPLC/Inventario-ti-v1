@@ -211,9 +211,12 @@ export function InventarioProvider({ children }) {
     const { error } = await supabase.from('equipos').upsert(upsertPayload);
     if (error) {
       console.error('Error addMasivo:', error);
+      setEquipos(equipos); // revert
+      return { success: false, error: error.message };
     } else {
       await logAuditoria('equipos', 'Carga Masiva', `Se cargaron/actualizaron masivamente ${nuevosEquipos.length} equipos por Excel.`);
       await loadData();
+      return { success: true };
     }
   };
 
@@ -228,9 +231,13 @@ export function InventarioProvider({ children }) {
     const { error } = await supabase.from('equipos').insert(toDbRow(finalEq));
     if (error) {
       console.error('Error addEquipo:', error);
+      // Revert optimistic UI on error
+      setEquipos(equipos);
+      return { success: false, error: error.message };
     } else {
       await logAuditoria('equipos', 'Crear Equipo', `Se registró un nuevo equipo: ${equipo['Descripción del Bien']} (S/N: ${serial})`);
       await loadData();
+      return { success: true };
     }
   };
 
@@ -245,9 +252,12 @@ export function InventarioProvider({ children }) {
     const { error } = await supabase.from('equipos').update(toDbRow(updated)).eq('id', updated.id);
     if (error) {
       console.error('Error updateEquipo:', error);
+      setEquipos(equipos); // revert
+      return { success: false, error: error.message };
     } else {
       await logAuditoria('equipos', 'Actualizar Equipo', `Se actualizó el equipo: ${updated['Descripción del Bien']} (ID: ${updated.id} / S/N: ${updated['Nº de serie']}). Estado: ${updated.estado}`);
       await loadData();
+      return { success: true };
     }
   };
 

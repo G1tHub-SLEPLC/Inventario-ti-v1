@@ -9,6 +9,7 @@ import { uploadEquipoImage } from '../utils/storageUtils';
 import AutocompleteInput from './AutocompleteInput';
 import { isSameUser } from '../utils/userUtils';
 import { logAuditoria } from '../utils/auditoria';
+import { encodeQRData } from '../utils/cryptoUtils';
 import { useAuth } from '../context/AuthContext';
 
 export default function EditarEquipoModal({ equipo, onClose }) {
@@ -127,9 +128,18 @@ export default function EditarEquipoModal({ equipo, onClose }) {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+    let updates = { [name]: value };
+    
+    // Si se cambia el estado a DISPONIBLE o BAJA, limpiar el usuario asignado
+    if (name === 'estado' && (value === 'DISPONIBLE' || value === 'BAJA')) {
+      updates['Usuario'] = '';
+      updates['SubDirección'] = '';
+      updates.usuario_asignado_id = null;
+    }
+
     setFormData({
       ...formData,
-      [name]: value
+      ...updates
     });
   };
 
@@ -162,6 +172,25 @@ export default function EditarEquipoModal({ equipo, onClose }) {
     } else {
       if (type === 'factura') setFacturaFile(file);
       else setOcFile(file);
+
+      // Extracción automática del nombre del archivo si el campo está vacío
+      if (!formData[fieldName] || formData[fieldName].trim() === '' || formData[fieldName].trim() === '—') {
+        const cleanName = fileNameLower.replace(/\.[^/.]+$/, "");
+        const prefix = type === 'factura' ? /(?:factura|fact|f)[\s_.-]*([a-z0-9-]+)/i : /(?:oc|orden|compra)[\s_.-]*([a-z0-9-]+)/i;
+        const match = cleanName.match(prefix);
+        
+        let extractedCode = null;
+        if (match && match[1]) {
+           extractedCode = match[1].toUpperCase();
+        } else {
+           const numMatch = cleanName.match(/\d{4,}/);
+           if (numMatch) extractedCode = numMatch[0];
+        }
+        
+        if (extractedCode && !['PDF', 'JPG', 'PNG', 'DOC', 'DOCK'].includes(extractedCode)) {
+           setFormData(prev => ({ ...prev, [fieldName]: extractedCode }));
+        }
+      }
     }
   };
 
@@ -968,12 +997,23 @@ export default function EditarEquipoModal({ equipo, onClose }) {
                       onChange={(e) => setUserSearchTerm(e.target.value)}
                       options={filteredAvailableUsuarios.map(u => ({ label: u.nombre || 'Sin nombre', value: u.id, sublabel: u.email }))}
                       onSelectOption={async (opt) => {
+                        let selectedUser = usuarios.find(u => u.id === opt.value);
+                        if (!selectedUser) {
+                          selectedUser = usuarios.find(u => u.nombre?.toLowerCase() === opt.label?.toLowerCase() || u.email?.toLowerCase() === opt.label?.toLowerCase());
+                        }
+                        
+                        if (!selectedUser) {
+                          showToast('Usuario no válido', 'Debe seleccionar un usuario de la lista sugerida.', 'warning');
+                          setUserSearchTerm('');
+                          return;
+                        }
+
                         const currentDesc = formData['Descripción del Bien'];
                         if (currentDesc) {
                             const hasSameType = equipos.some(eq => 
                               eq.id !== originalEquipo.id &&
                               eq['Descripción del Bien'] === currentDesc &&
-                              (eq.usuario_asignado_id === opt.value || (eq['Usuario'] && isSameUser(eq['Usuario'], opt.label)))
+                              (eq.usuario_asignado_id === selectedUser.id || (eq['Usuario'] && isSameUser(eq['Usuario'], selectedUser.nombre)))
                             );
 
                           if (hasSameType) {
@@ -983,13 +1023,12 @@ export default function EditarEquipoModal({ equipo, onClose }) {
                           }
                         }
 
-                        const selectedUser = usuarios.find(u => u.id === opt.value);
                         setFormData({
                           ...formData,
-                          usuario_asignado_id: opt.value,
-                          'Usuario': opt.label,
-                          estado: 'ASIGNADO',
-                          'SubDirección': (selectedUser && selectedUser.subdireccion) ? selectedUser.subdireccion : formData['SubDirección']
+                          usuario_asignado_id: selectedUser.id,
+                          'Usuario': selectedUser.nombre || selectedUser.email || opt.label,
+                          'SubDirección': selectedUser?.subdireccion || '',
+                          estado: 'ASIGNADO'
                         });
                         setUserSearchTerm('');
                       }}
@@ -1074,14 +1113,23 @@ export default function EditarEquipoModal({ equipo, onClose }) {
                   <span className="block text-[10px] font-bold text-[#25306B] uppercase tracking-wide w-full text-left">
                     Código QR del Equipo
                   </span>
-                  <div className="bg-slate-50 border border-slate-200 p-3 rounded-xl flex items-center justify-center shadow-inner">
+                  <div className="bg-slate-50 border border-slate-200 p-3 rounded-xl flex flex-col items-center justify-center shadow-inner gap-3 w-full">
                       <QRCodeSVG
                         id="edit-qr-code-svg"
-                        value={`${window.location.origin}/qr-info?equipo=${originalEquipo?.id}`}
+                        value={`${window.location.origin}/qr-info?q=${encodeURIComponent(encodeQRData('E', originalEquipo?.id))}`}
                         size={120}
                       level="H"
                       includeMargin={true}
                     />
+                    <a 
+                      href={`${window.location.origin}/qr-info?q=${encodeURIComponent(encodeQRData('E', originalEquipo?.id))}`}
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-[#006BB9] hover:underline font-bold text-[11px] flex items-center justify-center gap-1.5 bg-blue-50 px-2.5 py-1.5 rounded-lg w-full border border-blue-100"
+                      title="Abrir información en nueva pestaña"
+                    >
+                      <QrCode size={12} /> Abrir Link del Código QR
+                    </a>
                   </div>
                   <div className="flex gap-2 w-full">
                     <button

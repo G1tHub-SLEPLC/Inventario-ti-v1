@@ -3,12 +3,17 @@ import { ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
 
 export function SortableHeader({ label, sortKey, currentKey, currentDir, onSort, className = '' }) {
   const isActive = currentKey === sortKey;
+  
+  let justifyClass = '';
+  if (className.includes('text-center')) justifyClass = 'justify-center';
+  else if (className.includes('text-right')) justifyClass = 'justify-end';
+
   return (
     <th
       className={`sortable group py-3 px-4 text-xs font-bold uppercase tracking-wider ${className}`}
       onClick={() => onSort(sortKey)}
     >
-      <div className="flex items-center gap-1">
+      <div className={`flex items-center gap-1 ${justifyClass}`}>
         <span>{label}</span>
         <span className={`transition-opacity ${isActive ? 'opacity-100' : 'opacity-30 group-hover:opacity-60'}`}>
           {isActive ? (

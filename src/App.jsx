@@ -22,6 +22,7 @@ const BadgeShowcasePage = lazy(() => import('./pages/BadgeShowcasePage'));
 const LicenciasAdminPage = lazy(() => import('./pages/LicenciasAdminPage'));
 const GlobalDashboardPage = lazy(() => import('./pages/GlobalDashboardPage'));
 const EstadoBadgeShowcasePage = lazy(() => import('./pages/EstadoBadgeShowcasePage'));
+const GlobalBadgeCustomizerPage = lazy(() => import('./pages/GlobalBadgeCustomizerPage'));
 const LicenciasShowcasePage = lazy(() => import('./pages/LicenciasShowcasePage'));
 const DisponiblesShowcasePage = lazy(() => import('./pages/DisponiblesShowcasePage'));
 const LicenciasBadgeShowcasePage = lazy(() => import('./pages/LicenciasBadgeShowcasePage'));
@@ -34,6 +35,8 @@ const ToastShowcasePage = lazy(() => import('./pages/ToastShowcasePage'));
 const SoundShowcasePage = lazy(() => import('./pages/SoundShowcasePage'));
 const IconShowcasePage = lazy(() => import('./pages/IconShowcasePage'));
 const BajasPage = lazy(() => import('./pages/BajasPage'));
+const ResponsiveTableShowcasePage = lazy(() => import('./pages/ResponsiveTableShowcasePage'));
+const TableFontSizeShowcasePage = lazy(() => import('./pages/TableFontSizeShowcasePage'));
 
 function ProtectedRoute({ children }) {
   const { session, loading } = useAuth();
@@ -111,6 +114,7 @@ export default function App() {
                   <Route path="unauthorized" element={<UnauthorizedPage />} />
                   
                   {/* Hidden Showcase */}
+                  <Route path="badge-customizer" element={<GlobalBadgeCustomizerPage />} />
                   <Route path="showcase" element={<BadgeShowcasePage />} />
                   <Route path="badge" element={<EstadoBadgeShowcasePage />} />
                   <Route path="licencias-showcase" element={<LicenciasShowcasePage />} />
@@ -122,6 +126,9 @@ export default function App() {
                   <Route path="datetime-showcase" element={<DateTimeShowcasePage />} />
                   <Route path="toast-showcase" element={<ToastShowcasePage />} />
                   <Route path="sound-showcase" element={<SoundShowcasePage />} />
+                  <Route path="icon-showcase" element={<IconShowcasePage />} />
+                  <Route path="responsive-table-showcase" element={<ResponsiveTableShowcasePage />} />
+                  <Route path="table-font-size-showcase" element={<TableFontSizeShowcasePage />} />
                   
                 </Route>
                 <Route path="*" element={<Navigate to="/" replace />} />

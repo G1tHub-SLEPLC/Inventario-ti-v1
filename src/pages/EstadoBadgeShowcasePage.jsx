@@ -77,7 +77,7 @@ const PALETTE_DESCS = {
 };
 
 // Complete Tailwind Color Reference Dictionary
-const TAILWIND_COLORS_DICTIONARY = [
+export const TAILWIND_COLORS_DICTIONARY = [
   { name: 'Red (Rojo)', key: 'red' },
   { name: 'Orange (Naranja)', key: 'orange' },
   { name: 'Amber (Ámbar)', key: 'amber' },
@@ -279,13 +279,12 @@ export default function EstadoBadgeShowcasePage() {
 
   // Palettes State
   const [palettes, setPalettes] = useState(INITIAL_PALETTES);
-
   const [eqClasses, setEqClasses] = useState({
-    DISPONIBLE: 'bg-green-300 text-green-800 border-green-400',
+    DISPONIBLE: 'bg-green-300 text-green-800 border-green-600',
     PARA_PRESTAMO: 'bg-indigo-200 text-indigo-600 border-indigo-600',
     EN_PRESTAMO: 'bg-amber-100 text-amber-600 border-amber-600',
-    ASIGNADO: 'bg-lime-300 text-lime-800 border-lime-400',
-    DE_BAJA: 'bg-rose-200 text-red-600 border-red-600'
+    DE_BAJA: 'bg-rose-200 text-red-600 border-red-600',
+    ASIGNADO: 'bg-lime-300 text-lime-800 border-lime-600'
   });
   const [copiedCode, setCopiedCode] = useState(false);
 
@@ -469,7 +468,7 @@ export default function EstadoBadgeShowcasePage() {
 {`function getBadgeClass(estado, isUserBadge = false) {
   const base = "font-sans px-2.5 py-1 rounded text-[11px] font-bold tracking-wide uppercase whitespace-nowrap border";
   if (isUserBadge) return \`\${base} bg-blue-50 text-blue-700 border-blue-200\`;
-  
+
   if (estado === 'DISPONIBLE') return \`\${base} ${eqClasses.DISPONIBLE}\`;
   if (estado === 'PARA PRESTAMO' || estado === 'PARA PRÉSTAMO') return \`\${base} ${eqClasses.PARA_PRESTAMO}\`;
   if (estado === 'EN PRESTAMO' || estado === 'EN PRÉSTAMO') return \`\${base} ${eqClasses.EN_PRESTAMO}\`;

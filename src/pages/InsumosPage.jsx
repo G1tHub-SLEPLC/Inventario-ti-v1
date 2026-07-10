@@ -11,6 +11,7 @@ import { exportToExcelAndPDF } from '../utils/exportUtils';
 import { useSort } from '../hooks/useSort';
 import { SortableHeader } from '../components/SortableHeader';
 import AutocompleteInput from '../components/AutocompleteInput';
+import Badge from '../components/Badge';
 
 function getInitials(name) {
   if (!name || name === '—') return '??';
@@ -800,9 +801,16 @@ export default function InsumosPage() {
                       <td className="px-6 py-3 text-gray-600">{insumo.marca || '—'}</td>
                       <td className="px-6 py-3 text-gray-600">{insumo.modelo || '—'}</td>
                       <td className="px-6 py-3 text-center">
-                        <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${insumo.cantidad_disponible > 5 ? 'bg-green-100 text-green-800 border border-green-200' : insumo.cantidad_disponible > 0 ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'bg-red-100 text-red-800 border border-red-200'}`}>
-                          {insumo.cantidad_disponible} unid.
-                        </span>
+                        <div className="flex flex-col items-center justify-center gap-1">
+                          <span className="font-bold text-gray-800 font-mono text-lg leading-none">{insumo.cantidad_disponible}</span>
+                          {(() => {
+                            const cant = insumo.cantidad_disponible;
+                            if (cant === 0) return <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-rose-100 text-rose-700 border border-rose-200 uppercase tracking-wider">Agotado</span>;
+                            if (cant <= 5) return <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-700 border border-orange-200 uppercase tracking-wider">Muy Bajo</span>;
+                            if (cant <= 15) return <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200 uppercase tracking-wider">Medio</span>;
+                            return <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200 uppercase tracking-wider">Normal</span>;
+                          })()}
+                        </div>
                       </td>
                       <td className="px-6 py-3">
                         <div className="flex items-center justify-center gap-2">
@@ -885,13 +893,7 @@ export default function InsumosPage() {
                           onMouseDown={() => { setSelectedFunc(u); setFuncSearch(u.nombre || u.email); setShowFuncSug(false); setFocusedFuncIndex(-1); }} 
                           className={`flex items-center gap-3 px-3 py-2 cursor-pointer transition-colors ${focusedFuncIndex === idx ? 'bg-blue-100' : 'hover:bg-slate-50'}`}
                         >
-                          <span className="w-7 h-7 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px] font-black uppercase shrink-0 shadow-sm">
-                            {getInitials(u.nombre || u.email)}
-                          </span>
-                          <div className="flex flex-col">
-                            <span className="text-sm font-semibold text-gray-800">{u.nombre || 'Sin nombre'}</span>
-                            <span className="text-xs text-gray-500">{u.email}</span>
-                          </div>
+                          <Badge variant="user" categoria="nombres" estado="Funcionario" text={u.nombre || u.email} />
                         </div>
                       )) : <div className="px-4 py-3 text-slate-500 italic text-center text-sm">Sin coincidencias...</div>}
                     </div>
@@ -1064,12 +1066,7 @@ export default function InsumosPage() {
                         sortedAsignacionesInsumo.map((asig) => (
                           <tr key={asig.id} className="hover:bg-gray-50 transition-colors">
                             <td className="px-3 py-2.5">
-                              <div className="flex items-center gap-3">
-                                <span className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px] font-black uppercase shrink-0 shadow-sm">
-                                  {getInitials(asig.usuario_nombre)}
-                                </span>
-                                <span className="font-semibold text-gray-800">{asig.usuario_nombre}</span>
-                              </div>
+                              <Badge variant="user" categoria="nombres" estado="Funcionario" text={asig.usuario_nombre} />
                             </td>
                             <td className="px-3 py-2.5 text-gray-700">
                               {asig.perfiles?.email || '—'}
@@ -1291,17 +1288,7 @@ export default function InsumosPage() {
                     {assignData.usuario_id ? (
                       <div className="flex items-center justify-between p-2 bg-blue-50 border border-blue-200 rounded-lg shadow-sm w-full">
                         <div className="flex items-center gap-2 overflow-hidden flex-1 min-w-0 pr-2">
-                          <div className="w-6 h-6 shrink-0 rounded-full bg-[#006BB9] text-white flex items-center justify-center text-xs font-bold">
-                            {getInitials(usuariosSlep.find(u => u.id === assignData.usuario_id)?.nombre)}
-                          </div>
-                          <div className="flex flex-col min-w-0 flex-1">
-                            <span className="text-xs leading-tight font-bold text-[#25306B] truncate">
-                              {usuariosSlep.find(u => u.id === assignData.usuario_id)?.nombre || 'Funcionario'}
-                            </span>
-                            <span className="text-[10px] text-gray-500 truncate">
-                              {usuariosSlep.find(u => u.id === assignData.usuario_id)?.email || ''}
-                            </span>
-                          </div>
+                          <Badge variant="user" categoria="nombres" estado="Funcionario" text={usuariosSlep.find(u => u.id === assignData.usuario_id)?.nombre || 'Funcionario'} />
                         </div>
                         <button
                           type="button"
