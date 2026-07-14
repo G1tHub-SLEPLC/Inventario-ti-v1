@@ -44,7 +44,7 @@ export const LicenciasProvider = ({ children }) => {
       .from('asignaciones_licencias')
       .select(`
         *,
-        licencias (software, version, tipo, descripcion, fecha_termino)
+        licencias (software, version, tipo, descripcion, fecha_termino, imagen_url)
       `)
       .order('fecha_asignacion', { ascending: false });
       
@@ -268,6 +268,22 @@ export const LicenciasProvider = ({ children }) => {
     await fetchAsignaciones();
   };
 
+  const updateAsignacion = async (asignacion_id, data, softwareNombre = 'Desconocido', usuarioNombre = 'Desconocido') => {
+    const { error } = await supabase
+      .from('asignaciones_licencias')
+      .update(data)
+      .eq('id', asignacion_id);
+      
+    if (error) {
+      showToast('Error', 'No se pudo actualizar la asignación.', 'error');
+      throw error;
+    }
+    
+    await logAuditoria('licencias', 'Actualizar Asignación', `Se actualizó la información de asignación de ${softwareNombre} para el usuario: ${usuarioNombre} (Asignación ID: ${asignacion_id})`, usuarioNombre);
+    showToast('Asignación Actualizada', 'La información de la asignación fue actualizada exitosamente.', 'success');
+    await fetchAsignaciones();
+  };
+
   const getAsignacionesCount = (licencia_id) => {
     return asignaciones.filter(a => a.licencia_id === licencia_id).length;
   };
@@ -316,6 +332,7 @@ export const LicenciasProvider = ({ children }) => {
       asignarLicencia,
       asignarLicenciasMultiples,
       revocarLicencia,
+      updateAsignacion,
       getAsignacionesCount,
       setLicenciaFileStatus,
       saveLicenciaDocument

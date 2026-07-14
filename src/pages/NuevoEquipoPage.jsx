@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { useInventario } from '../context/InventarioContext';
 import { useAlert } from '../context/AlertContext';
-import { Save, AlertCircle, UserCheck } from 'lucide-react';
+import { Save, AlertCircle, UserCheck, Laptop, Trash2, Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { saveDocument } from '../utils/db';
 import { supabase } from '../lib/supabaseClient';
@@ -41,6 +41,19 @@ export default function NuevoEquipoPage() {
   const [userSearchTerm, setUserSearchTerm] = useState('');
   const [subdireccionSearchTerm, setSubdireccionSearchTerm] = useState('');
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
+
+  const [imagenUrlManual, setImagenUrlManual] = useState('');
+
+  const handleSearchImage = () => {
+    const marca = formData['Marca'] || '';
+    const modelo = formData['Modelo'] || '';
+    if (!marca && !modelo) {
+      alert("Por favor ingresa la Marca y el Modelo primero para buscar la imagen.");
+      return;
+    }
+    const query = encodeURIComponent(`${marca} ${modelo} png transparent`).replace(/%20/g, '+');
+    window.open(`https://www.google.com/search?q=${query}&tbm=isch`, '_blank');
+  };
 
   useEffect(() => {
     async function loadUsers() {
@@ -199,10 +212,10 @@ export default function NuevoEquipoPage() {
     e.preventDefault();
 
     // VALIDACIÓN: Imagen Referencial
-    if (!imagenFile && !autoImagenUrl) {
+    if (!imagenFile && !autoImagenUrl && !imagenUrlManual) {
       showToast(
         'Imagen Requerida', 
-        'Como este es un modelo de equipo nuevo, debe adjuntar una imagen referencial (PNG/JPG).', 
+        'Como este es un modelo de equipo nuevo, debe adjuntar una imagen referencial (PNG/JPG) o proporcionar una URL.', 
         'error'
       );
       return;
@@ -233,14 +246,19 @@ export default function NuevoEquipoPage() {
       }
     }
 
-    let finalImgUrl = autoImagenUrl;
-    if (imagenFile) {
+    // Determinar imagen final
+    let finalImgUrl = null;
+    if (imagenUrlManual) {
+      finalImgUrl = imagenUrlManual;
+    } else if (imagenFile) {
       const uploadRes = await uploadEquipoImage(imagenFile);
       if (uploadRes) {
         finalImgUrl = uploadRes;
       } else {
         showToast('Advertencia', 'No se pudo subir la imagen del equipo. Revise si el bucket existe en Supabase.', 'warning');
       }
+    } else {
+      finalImgUrl = autoImagenUrl;
     }
 
     if (isMultiMode) {
@@ -645,27 +663,59 @@ export default function NuevoEquipoPage() {
               <label className="block text-[11px] font-bold text-[#25306B] uppercase tracking-wide mb-2">
                 Imagen del Equipo
               </label>
-              <div className="flex items-center gap-3">
+              <div className="flex items-start gap-3 mt-1">
                 <div className="w-14 h-14 rounded-md bg-gray-50 border border-gray-200 overflow-hidden shrink-0 flex items-center justify-center shadow-sm relative">
                   {imagenFile ? (
-                    <img src={URL.createObjectURL(imagenFile)} alt="Preview" className="w-full h-full object-contain" />
+                    <img src={URL.createObjectURL(imagenFile)} alt="Preview" className="w-full h-full object-contain p-1" />
+                  ) : imagenUrlManual ? (
+                    <img src={imagenUrlManual} alt="Preview" className="w-full h-full object-contain p-1" />
                   ) : autoImagenUrl ? (
                     <>
-                      <img src={autoImagenUrl} alt="Auto" className="w-full h-full object-contain opacity-80" />
+                      <img src={autoImagenUrl} alt="Auto" className="w-full h-full object-contain opacity-80 p-1" />
                       <div className="absolute bottom-0 w-full bg-emerald-500/90 text-white text-[7.5px] text-center font-bold uppercase py-0.5">Auto</div>
                     </>
                   ) : (
-                    <span className="text-[9px] text-gray-400 font-bold uppercase text-center leading-tight">No Img</span>
+                    <span className="text-[9px] text-gray-400 font-bold uppercase text-center leading-tight">Sin<br/>Img</span>
                   )}
                 </div>
-                <div className="flex-1">
+                <div className="flex-1 space-y-2">
+                  <div className="flex gap-2">
+                    <button 
+                      type="button" 
+                      onClick={handleSearchImage}
+                      className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1 bg-[#25306B] hover:bg-[#112A46] text-white text-[10px] font-bold rounded-lg transition-colors shadow-sm"
+                      title="Buscar imagen transparente en Google"
+                    >
+                      <Search size={12} /> Buscar
+                    </button>
+                    <div className="flex-1 relative overflow-hidden">
+                      <input 
+                        type="file" 
+                        accept="image/*" 
+                        onChange={e => {
+                          setImagenFile(e.target.files[0] || null);
+                          if(e.target.files[0]) setImagenUrlManual('');
+                        }}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                        title="Subir archivo"
+                      />
+                      <div className="w-full flex items-center justify-center gap-1.5 px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold rounded-lg transition-colors shadow-sm pointer-events-none">
+                         Subir Archivo
+                      </div>
+                    </div>
+                  </div>
                   <input 
-                    type="file" 
-                    accept="image/*" 
-                    onChange={e => setImagenFile(e.target.files[0] || null)}
-                    className="block w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:font-semibold file:bg-blue-50 file:text-[#006BB9] hover:file:bg-blue-100"
+                    type="text" 
+                    value={imagenUrlManual}
+                    onChange={(e) => {
+                      setImagenUrlManual(e.target.value);
+                      setImagenFile(null);
+                    }}
+                    className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-[10px] focus:ring-1.5 focus:ring-blue-500 focus:outline-none shadow-xs bg-gray-50 placeholder-gray-400"
+                    placeholder="O pega la URL de la imagen aquí..."
                   />
-                  {autoImagenUrl && !imagenFile ? (
+                  
+                  {autoImagenUrl && !imagenFile && !imagenUrlManual ? (
                     <p className="text-[10px] text-emerald-600 font-bold mt-1.5 leading-tight flex items-center gap-1">
                       <span className="shrink-0">✓</span> Imagen vinculada automáticamente.
                     </p>

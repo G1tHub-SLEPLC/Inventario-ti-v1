@@ -772,6 +772,7 @@ export default function DashboardPage() {
       cols.forEach(c => {
         if (c === 'Orden de Compra') newCols.push('Respaldo');
         else if (c === 'Factura') {} // Skip
+        else if (c === 'SubDirección') {} // Skip, we will merge it with Usuario
         else newCols.push(c);
       });
       return newCols;
@@ -1356,7 +1357,7 @@ export default function DashboardPage() {
                       return (
                         <th key={c} onClick={onClickHandler} className={headerClass}>
                           <div className="flex items-start gap-1 justify-between">
-                            <span className="whitespace-normal leading-snug">{c}</span>
+                            <span className="whitespace-normal leading-snug">{c === 'Imagen' ? '' : c}</span>
                             {sortConfig.col === c ? <span className="text-[11px] mt-0.5 shrink-0">{sortConfig.dir === 1 ? '▲' : '▼'}</span> : null}
                           </div>
                         </th>
@@ -1379,10 +1380,10 @@ export default function DashboardPage() {
 
                           if (c === 'Imagen') {
                             return (
-                              <td key={c} className="px-3 py-2 w-16">
-                                <div className="w-[48px] h-[48px] rounded-[6px] bg-white border border-gray-200 overflow-hidden flex items-center justify-center shrink-0 shadow-sm">
+                              <td key={c} className="px-3 py-2 w-[52px]">
+                                <div className="w-[52px] h-[52px] rounded-[6px] bg-white border border-gray-200 overflow-hidden flex items-center justify-center shrink-0 shadow-sm">
                                   {row.imagen_url ? (
-                                    <img src={row.imagen_url} alt={row['Descripción del Bien'] || 'Equipo'} style={{ objectFit: 'contain' }} className="w-full h-full" />
+                                    <img src={row.imagen_url} alt={row['Descripción del Bien'] || 'Equipo'} className="w-full h-full object-contain" />
                                   ) : (
                                     <span className="text-[8px] text-gray-400 font-bold uppercase text-center leading-tight">Sin<br/>Img</span>
                                   )}
@@ -1468,14 +1469,39 @@ export default function DashboardPage() {
                           }
 
                           if (c === 'Usuario') {
+                            const valSubdir = row['SubDirección'];
                             return (
-                              <td key={c} className="px-3 py-2 text-[12px] whitespace-nowrap">
-                                <Badge variant="user" categoria="nombres" estado="Funcionario" text={isAvailable(value) ? '—' : value} />
+                              <td key={c} className="px-3 py-2 whitespace-nowrap">
+                                <div>
+                                  <div className="font-[800] text-[#111827] text-[14px]">
+                                    {isAvailable(value) ? '—' : value}
+                                  </div>
+                                  <div className="font-[500] text-[12px] text-[#6b7280]">
+                                    {isAvailable(value) ? '' : (valSubdir || '—')}
+                                  </div>
+                                </div>
                               </td>
                             );
                           }
 
-                          return <td key={c} className="px-3 py-2 text-[12px] text-gray-700 max-w-[200px] break-words">{value}</td>;
+                          if (c === 'Departamento') {
+                            return (
+                              <td key={c} className="px-3 py-2 text-[12px] font-[500] text-[#6b7280] whitespace-nowrap">
+                                {value}
+                              </td>
+                            );
+                          }
+
+                          let cellClass = "px-3 py-2 max-w-[200px] break-words";
+                          if (c === 'Descripción del Bien' || c === 'Marca' || c === 'Modelo') {
+                            cellClass += " text-[14px] font-[800] text-[#334155]";
+                          } else if (c === 'Nº de serie') {
+                            cellClass += " text-[14px] font-[500] text-[#334155]";
+                          } else {
+                            cellClass += " text-[12px] text-gray-700";
+                          }
+
+                          return <td key={c} className={cellClass}>{value}</td>;
                         })}
                         <td className="text-center no-print-interactive">
                           <div className="flex justify-center items-center gap-2">

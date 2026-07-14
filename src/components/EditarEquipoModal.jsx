@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useInventario } from '../context/InventarioContext';
 import { useAlert } from '../context/AlertContext';
-import { Save, AlertCircle, Eye, Clock, UserCheck, X, QrCode, Download, Printer } from 'lucide-react';
+import { Save, AlertCircle, Eye, Clock, UserCheck, X, QrCode, Download, Printer, FilePlus, RefreshCw, Search } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { saveDocument, getDocument } from '../utils/db';
 import { supabase } from '../lib/supabaseClient';
@@ -39,6 +39,17 @@ export default function EditarEquipoModal({ equipo, onClose }) {
   const [usuarios, setUsuarios] = useState([]);
   const [userSearchTerm, setUserSearchTerm] = useState('');
   const [subdireccionSearchTerm, setSubdireccionSearchTerm] = useState('');
+
+  const handleSearchImage = () => {
+    const marca = formData['Marca'] || '';
+    const modelo = formData['Modelo'] || '';
+    if (!marca && !modelo) {
+      alert("Por favor ingresa la Marca y el Modelo primero para buscar la imagen.");
+      return;
+    }
+    const query = encodeURIComponent(`${marca} ${modelo} png transparent`).replace(/%20/g, '+');
+    window.open(`https://www.google.com/search?q=${query}&tbm=isch`, '_blank');
+  };
 
   useEffect(() => {
     async function loadUsers() {
@@ -559,10 +570,11 @@ export default function EditarEquipoModal({ equipo, onClose }) {
        });
     }
 
-    if (imagenFile && updatedEquipo.imagen_url) {
+    if (updatedEquipo.imagen_url && updatedEquipo.imagen_url !== originalEquipo.imagen_url) {
       const upMarca = norm(updatedEquipo['Marca']);
       const upMod = norm(updatedEquipo['Modelo']);
       if (upMarca && upMod) {
+         // Replicar a Equipos
          equipos.forEach(eq => {
             if (eq.id === originalEquipo.id) return;
             if (norm(eq['Marca']) === upMarca && norm(eq['Modelo']) === upMod) {
@@ -571,6 +583,16 @@ export default function EditarEquipoModal({ equipo, onClose }) {
                cascadeUpdatesMap.set(eq.id, existingUpdate);
             }
          });
+         
+         // Replicar a Insumos (usando ilike para ser flexible con mayúsculas/minúsculas)
+         try {
+           await supabase.from('insumos')
+             .update({ imagen_url: updatedEquipo.imagen_url })
+             .ilike('marca', upMarca)
+             .ilike('modelo', upMod);
+         } catch (err) {
+           console.error("Error al replicar imagen a insumos:", err);
+         }
       }
     }
 
@@ -786,24 +808,53 @@ export default function EditarEquipoModal({ equipo, onClose }) {
                 <label className="block text-[10px] font-bold text-[#25306B] uppercase tracking-wide mb-2">
                   Imagen del Equipo
                 </label>
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-md bg-gray-50 border border-gray-200 overflow-hidden shrink-0 flex items-center justify-center shadow-sm">
+                <div className="flex items-start gap-3 mt-1">
+                  <div className="w-14 h-14 rounded-md bg-gray-50 border border-gray-200 overflow-hidden shrink-0 flex items-center justify-center shadow-sm relative group">
                     {imagenFile ? (
-                      <img src={URL.createObjectURL(imagenFile)} alt="Preview" className="w-full h-full object-contain" />
+                      <img src={URL.createObjectURL(imagenFile)} alt="Preview" className="w-full h-full object-contain p-1" />
                     ) : formData.imagen_url ? (
-                      <img src={formData.imagen_url} alt="Actual" className="w-full h-full object-contain" />
+                      <img src={formData.imagen_url} alt="Actual" className="w-full h-full object-contain p-1" />
                     ) : (
-                      <span className="text-[8px] text-gray-400 font-bold uppercase">No Img</span>
+                      <span className="text-[8px] text-gray-400 font-bold uppercase text-center leading-tight">Sin<br/>Img</span>
                     )}
                   </div>
-                  <div className="flex-1">
+                  <div className="flex-1 space-y-2">
+                    <div className="flex gap-2">
+                      <button 
+                        type="button" 
+                        onClick={handleSearchImage}
+                        className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1 bg-[#25306B] hover:bg-[#112A46] text-white text-[10px] font-bold rounded-lg transition-colors shadow-sm"
+                        title="Buscar imagen transparente en Google"
+                      >
+                        <Search size={12} /> Buscar
+                      </button>
+                      <div className="flex-1 relative overflow-hidden">
+                        <input 
+                          type="file" 
+                          accept="image/*" 
+                          onChange={e => {
+                            setImagenFile(e.target.files[0] || null);
+                            if(e.target.files[0]) handleChange({target: {name: 'imagen_url', value: ''}}); // clear url if file selected
+                          }}
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                          title="Subir archivo"
+                        />
+                        <div className="w-full flex items-center justify-center gap-1.5 px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold rounded-lg transition-colors shadow-sm pointer-events-none">
+                           Subir Archivo
+                        </div>
+                      </div>
+                    </div>
                     <input 
-                      type="file" 
-                      accept="image/*" 
-                      onChange={e => setImagenFile(e.target.files[0] || null)}
-                      className="block w-full text-[10px] text-slate-500 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:font-semibold file:bg-blue-50 file:text-[#006BB9] hover:file:bg-blue-100"
+                      type="text" 
+                      name="imagen_url"
+                      value={!imagenFile ? (formData.imagen_url || '') : ''}
+                      onChange={(e) => {
+                        handleChange(e);
+                        setImagenFile(null); // clear file if url typed
+                      }}
+                      className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-[10px] focus:ring-1.5 focus:ring-blue-500 focus:outline-none shadow-xs bg-gray-50 placeholder-gray-400"
+                      placeholder="O pega la URL de la imagen aquí..."
                     />
-                    <p className="text-[9px] text-gray-400 mt-1 leading-tight">La nueva imagen reemplazará a la actual. Tamaño en tablas: 48px.</p>
                   </div>
                 </div>
               </div>

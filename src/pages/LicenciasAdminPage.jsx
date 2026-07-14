@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useLicencias } from '../context/LicenciasContext';
 import { useInventario } from '../context/InventarioContext';
 import { supabase } from '../lib/supabaseClient';
-import { PlusCircle, Edit2, Trash2, Key, Users, UploadCloud, Download, Printer, AlertTriangle, CheckCircle, AlertCircle, FileText, Upload, UserPlus, Plus, X, Search, Package, UserCircle, MonitorSmartphone, Clock } from 'lucide-react';
+import { PlusCircle, Edit2, Trash2, Key, Users, UploadCloud, Download, Printer, AlertTriangle, CheckCircle, AlertCircle, FileText, Upload, UserPlus, Plus, X, Search, Package, UserCircle, MonitorSmartphone, Clock, Undo2 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import Papa from 'papaparse';
 import { exportToExcelAndPDF } from '../utils/exportUtils';
@@ -36,7 +36,7 @@ const getInitials = (name) => {
 export default function LicenciasAdminPage() {
   const { session } = useAuth();
   const { licencias, asignaciones, loading, addLicencia, updateLicencia, deleteLicencia, asignarLicencia, asignarLicenciasMultiples, revocarLicencia, getAsignacionesCount, addLicenciasMasivo, executeMasivoLicencias, saveLicenciaDocument, setLicenciaFileStatus } = useLicencias();
-  const { showToast } = useInventario();
+  const { showToast, equipos } = useInventario();
   const { showAlertConfirm } = useAlert();
 
   const [searchParams, setSearchParams] = useSearchParams();
@@ -58,6 +58,9 @@ export default function LicenciasAdminPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [isEditAsigModalOpen, setIsEditAsigModalOpen] = useState(false);
+  const [editAsigTarget, setEditAsigTarget] = useState(null);
+  const [editAsigData, setEditAsigData] = useState({ fecha_asignacion: '', observaciones: '' });
   const [isMasivaModalOpen, setIsMasivaModalOpen] = useState(false);
 
   const [validationErrors, setValidationErrors] = useState([]);
@@ -74,7 +77,10 @@ export default function LicenciasAdminPage() {
 
   const [formData, setFormData] = useState({
     id: null, software: '', version: '', tipo: 'SAAS', descripcion: '', cantidad_total: 1,
-    fecha_inicio: '', fecha_termino: '', factura: '', orden_compra: '', has_factura_file: false, has_oc_file: false
+    fecha_inicio: '', fecha_termino: '', factura: '', orden_compra: '',
+    has_factura_file: false,
+    has_oc_file: false,
+    imagen_url: ''
   });
 
   const [selectLicTipoVal, setSelectLicTipoVal] = useState('');
@@ -117,14 +123,17 @@ export default function LicenciasAdminPage() {
         id: lic.id, software: lic.software, version: lic.version || '', tipo: lic.tipo || 'SAAS',
         descripcion: lic.descripcion || '', cantidad_total: lic.cantidad_total,
         fecha_inicio: lic.fecha_inicio || '', fecha_termino: lic.fecha_termino || '',
-        factura: lic.factura || '', orden_compra: lic.orden_compra || '',
-        has_factura_file: lic.has_factura_file || false, has_oc_file: lic.has_oc_file || false
+        factura: lic.factura || '',
+        orden_compra: lic.orden_compra || '',
+        has_factura_file: !!lic.factura_url,
+        has_oc_file: !!lic.orden_compra_url,
+        imagen_url: lic.imagen_url || ''
       });
       setSelectLicTipoVal(lic.tipo || 'SAAS');
     } else {
       setFormData({
         id: null, software: '', version: 'Suscripción Anual', tipo: 'SAAS', descripcion: '', cantidad_total: 1,
-        fecha_inicio: '', fecha_termino: '', factura: '', orden_compra: '', has_factura_file: false, has_oc_file: false
+        fecha_inicio: '', fecha_termino: '', factura: '', orden_compra: '', has_factura_file: false, has_oc_file: false, imagen_url: ''
       });
       setSelectLicTipoVal('SAAS');
     }
@@ -288,6 +297,34 @@ export default function LicenciasAdminPage() {
 
   const norm = (val) => String(val || '').trim().toLowerCase();
 
+  // Function to save edited asignacion
+  const handleSaveEditAsig = async () => {
+    try {
+      // In case we don't have updateAsignacion yet, we ensure it won't crash if omitted
+      if (updateAsignacion) {
+        await updateAsignacion(
+          editAsigTarget.id, 
+          editAsigData, 
+          editAsigTarget.licencias?.software, 
+          editAsigTarget.perfiles?.nombre || editAsigTarget.perfiles?.email
+        );
+      }
+      setIsEditAsigModalOpen(false);
+      setEditAsigTarget(null);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleEditAsignacionClick = (asig) => {
+    setEditAsigTarget(asig);
+    setEditAsigData({
+      fecha_asignacion: asig.fecha_asignacion ? asig.fecha_asignacion.split('T')[0] : '',
+      observaciones: asig.observaciones || ''
+    });
+    setIsEditAsigModalOpen(true);
+  };
+
   const handleSave = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -301,7 +338,8 @@ export default function LicenciasAdminPage() {
         fecha_inicio: formData.fecha_inicio || null,
         fecha_termino: formData.fecha_termino || null,
         factura: formData.factura || '',
-        orden_compra: formData.orden_compra || ''
+        orden_compra: formData.orden_compra || '',
+        imagen_url: formData.imagen_url || ''
       };
 
       let finalId = formData.id;
@@ -812,7 +850,7 @@ export default function LicenciasAdminPage() {
               <table className="min-w-full text-sm text-left whitespace-nowrap">
                 <thead>
                   <tr>
-                    <th className="px-3 py-3 w-16 font-bold text-white text-left">Logo</th>
+                    <th className="px-3 py-3 w-16 font-bold text-white text-left"></th>
                     <SortableHeader label="Nombre" sortKey="software" currentKey={dispSortKey} currentDir={dispSortDir} onSort={handleDispSort} className="text-white text-left" />
                     <SortableHeader label="Respaldo" sortKey="tiene_respaldo" currentKey={dispSortKey} currentDir={dispSortDir} onSort={handleDispSort} className="text-white text-left" />
                     <th className="px-3 py-3 text-center font-bold text-white">Disponibles</th>
@@ -835,12 +873,12 @@ export default function LicenciasAdminPage() {
 
                       return (
                         <tr key={lic.id} className="hover:bg-gray-50 transition-colors">
-                          <td className="px-3 py-2.5">
-                            <div className="w-11 h-11 rounded shadow-sm border border-gray-100 overflow-hidden bg-white flex items-center justify-center relative group">
-                              <img
-                                src={getLogoUrl(lic.software)}
-                                alt={lic.software}
-                                className="w-full h-full object-contain p-1"
+                          <td className="px-3 py-2.5 w-[52px]">
+                            <div className="w-[52px] h-[52px] rounded shadow-sm border border-gray-100 overflow-hidden bg-white flex items-center justify-center shrink-0 relative group">
+                              <img 
+                                src={lic.imagen_url || getLogoUrl(lic.software)} 
+                                alt={lic.software} 
+                                className="w-full h-full object-contain" 
                                 onError={(e) => {
                                   e.target.onerror = null;
                                   e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(lic.software)}&background=random&color=fff&rounded=true&bold=true`;
@@ -849,9 +887,9 @@ export default function LicenciasAdminPage() {
                             </div>
                           </td>
                           <td className="px-3 py-2.5">
-                            <div className="font-bold text-[#112A46] text-[15px]">{lic.software} <span className="text-xs font-medium text-gray-500 ml-1">{lic.version}</span></div>
+                            <div className="font-[800] text-[#111827] text-[14px]">{lic.software} <span className="font-[500] text-[12px] text-[#6b7280] ml-1">{lic.version}</span></div>
                             <div className="text-[11px] mt-1 flex gap-2 items-center">
-                              <span className="bg-gray-100 px-1.5 py-0.5 rounded text-gray-600 font-semibold">{lic.tipo || 'SAAS'}</span>
+                              <span className="font-[500] text-[14px] text-[#334155]">{lic.tipo || 'SAAS'}</span>
                               <span className="text-gray-400">|</span>
                               {lic.fecha_termino ? (
                                 <span className="text-gray-500">Expira: {formatLocalDate(lic.fecha_termino)}</span>
@@ -896,7 +934,7 @@ export default function LicenciasAdminPage() {
                           </td>
                           <td className="px-3 py-2.5 text-center">
                             <div className="flex flex-col items-center justify-center gap-1">
-                              <span className="font-bold text-gray-800 font-mono text-lg leading-none">{disponibles}</span>
+                              <span className="font-[600] text-[14px] text-[#334155] leading-none">{disponibles}</span>
                               {(() => {
                                 const cant = disponibles;
                                 if (cant === 0) return <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-rose-100 text-rose-700 border border-rose-200 uppercase tracking-wider">Agotado</span>;
@@ -1116,18 +1154,21 @@ export default function LicenciasAdminPage() {
                   <table className="min-w-full text-sm text-left whitespace-nowrap">
                     <thead>
                       <tr>
-                        <th className="px-3 py-3 w-16 font-bold text-white text-left">Logo</th>
+                        <th className="px-3 py-3 w-16 font-bold text-white text-left"></th>
                         <SortableHeader label="Software" sortKey="software" currentKey={asigSortKey} currentDir={asigSortDir} onSort={handleAsigSort} className="text-white text-left" />
-                        <SortableHeader label="Tipo" sortKey="tipo" currentKey={asigSortKey} currentDir={asigSortDir} onSort={handleAsigSort} className="text-white text-left" />
+                        <SortableHeader label="Usuario" sortKey="perfiles.nombre" currentKey={asigSortKey} currentDir={asigSortDir} onSort={handleAsigSort} className="text-white text-left" />
+                        <SortableHeader label="Equipo Asociado" sortKey="equipo_asociado" currentKey={asigSortKey} currentDir={asigSortDir} onSort={handleAsigSort} className="text-white text-left" />
                         <SortableHeader label="Fecha Asignación" sortKey="created_at" currentKey={asigSortKey} currentDir={asigSortDir} onSort={handleAsigSort} className="text-white text-left" />
+                        <SortableHeader label="Fecha Vencimiento" sortKey="licencias.fecha_termino" currentKey={asigSortKey} currentDir={asigSortDir} onSort={handleAsigSort} className="text-white text-left" />
                         <SortableHeader label="Respaldo" sortKey="tiene_respaldo" currentKey={asigSortKey} currentDir={asigSortDir} onSort={handleAsigSort} className="text-white text-left" />
+                        <SortableHeader label="Observaciones" sortKey="observaciones" currentKey={asigSortKey} currentDir={asigSortDir} onSort={handleAsigSort} className="text-white text-left" />
                         <th className="px-3 py-3 text-center font-bold text-white">Acciones</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200">
                       {sortedAsignaciones.length === 0 ? (
                         <tr>
-                          <td colSpan="6" className="px-6 py-8 text-center text-gray-500">
+                          <td colSpan="7" className="px-6 py-8 text-center text-gray-500">
                             No hay licencias asignadas a este funcionario.
                           </td>
                         </tr>
@@ -1150,12 +1191,12 @@ export default function LicenciasAdminPage() {
 
                           return (
                             <tr key={asig.id} className="hover:bg-gray-50 transition-colors">
-                              <td className="px-3 py-2.5">
-                                <div className="w-11 h-11 rounded shadow-sm border border-gray-100 overflow-hidden bg-white flex items-center justify-center relative group">
+                              <td className="px-3 py-2.5 w-[52px]">
+                                <div className="w-[52px] h-[52px] rounded shadow-sm border border-gray-100 overflow-hidden bg-white flex items-center justify-center relative group">
                                   <img
-                                    src={getLogoUrl(asig.licencias?.software)}
+                                    src={asig.licencias?.imagen_url || getLogoUrl(asig.licencias?.software)}
                                     alt={asig.licencias?.software}
-                                    className="w-full h-full object-contain p-1"
+                                    className="w-full h-full object-contain"
                                     onError={(e) => {
                                       e.target.onerror = null;
                                       e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(asig.licencias?.software || 'SW')}&background=random&color=fff&rounded=true&bold=true`;
@@ -1164,21 +1205,81 @@ export default function LicenciasAdminPage() {
                                 </div>
                               </td>
                               <td className="px-3 py-2.5">
-                                <div className="font-bold text-[#112A46] text-[15px]">
+                                <div className="font-[800] text-[#111827] text-[14px]">
                                   {asig.licencias?.software} 
-                                  <span className="text-xs font-medium text-gray-500 ml-1">{asig.licencias?.version}</span>
+                                  <span className="font-[500] text-[12px] text-[#6b7280] ml-1">{asig.licencias?.version}</span>
                                 </div>
-                                <div className="text-[11px] text-gray-400 mt-0.5">
-                                  {asig.licencias?.descripcion || 'Sin descripción'}
+                                <div className="text-[11px] mt-1 flex gap-2 items-center">
+                                  <span className="font-[500] text-[14px] text-[#334155]">{asig.licencias?.tipo || 'SAAS'}</span>
                                 </div>
                               </td>
                               <td className="px-3 py-2.5">
-                                <span className="bg-gray-100 px-1.5 py-0.5 rounded text-gray-600 font-semibold text-xs">
-                                  {asig.licencias?.tipo || 'SAAS'}
-                                </span>
+                                <div>
+                                  <div className="font-[800] text-[#111827] text-[14px]">
+                                    {selectedFunc?.nombre || selectedFunc?.email || '—'}
+                                  </div>
+                                  <div className="font-[500] text-[12px] text-[#6b7280]">
+                                    {selectedFunc?.subdireccion || '—'}
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="px-3 py-2.5">
+                                {(() => {
+                                  if (!equipos) return <span className="text-gray-500 text-xs">—</span>;
+                                  
+                                  const normalizeText = (str) => String(str || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+                                  
+                                  const licUsuarioNombre = normalizeText(asig.perfiles?.nombre);
+                                  const licUsuarioId = asig.usuario_id;
+                                  
+                                  const userEquipos = equipos.filter(eq => {
+                                    // Sólo mostrar equipos tipo Notebook, AIO, PC, etc.
+                                    const descLower = String(eq['Descripción del Bien'] || eq['Tipo de Equipo'] || '').toLowerCase();
+                                    const isPC = descLower.includes('notebook') || descLower.includes('all in one') || descLower.includes('aio') || descLower.includes('pc') || descLower.includes('computador') || descLower.includes('desktop');
+                                    if (!isPC) return false;
+                                    
+                                    if (eq.usuario_asignado_id && eq.usuario_asignado_id === licUsuarioId) return true;
+                                    
+                                    const eqUsuario = normalizeText(eq['Usuario']);
+                                    if (!eqUsuario || eqUsuario === 'disponible' || eqUsuario === '—' || eqUsuario === '-') return false;
+                                    
+                                    if (eqUsuario === licUsuarioNombre) return true;
+                                    if (eqUsuario.includes(licUsuarioNombre) || licUsuarioNombre.includes(eqUsuario)) return true;
+                                    
+                                    const parts1 = eqUsuario.split(/\s+/);
+                                    const parts2 = licUsuarioNombre.split(/\s+/);
+                                    if (parts1.length >= 2 && parts2.length >= 2) {
+                                      if (parts1[0] === parts2[0] && parts1[parts1.length-1] === parts2[parts2.length-1]) return true;
+                                    }
+                                    
+                                    return false;
+                                  });
+                                  
+                                  if (userEquipos.length === 0) return <span className="text-gray-500 text-xs font-semibold">Ninguno</span>;
+                                  
+                                  return (
+                                    <div className="flex flex-col gap-2">
+                                      {userEquipos.map(eq => (
+                                        <div key={eq.id}>
+                                          <div className="font-[800] text-[#111827] text-[14px]">
+                                            {eq['Marca'] || 'Equipo'} {eq['Modelo'] || ''}
+                                          </div>
+                                          <div className="mt-0.5">
+                                            <span className="font-[500] text-[12px] text-[#6b7280]">
+                                              S/N: {eq['Nº de serie'] || 'Sin serie'}
+                                            </span>
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  );
+                                })()}
                               </td>
                               <td className="px-3 py-2.5 text-gray-600 text-xs">
                                 {formatLocalDate(asig.fecha_asignacion)}
+                              </td>
+                              <td className="px-3 py-2.5 text-gray-600 text-xs">
+                                {asig.licencias?.fecha_termino ? formatLocalDate(asig.licencias?.fecha_termino) : <span className="text-gray-400 italic">Sin caducidad</span>}
                               </td>
                               <td className="px-3 py-2.5">
                                 <div className="flex flex-col gap-1.5">
@@ -1214,13 +1315,26 @@ export default function LicenciasAdminPage() {
                                   </div>
                                 </div>
                               </td>
+                              <td className="px-3 py-2.5 text-gray-600 text-xs max-w-[150px] truncate" title={asig.observaciones || ''}>
+                                {asig.observaciones || '—'}
+                              </td>
                               <td className="px-3 py-2.5 text-center">
-                                <button 
-                                  onClick={handleRevocarClick}
-                                  className="text-[11px] font-bold bg-white border border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 px-3 py-1.5 rounded transition-colors shadow-sm"
-                                >
-                                  Revocar
-                                </button>
+                                <div className="flex items-center justify-center gap-2">
+                                  <button 
+                                    onClick={() => handleEditAsignacionClick(asig)}
+                                    className="text-amber-600 hover:text-amber-800 bg-amber-50 hover:bg-amber-100 p-1.5 rounded-lg transition-colors border border-amber-100 inline-flex items-center justify-center shrink-0 cursor-pointer"
+                                    title="Editar Asignación"
+                                  >
+                                    <Edit2 size={16} />
+                                  </button>
+                                  <button 
+                                    onClick={handleRevocarClick}
+                                    className="text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100 p-1.5 rounded-lg transition-colors border border-red-100 inline-flex items-center justify-center shrink-0 cursor-pointer"
+                                    title="Revocar Asignación"
+                                  >
+                                    <Undo2 size={16} />
+                                  </button>
+                                </div>
                               </td>
                             </tr>
                           );
@@ -1290,14 +1404,16 @@ export default function LicenciasAdminPage() {
                         <tr>
                           <SortableHeader label="Funcionario" sortKey="nombre" currentKey={licAsigSortKey} currentDir={licAsigSortDir} onSort={handleLicAsigSort} className="text-white text-left" />
                           <SortableHeader label="Correo Electrónico" sortKey="email" currentKey={licAsigSortKey} currentDir={licAsigSortDir} onSort={handleLicAsigSort} className="text-white text-left" />
+                          <SortableHeader label="Equipo Asociado" sortKey="equipo" currentKey={licAsigSortKey} currentDir={licAsigSortDir} onSort={handleLicAsigSort} className="text-white text-left" />
                           <SortableHeader label="Fecha Asignación" sortKey="created_at" currentKey={licAsigSortKey} currentDir={licAsigSortDir} onSort={handleLicAsigSort} className="text-white text-left" />
+                          <SortableHeader label="Fecha Vencimiento" sortKey="dummy" currentKey={licAsigSortKey} currentDir={licAsigSortDir} onSort={handleLicAsigSort} className="text-white text-left" />
                           <th className="px-3 py-3 text-center font-bold text-white">Acciones</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-200">
                         {sortedLicenciaAsignaciones.length === 0 ? (
                           <tr>
-                            <td colSpan="4" className="px-6 py-8 text-center text-gray-500">
+                            <td colSpan="6" className="px-6 py-8 text-center text-gray-500">
                               Nadie tiene asignada esta licencia aún.
                             </td>
                           </tr>
@@ -1318,23 +1434,94 @@ export default function LicenciasAdminPage() {
 
                             return (
                               <tr key={asig.id} className="hover:bg-gray-50 transition-colors">
-                                <td className="px-3 py-2.5">
-                                  <Badge variant="user" categoria="nombres" estado="Funcionario" text={asig.perfiles?.nombre || 'Sin nombre'} />
+                                <td className="px-3 py-2.5 whitespace-nowrap">
+                                  <div>
+                                    <div className="font-[800] text-[#111827] text-[14px]">
+                                      {asig.perfiles?.nombre || 'Sin nombre'}
+                                    </div>
+                                    <div className="font-[500] text-[12px] text-[#6b7280]">
+                                      {asig.perfiles?.subdireccion || '—'}
+                                    </div>
+                                  </div>
                                 </td>
                                 <td className="px-3 py-2.5 text-gray-700">
                                   {asig.perfiles?.email || '—'}
                                 </td>
+                                <td className="px-3 py-2.5">
+                                  {(() => {
+                                    if (!equipos) return <span className="text-gray-500 text-xs">—</span>;
+                                    
+                                    const normalizeText = (str) => String(str || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+                                    
+                                    const licUsuarioNombre = normalizeText(asig.perfiles?.nombre);
+                                    const licUsuarioId = asig.usuario_id;
+                                    
+                                    const userEquipos = equipos.filter(eq => {
+                                      // Sólo mostrar equipos tipo Notebook, AIO, PC, etc.
+                                      const descLower = String(eq['Descripción del Bien'] || eq['Tipo de Equipo'] || '').toLowerCase();
+                                      const isPC = descLower.includes('notebook') || descLower.includes('all in one') || descLower.includes('aio') || descLower.includes('pc') || descLower.includes('computador') || descLower.includes('desktop');
+                                      if (!isPC) return false;
+
+                                      if (eq.usuario_asignado_id && eq.usuario_asignado_id === licUsuarioId) return true;
+
+                                      const eqUsuario = normalizeText(eq['Usuario']);
+                                      if (!eqUsuario || eqUsuario === 'disponible' || eqUsuario === '—' || eqUsuario === '-') return false;
+                                      
+                                      if (eqUsuario === licUsuarioNombre) return true;
+                                      if (eqUsuario.includes(licUsuarioNombre) || licUsuarioNombre.includes(eqUsuario)) return true;
+                                      
+                                      const parts1 = eqUsuario.split(/\s+/);
+                                      const parts2 = licUsuarioNombre.split(/\s+/);
+                                      if (parts1.length >= 2 && parts2.length >= 2) {
+                                        if (parts1[0] === parts2[0] && parts1[parts1.length-1] === parts2[parts2.length-1]) return true;
+                                      }
+                                      
+                                      return false;
+                                    });
+                                    
+                                    if (userEquipos.length === 0) return <span className="text-gray-500 text-xs font-semibold">Ninguno</span>;
+                                    
+                                    return (
+                                      <div className="flex flex-col gap-2">
+                                        {userEquipos.map(eq => (
+                                          <div key={eq.id}>
+                                            <div className="font-[800] text-[#111827] text-[14px]">
+                                              {eq['Marca'] || 'Equipo'} {eq['Modelo'] || ''}
+                                            </div>
+                                            <div className="mt-0.5">
+                                              <span className="font-[500] text-[12px] text-[#6b7280]">
+                                                S/N: {eq['Nº de serie'] || 'Sin serie'}
+                                              </span>
+                                            </div>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    );
+                                  })()}
+                                </td>
                                 <td className="px-3 py-2.5 text-gray-600 text-xs">
                                   {formatLocalDate(asig.fecha_asignacion)}
                                 </td>
+                                <td className="px-3 py-2.5 text-gray-600 text-xs">
+                                  {selectedLic?.fecha_termino ? formatLocalDate(selectedLic.fecha_termino) : <span className="italic text-gray-400">Sin caducidad</span>}
+                                </td>
                                 <td className="px-3 py-2.5 text-center">
-                                  <button 
-                                    onClick={handleRevocarClick}
-                                    className="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 p-1.5 rounded-lg transition-colors border border-red-100 inline-flex items-center justify-center shrink-0 cursor-pointer"
-                                    title="Revocar Asignación"
-                                  >
-                                    <Trash2 size={14} />
-                                  </button>
+                                  <div className="flex items-center justify-center gap-2">
+                                    <button 
+                                      onClick={() => handleEditAsignacionClick(asig)}
+                                      className="text-amber-500 hover:text-amber-700 bg-amber-50 hover:bg-amber-100 p-1.5 rounded-lg transition-colors border border-amber-100 inline-flex items-center justify-center shrink-0 cursor-pointer"
+                                      title="Editar Asignación"
+                                    >
+                                      <Edit2 size={14} />
+                                    </button>
+                                    <button 
+                                      onClick={handleRevocarClick}
+                                      className="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 p-1.5 rounded-lg transition-colors border border-red-100 inline-flex items-center justify-center shrink-0 cursor-pointer"
+                                      title="Revocar Asignación"
+                                    >
+                                      <Trash2 size={14} />
+                                    </button>
+                                  </div>
                                 </td>
                               </tr>
                             );
@@ -1570,6 +1757,52 @@ export default function LicenciasAdminPage() {
                 />
               </div>
 
+              {/* URL Imagen (Opcional) */}
+              <div className="bg-white p-3 rounded-lg border border-gray-200 shadow-sm">
+                <label className="block text-[11px] font-bold text-[#25306B] uppercase tracking-wide mb-2">
+                  Imagen de Licencia Personalizada (Opcional)
+                </label>
+                <div className="flex items-start gap-3">
+                  <div className="w-14 h-14 rounded-md bg-gray-50 border border-gray-200 overflow-hidden shrink-0 flex items-center justify-center shadow-sm relative">
+                    <img 
+                      src={formData.imagen_url || getLogoUrl(formData.software)} 
+                      alt="Logo" 
+                      className="w-full h-full object-contain p-1"
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(formData.software || 'L')}&background=random&color=fff&rounded=true&bold=true`;
+                      }}
+                    />
+                  </div>
+                  <div className="flex-1 space-y-2">
+                    <div className="flex gap-2">
+                      <button 
+                        type="button" 
+                        onClick={() => {
+                          if (!formData.software) {
+                            alert("Por favor ingresa el nombre del Software primero.");
+                            return;
+                          }
+                          const query = encodeURIComponent(`${formData.software} logo png transparent`).replace(/%20/g, '+');
+                          window.open(`https://www.google.com/search?q=${query}&tbm=isch`, '_blank');
+                        }}
+                        className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 bg-[#25306B] hover:bg-[#112A46] text-white text-[11px] font-bold rounded-lg transition-colors shadow-sm"
+                        title="Buscar logo transparente en Google"
+                      >
+                        <Search size={14} /> Buscar Logo en Google
+                      </button>
+                    </div>
+                    <input 
+                      type="text" 
+                      value={formData.imagen_url || ''}
+                      onChange={(e) => setFormData({...formData, imagen_url: e.target.value})}
+                      className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs focus:ring-1.5 focus:ring-[#006BB9] focus:outline-none shadow-sm bg-gray-50 placeholder-gray-400"
+                      placeholder="Deja vacío para usar logo automático, o pega una URL..."
+                    />
+                  </div>
+                </div>
+              </div>
+
               <div className="flex justify-end gap-3 pt-3 border-t mt-4">
                 <button type="button" disabled={isSubmitting} onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">Cancelar</button>
                 <button type="submit" disabled={isSubmitting} className="px-4 py-2 bg-[#006BB9] text-white rounded-lg hover:bg-[#1A3A5F] flex items-center gap-2">
@@ -1724,7 +1957,7 @@ export default function LicenciasAdminPage() {
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white p-6 rounded-xl shadow-2xl w-full max-w-3xl max-h-[80vh] flex flex-col animate-fade-in">
             <h2 className="text-xl font-bold mb-1 text-[#25306B] flex items-center gap-2">
-              <img src={getLogoUrl(viewLicencia.software)} className="w-6 h-6 object-contain" alt="" onError={e => e.target.style.display = 'none'} />
+              <img src={viewLicencia.imagen_url || getLogoUrl(viewLicencia.software)} className="w-6 h-6 object-contain" alt="" onError={e => e.target.style.display = 'none'} />
               Asignaciones: {viewLicencia.software}
             </h2>
             <p className="text-sm text-gray-500 mb-4 border-b pb-4">
@@ -1742,6 +1975,7 @@ export default function LicenciasAdminPage() {
                         <SortableHeader label="Funcionario" sortKey="nombre" currentKey={modalAsigSortKey} currentDir={modalAsigSortDir} onSort={handleModalAsigSort} className="text-white text-left px-3 py-1.5 hover:bg-slate-800" />
                         <SortableHeader label="Correo Electrónico" sortKey="email" currentKey={modalAsigSortKey} currentDir={modalAsigSortDir} onSort={handleModalAsigSort} className="text-white text-left px-3 py-1.5 hover:bg-slate-800" />
                         <SortableHeader label="Fecha Asignación" sortKey="created_at" currentKey={modalAsigSortKey} currentDir={modalAsigSortDir} onSort={handleModalAsigSort} className="text-white text-left px-3 py-1.5 hover:bg-slate-800" />
+                        <SortableHeader label="Fecha Vencimiento" sortKey="dummy" currentKey={modalAsigSortKey} currentDir={modalAsigSortDir} onSort={handleModalAsigSort} className="text-white text-left px-3 py-1.5 hover:bg-slate-800" />
                         <th className="px-3 py-1.5 text-center w-24">Acciones</th>
                       </tr>
                     </thead>
@@ -1752,11 +1986,21 @@ export default function LicenciasAdminPage() {
                         const dateStr = formatLocalDate(a.fecha_asignacion);
                         return (
                           <tr key={a.id} className="hover:bg-slate-50 transition-colors">
-                            <td className="px-3 py-1">
-                              <Badge variant="user" categoria="nombres" estado="Funcionario" text={uName} />
+                            <td className="px-3 py-1 whitespace-nowrap">
+                              <div>
+                                <div className="font-[800] text-[#111827] text-[14px]">
+                                  {uName}
+                                </div>
+                                <div className="font-[500] text-[12px] text-[#6b7280]">
+                                  {a.perfiles?.subdireccion || '—'}
+                                </div>
+                              </div>
                             </td>
                             <td className="px-3 py-1 text-slate-650">{uEmail}</td>
                             <td className="px-3 py-1 text-slate-500">{dateStr}</td>
+                            <td className="px-3 py-1 text-slate-500">
+                              {viewLicencia.fecha_termino ? formatLocalDate(viewLicencia.fecha_termino) : <span className="italic text-gray-400">Sin caducidad</span>}
+                            </td>
                             <td className="px-3 py-1 text-center">
                               <button
                                 onClick={() => handleRevocar(a)}
@@ -1999,6 +2243,73 @@ export default function LicenciasAdminPage() {
               >
                 {isSubmitting && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>}
                 Confirmar y Guardar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Modal Editar Asignacion */}
+      {isEditAsigModalOpen && editAsigTarget && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-fade-in flex flex-col max-h-[90vh]">
+            <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+              <h2 className="text-xl font-extrabold text-[#112A46] flex items-center gap-2">
+                <Edit2 className="text-[#006BB9]" size={24} />
+                Editar Asignación
+              </h2>
+              <button onClick={() => setIsEditAsigModalOpen(false)} className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-lg hover:bg-gray-100 cursor-pointer">
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-4 overflow-y-auto">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Funcionario</label>
+                <div className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-600 text-sm font-medium">
+                  {editAsigTarget.perfiles?.nombre || editAsigTarget.perfiles?.email || 'Funcionario'}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Software</label>
+                <div className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-600 text-sm font-medium">
+                  {editAsigTarget.licencias?.software} {editAsigTarget.licencias?.version}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Fecha de Asignación</label>
+                <input 
+                  type="date"
+                  value={editAsigData.fecha_asignacion}
+                  onChange={(e) => setEditAsigData({...editAsigData, fecha_asignacion: e.target.value})}
+                  className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#006BB9] focus:border-[#006BB9] outline-none transition-all text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Observaciones</label>
+                <textarea 
+                  value={editAsigData.observaciones}
+                  onChange={(e) => setEditAsigData({...editAsigData, observaciones: e.target.value})}
+                  className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#006BB9] focus:border-[#006BB9] outline-none transition-all text-sm min-h-[100px] resize-none"
+                  placeholder="Detalles sobre esta asignación..."
+                />
+              </div>
+            </div>
+
+            <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3 bg-gray-50">
+              <button 
+                onClick={() => setIsEditAsigModalOpen(false)}
+                className="px-4 py-2 text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 rounded-lg text-sm font-bold transition-colors cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={handleSaveEditAsig}
+                className="px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 text-sm font-bold transition-colors shadow-sm cursor-pointer"
+              >
+                Guardar Cambios
               </button>
             </div>
           </div>

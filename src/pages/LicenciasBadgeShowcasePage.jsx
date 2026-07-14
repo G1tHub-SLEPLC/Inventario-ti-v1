@@ -1,11 +1,11 @@
 import React, { useState, useMemo } from 'react';
-import { 
-  CheckCircle, 
-  Clock, 
-  AlertTriangle, 
-  Info, 
-  Layers, 
-  Sliders, 
+import {
+  CheckCircle,
+  Clock,
+  AlertTriangle,
+  Info,
+  Layers,
+  Sliders,
   Code,
   Copy,
   Check,
@@ -118,18 +118,16 @@ function ColorSwatchCard({ colorRef, copiedIndex, handleCopy, onApplyToBadge }) 
           <button
             type="button"
             onClick={() => setActiveTab('shades')}
-            className={`flex-1 py-1 rounded-md text-center transition-all cursor-pointer ${
-              activeTab === 'shades' ? 'bg-white text-slate-800 shadow-xs' : 'text-slate-500 hover:text-slate-800'
-            }`}
+            className={`flex-1 py-1 rounded-md text-center transition-all cursor-pointer ${activeTab === 'shades' ? 'bg-white text-slate-800 shadow-xs' : 'text-slate-500 hover:text-slate-800'
+              }`}
           >
             Sólido / Pastel
           </button>
           <button
             type="button"
             onClick={() => setActiveTab('neon')}
-            className={`flex-1 py-1 rounded-md text-center transition-all cursor-pointer ${
-              activeTab === 'neon' ? 'bg-white text-slate-800 shadow-xs' : 'text-slate-500 hover:text-slate-800'
-            }`}
+            className={`flex-1 py-1 rounded-md text-center transition-all cursor-pointer ${activeTab === 'neon' ? 'bg-white text-slate-800 shadow-xs' : 'text-slate-500 hover:text-slate-800'
+              }`}
           >
             Neón / Opacidad
           </button>
@@ -147,9 +145,8 @@ function ColorSwatchCard({ colorRef, copiedIndex, handleCopy, onApplyToBadge }) 
                     key={s}
                     type="button"
                     onClick={() => setSelectedShade(s)}
-                    className={`w-5.5 h-5.5 rounded-md ${swatchBg} border ${
-                      isSelected ? 'ring-2 ring-blue-500 ring-offset-1 scale-110 z-10' : 'border-slate-200/50 hover:scale-105'
-                    } transition-all cursor-pointer relative group`}
+                    className={`w-5.5 h-5.5 rounded-md ${swatchBg} border ${isSelected ? 'ring-2 ring-blue-500 ring-offset-1 scale-110 z-10' : 'border-slate-200/50 hover:scale-105'
+                      } transition-all cursor-pointer relative group`}
                     title={`${key}-${s}`}
                   >
                     <span className="absolute inset-0 flex items-center justify-center text-[7px] font-extrabold text-white opacity-0 group-hover:opacity-100 bg-black/40 rounded-md">
@@ -172,9 +169,8 @@ function ColorSwatchCard({ colorRef, copiedIndex, handleCopy, onApplyToBadge }) 
                     key={op}
                     type="button"
                     onClick={() => setSelectedOpacity(op)}
-                    className={`px-1.5 py-0.5 rounded text-[8px] font-black border ${swatchBg} text-${key}-800 border-${key}-500/20 ${
-                      isSelected ? 'ring-2 ring-blue-500 ring-offset-1 scale-105 border-blue-500' : 'border-slate-200 hover:scale-105'
-                    } transition-all cursor-pointer`}
+                    className={`px-1.5 py-0.5 rounded text-[8px] font-black border ${swatchBg} text-${key}-800 border-${key}-500/20 ${isSelected ? 'ring-2 ring-blue-500 ring-offset-1 scale-105 border-blue-500' : 'border-slate-200 hover:scale-105'
+                      } transition-all cursor-pointer`}
                     title={`${key}-500/${op}`}
                   >
                     {op}%
@@ -202,7 +198,7 @@ function ColorSwatchCard({ colorRef, copiedIndex, handleCopy, onApplyToBadge }) 
             {copiedIndex === `dict-${key}-${activeLabel}` ? <Check size={11} className="text-emerald-600" /> : <Copy size={11} />}
             {copiedIndex === `dict-${key}-${activeLabel}` ? '¡Copiado!' : 'Copiar Clases CSS'}
           </button>
-          
+
           <div className="space-y-1">
             <label className="block text-[8.5px] font-bold text-slate-400 uppercase tracking-wide">Aplicar directamente a:</label>
             <select
@@ -228,7 +224,7 @@ function ColorSwatchCard({ colorRef, copiedIndex, handleCopy, onApplyToBadge }) 
 
 const updateClassString = (currentClasses, type, newValue) => {
   let parts = currentClasses.split(/\s+/).filter(Boolean);
-  
+
   const valuesToRepl = {
     family: [
       'font-sans', 'font-serif', 'font-mono',
@@ -241,13 +237,13 @@ const updateClassString = (currentClasses, type, newValue) => {
     case: ['uppercase', 'lowercase', 'capitalize'],
     rounded: ['rounded-none', 'rounded-xs', 'rounded-sm', 'rounded', 'rounded-md', 'rounded-lg', 'rounded-xl', 'rounded-full']
   };
-  
+
   parts = parts.filter(p => !valuesToRepl[type].includes(p));
-  
+
   if (newValue) {
     parts.push(newValue);
   }
-  
+
   return parts.join(' ');
 };
 
@@ -265,7 +261,7 @@ const getClassType = (currentClasses, type) => {
     case: ['uppercase', 'lowercase', 'capitalize'],
     rounded: ['rounded-none', 'rounded-xs', 'rounded-sm', 'rounded', 'rounded-md', 'rounded-lg', 'rounded-xl', 'rounded-full']
   };
-  
+
   const found = parts.find(p => valuesToRepl[type].includes(p));
   return found || '';
 };
@@ -336,7 +332,7 @@ export default function LicenciasBadgeShowcasePage() {
 
   return (
     <div className="p-6 max-w-[1280px] mx-auto space-y-8 pb-20 bg-slate-50 min-h-screen relative">
-      
+
       {/* Toast Alert Flotante */}
       {toastAlert && (
         <div className="fixed bottom-5 right-5 z-55 flex items-start gap-3 bg-slate-900 border border-slate-750 text-white px-4 py-3 rounded-xl shadow-2xl animate-fade-in w-80 text-xs">
@@ -361,7 +357,7 @@ export default function LicenciasBadgeShowcasePage() {
             Edita interactivamente los estilos CSS de Tailwind para los 10 badges del panel de Software. Observa los cambios reflejados en vivo en las tres tablas simuladas del módulo.
           </p>
         </div>
-        
+
         <span className="text-xs px-3 py-1.5 rounded-xl bg-[#006BB9] text-white font-bold border border-blue-600 flex items-center gap-1.5 self-start md:self-auto shadow-sm font-mono uppercase tracking-wide">
           Playground Licencias
         </span>
@@ -369,7 +365,7 @@ export default function LicenciasBadgeShowcasePage() {
 
       {/* Configuration Panels & Generated Code */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        
+
         {/* Left: Inputs (Col 7) */}
         <div className="lg:col-span-7 bg-white rounded-2xl border border-gray-200 shadow-sm p-5 space-y-6">
           <h2 className="text-xs font-black text-gray-855 uppercase tracking-wider flex items-center gap-2 border-b border-gray-100 pb-3">
@@ -386,7 +382,7 @@ export default function LicenciasBadgeShowcasePage() {
                     {/* Fila Superior: Etiqueta y Visualización en vivo */}
                     <div className="flex items-center justify-between gap-4">
                       <span className="text-xs font-extrabold text-slate-800">{b.label}</span>
-                      
+
                       <div className="shrink-0">
                         <span className={`inline-flex items-center justify-center gap-1.5 px-2.5 py-0.5 text-[10.5px] font-bold border transition-all ${licClasses[b.key]}`}>
                           {b.key === 'stockHigh' || b.key === 'stockMedium' || b.key === 'stockLow' ? (
@@ -430,19 +426,19 @@ export default function LicenciasBadgeShowcasePage() {
                         </span>
                       </div>
                     </div>
-                    
+
                     {/* Fila Intermedia: Campo de Texto para Clases */}
                     <div className="space-y-1">
                       <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Clases de Tailwind CSS</label>
-                      <input 
-                        type="text" 
-                        value={licClasses[b.key]} 
+                      <input
+                        type="text"
+                        value={licClasses[b.key]}
                         onChange={(e) => setLicClasses({ ...licClasses, [b.key]: e.target.value })}
                         className="w-full px-2.5 py-1 bg-white border border-slate-300 rounded-lg text-xs font-mono focus:ring-1.5 focus:ring-blue-500 focus:outline-none transition-shadow"
                         placeholder="Clases CSS..."
                       />
                     </div>
-                    
+
                     {/* Fila Inferior: Selectores de Fuentes y Bordes */}
                     <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 pt-1.5 border-t border-slate-100">
                       {/* Family */}
@@ -570,7 +566,7 @@ export default function LicenciasBadgeShowcasePage() {
                 <Code size={14} className="text-blue-500" />
                 Código de Integración
               </h2>
-              
+
               <button
                 type="button"
                 onClick={() => {
@@ -633,7 +629,7 @@ className={\`...\${'${licClasses.respOcFaltante}'}\`}`;
             </p>
 
             <pre className="bg-slate-900 text-slate-300 p-4 rounded-xl font-mono text-[9.5px] overflow-x-auto leading-relaxed border border-slate-900 shadow-inner max-h-[360px] custom-scrollbar">
-{`// 1. Badge de Stock Disponible (Línea 878)
+              {`// 1. Badge de Stock Disponible (Línea 878)
 if (ratio >= 0.4) {
   badgeColorClass = '${licClasses.stockHigh}';
 } else if (ratio >= 0.2) {
@@ -691,7 +687,7 @@ className={\`... ${licClasses.respOcFaltante}\`}`}
             <Sparkles size={18} className="text-amber-500" />
             Simulador del Módulo de Licencias en Vivo
           </h3>
-          
+
           <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl shadow-inner border border-slate-200">
             <button
               type="button"
@@ -712,23 +708,23 @@ className={\`... ${licClasses.respOcFaltante}\`}`}
 
         {/* Tab Selection */}
         <div className="flex bg-gray-100 p-1.5 rounded-xl max-w-md no-print-interactive">
-          <button 
+          <button
             type="button"
-            onClick={() => setActiveTab('disp')} 
+            onClick={() => setActiveTab('disp')}
             className={`flex-1 py-2 text-[10.5px] font-extrabold uppercase tracking-wider rounded-lg transition-all cursor-pointer ${activeTab === 'disp' ? 'bg-[#006BB9] text-white shadow-md' : 'text-gray-500 hover:text-gray-850'}`}
           >
             Disponibles
           </button>
-          <button 
+          <button
             type="button"
-            onClick={() => setActiveTab('func')} 
+            onClick={() => setActiveTab('func')}
             className={`flex-1 py-2 text-[10.5px] font-extrabold uppercase tracking-wider rounded-lg transition-all cursor-pointer ${activeTab === 'func' ? 'bg-[#006BB9] text-white shadow-md' : 'text-gray-500 hover:text-gray-850'}`}
           >
             Por funcionario
           </button>
-          <button 
+          <button
             type="button"
-            onClick={() => setActiveTab('lic')} 
+            onClick={() => setActiveTab('lic')}
             className={`flex-1 py-2 text-[10.5px] font-extrabold uppercase tracking-wider rounded-lg transition-all cursor-pointer ${activeTab === 'lic' ? 'bg-[#006BB9] text-white shadow-md' : 'text-gray-500 hover:text-gray-850'}`}
           >
             Por licencia
@@ -878,7 +874,7 @@ className={\`... ${licClasses.respOcFaltante}\`}`}
                 <span className="text-[10px] text-gray-500">cristian.gutierrez@slep.cl</span>
               </div>
             </div>
-            
+
             <div className="overflow-x-auto rounded-xl border border-gray-200">
               <table className="w-full text-left text-xs text-gray-600 whitespace-nowrap">
                 <thead>
@@ -912,7 +908,7 @@ className={\`... ${licClasses.respOcFaltante}\`}`}
                             ) : (
                               <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase border transition-all ${licClasses.respFacturaFaltante}`}>Sin Factura</span>
                             )}
-                            
+
                             <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9.5px] font-bold border transition-all ${row.ocFile ? licClasses.respOcConFile : licClasses.respOcSinFile}`}>
                               <FileText size={10} /> OC N° {row.oc}
                             </span>
@@ -1002,9 +998,9 @@ className={\`... ${licClasses.respOcFaltante}\`}`}
 
           <div className="relative flex items-center w-full md:w-80 shrink-0">
             <Search className="absolute left-3 w-4 h-4 text-gray-400" />
-            <input 
-              type="text" 
-              placeholder="Filtrar por nombre (ej: emerald, cyan, sky)..." 
+            <input
+              type="text"
+              placeholder="Filtrar por nombre (ej: emerald, cyan, sky)..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm font-medium"

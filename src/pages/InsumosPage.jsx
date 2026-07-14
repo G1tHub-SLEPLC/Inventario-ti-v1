@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabaseClient';
 import { useInventario } from '../context/InventarioContext';
 import { useAuth } from '../context/AuthContext';
 import { useAlert } from '../context/AlertContext';
-import { PlusCircle, Edit2, Trash2, UserPlus, History, Package, Upload, Download, Printer, UploadCloud, AlertCircle, CheckCircle, AlertTriangle, Eye, Users, Search, Box, RotateCcw, Undo2 } from 'lucide-react';
+import { PlusCircle, Edit2, Trash2, UserPlus, History, Package, Upload, Download, Printer, UploadCloud, AlertCircle, CheckCircle, AlertTriangle, Eye, Users, Search, Image as ImageIcon, RotateCcw, Undo2, Box } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { logAuditoria, getDiffString } from '../utils/auditoria';
 import { exportToExcelAndPDF } from '../utils/exportUtils';
@@ -22,7 +22,7 @@ function getInitials(name) {
 
 export default function InsumosPage() {
   const { insumos, refetch, broadcast } = useSolicitudes();
-  const { showToast } = useInventario();
+  const { showToast, equipos, updateEquiposMasivo } = useInventario();
   const { session } = useAuth();
   const { showAlertConfirm, showAlertPrompt } = useAlert();
   const { sorted: sortedInsumos, sortKey: insSortKey, sortDir: insSortDir, handleSort: handleInsSort } = useSort(insumos, 'nombre', 'asc');
@@ -74,7 +74,7 @@ export default function InsumosPage() {
   
   // Modals state
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState({ id: null, nombre: '', descripcion: '', categoria: '', tipo: '', marca: '', modelo: '', cantidad_disponible: 0, retornable: false });
+  const [formData, setFormData] = useState({ id: null, nombre: '', descripcion: '', categoria: '', tipo: '', marca: '', modelo: '', cantidad_disponible: 0, retornable: false, imagen_url: '' });
   const [selectTipoVal, setSelectTipoVal] = useState('');
 
   const dynamicTipos = useMemo(() => {
@@ -146,7 +146,7 @@ export default function InsumosPage() {
   const fetchHistorial = async () => {
     const { data: sols } = await supabase
       .from('solicitudes')
-      .select('id, cantidad, created_at, usuario_id, insumo_id, observaciones_admin, insumos(id, nombre, tipo, marca, modelo, retornable)')
+      .select('id, cantidad, created_at, usuario_id, insumo_id, observaciones_admin, insumos(id, nombre, tipo, marca, modelo, retornable, imagen_url)')
       .eq('tipo', 'insumo')
       .eq('estado', 'aprobado')
       .order('created_at', { ascending: false });
@@ -217,7 +217,7 @@ export default function InsumosPage() {
 
     const { data: sols } = await supabase
       .from('solicitudes')
-      .select('id, cantidad, created_at, usuario_id, observaciones_admin, insumos(nombre, tipo, marca, modelo, retornable)')
+      .select('id, cantidad, created_at, usuario_id, observaciones_admin, insumos(nombre, tipo, marca, modelo, retornable, imagen_url)')
       .eq('tipo', 'insumo')
       .eq('insumo_id', insumo.id)
       .eq('estado', 'aprobado')
@@ -336,7 +336,7 @@ export default function InsumosPage() {
       setFormData(insumo);
       setSelectTipoVal(insumo.tipo || '');
     } else {
-      setFormData({ id: null, nombre: '', descripcion: '', categoria: '', tipo: '', marca: '', modelo: '', cantidad_disponible: 0, retornable: false });
+      setFormData({ id: null, nombre: '', descripcion: '', categoria: '', tipo: '', marca: '', modelo: '', cantidad_disponible: 0, retornable: false, imagen_url: '' });
       setSelectTipoVal('');
     }
     setIsModalOpen(true);
@@ -345,18 +345,55 @@ export default function InsumosPage() {
   const handleSave = async (e) => {
     e.preventDefault();
     try {
+      const insertData = {
+        nombre: formData.nombre.toUpperCase(),
+        descripcion: formData.descripcion,
+        tipo: formData.tipo,
+        marca: formData.marca.toUpperCase(),
+        modelo: formData.modelo.toUpperCase(),
+        cantidad_disponible: formData.cantidad_disponible,
+        retornable: formData.retornable,
+        imagen_url: formData.imagen_url
+      };
       if (formData.id) {
         const originalInsumo = insumos.find(i => i.id === formData.id);
         const { id, ...updateData } = formData;
-        const { error } = await supabase.from('insumos').update(updateData).eq('id', id);
+        const { error } = await supabase.from('insumos').update(insertData).eq('id', id);
         if (error) throw error;
         
-        const diffText = getDiffString(originalInsumo, updateData);
-        await logAuditoria('insumos', 'Editar Insumo', `Insumo: ${updateData.nombre} (${updateData.marca} - ${updateData.modelo}). Cambios detectados: ${diffText}`);
+        // --- INICIO REPLICACIÓN DE IMAGEN ---
+        if (insertData.imagen_url && insertData.imagen_url !== originalInsumo.imagen_url) {
+          const upMarca = insertData.marca;
+          const upMod = insertData.modelo;
+          if (upMarca && upMod) {
+            // Replicar a otros Insumos
+            try {
+              await supabase.from('insumos')
+                .update({ imagen_url: insertData.imagen_url })
+                .ilike('marca', upMarca)
+                .ilike('modelo', upMod)
+                .neq('id', id);
+            } catch (err) { console.error("Error al replicar imagen a insumos:", err); }
+
+            // Replicar a Equipos
+            const norm = (str) => (str || '').toString().toLowerCase().trim();
+            const nMarca = norm(upMarca);
+            const nMod = norm(upMod);
+            const equiposToUpdate = equipos.filter(eq => norm(eq['Marca']) === nMarca && norm(eq['Modelo']) === nMod);
+            
+            if (equiposToUpdate.length > 0) {
+              const equiposActualizados = equiposToUpdate.map(eq => ({ ...eq, imagen_url: insertData.imagen_url }));
+              await updateEquiposMasivo(equiposActualizados);
+            }
+          }
+        }
+        // --- FIN REPLICACIÓN DE IMAGEN ---
+
+        const diffText = getDiffString(originalInsumo, insertData);
+        await logAuditoria('insumos', 'Editar Insumo', `Insumo: ${insertData.nombre} (${insertData.marca} - ${insertData.modelo}). Cambios detectados: ${diffText}`);
         
         showToast('Insumo actualizado', 'El insumo se ha actualizado correctamente.', 'success');
       } else {
-        const { id, ...insertData } = formData;
         const { error } = await supabase.from('insumos').insert(insertData);
         if (error) throw error;
         
@@ -409,7 +446,8 @@ export default function InsumosPage() {
             modelo: row['Modelo'] || row['modelo'] || 'N/A',
             categoria: row['Categoría'] || row['categoria'] || '',
             descripcion: row['Descripción'] || row['descripcion'] || '',
-            cantidad_disponible: parseInt(row['Cantidad'] || row['cantidad'] || 0, 10)
+            cantidad_disponible: parseInt(row['Cantidad'] || row['cantidad'] || 0, 10),
+            imagen_url: row['Imagen'] || row['imagen_url'] || ''
           };
           
           const { error } = await supabase.from('insumos').insert(insumo);
@@ -635,7 +673,7 @@ export default function InsumosPage() {
         // refrescar modal de vista
         const { data: sols } = await supabase
           .from('solicitudes')
-          .select('id, cantidad, created_at, usuario_id, observaciones_admin, insumos(nombre, tipo, marca, modelo, retornable)')
+          .select('id, cantidad, created_at, usuario_id, observaciones_admin, insumos(nombre, tipo, marca, modelo, retornable, imagen_url)')
           .eq('tipo', 'insumo')
           .eq('insumo_id', viewInsumo.id)
           .eq('estado', 'aprobado')
@@ -780,6 +818,7 @@ export default function InsumosPage() {
             <table className="min-w-full text-sm text-left whitespace-nowrap">
               <thead className="bg-slate-50 text-slate-700 font-semibold uppercase text-xs border-b border-gray-200">
                 <tr>
+                  <th className="px-6 py-3 w-16 font-bold text-white text-left"></th>
                   <SortableHeader label="Nombre" sortKey="nombre" currentKey={insSortKey} currentDir={insSortDir} onSort={handleInsSort} className="px-6 py-3" />
                   <SortableHeader label="Tipo" sortKey="tipo" currentKey={insSortKey} currentDir={insSortDir} onSort={handleInsSort} className="px-6 py-3" />
                   <SortableHeader label="Marca" sortKey="marca" currentKey={insSortKey} currentDir={insSortDir} onSort={handleInsSort} className="px-6 py-3" />
@@ -796,10 +835,19 @@ export default function InsumosPage() {
                 ) : (
                   sortedInsumos.map((insumo) => (
                     <tr key={insumo.id} className="hover:bg-blue-50 transition-colors">
-                      <td className="px-6 py-3 font-medium text-gray-900">{insumo.nombre}</td>
-                      <td className="px-6 py-3 text-gray-600">{insumo.tipo || '—'}</td>
-                      <td className="px-6 py-3 text-gray-600">{insumo.marca || '—'}</td>
-                      <td className="px-6 py-3 text-gray-600">{insumo.modelo || '—'}</td>
+                      <td className="px-6 py-3 w-[52px]">
+                        <div className="w-[52px] h-[52px] rounded shadow-sm border border-gray-100 overflow-hidden bg-white flex items-center justify-center relative group">
+                          {insumo.imagen_url ? (
+                            <img src={insumo.imagen_url} alt={insumo.nombre} className="w-full h-full object-contain" />
+                          ) : (
+                            <span className="text-[9px] text-gray-400 font-bold uppercase text-center leading-tight">Sin<br/>Img</span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-3 font-[800] text-[14px] text-[#334155]">{insumo.nombre}</td>
+                      <td className="px-6 py-3 font-[500] text-[14px] text-[#334155]">{insumo.tipo || '—'}</td>
+                      <td className="px-6 py-3 font-[500] text-[14px] text-[#334155]">{insumo.marca || '—'}</td>
+                      <td className="px-6 py-3 font-[500] text-[14px] text-[#334155]">{insumo.modelo || '—'}</td>
                       <td className="px-6 py-3 text-center">
                         <div className="flex flex-col items-center justify-center gap-1">
                           <span className="font-bold text-gray-800 font-mono text-lg leading-none">{insumo.cantidad_disponible}</span>
@@ -914,6 +962,7 @@ export default function InsumosPage() {
                 <table className="min-w-full text-sm text-left whitespace-nowrap">
                   <thead>
                     <tr>
+                      <th className="px-3 py-3 w-16 font-bold text-white bg-[#112A46] text-left"></th>
                       <SortableHeader label="Insumo" sortKey="insumos.nombre" currentKey={asigFuncSortKey} currentDir={asigFuncSortDir} onSort={handleAsigFuncSort} className="text-white bg-[#112A46] text-left" />
                       <SortableHeader label="Marca" sortKey="insumos.marca" currentKey={asigFuncSortKey} currentDir={asigFuncSortDir} onSort={handleAsigFuncSort} className="text-white bg-[#112A46] text-left" />
                       <SortableHeader label="Modelo" sortKey="insumos.modelo" currentKey={asigFuncSortKey} currentDir={asigFuncSortDir} onSort={handleAsigFuncSort} className="text-white bg-[#112A46] text-left" />
@@ -926,13 +975,22 @@ export default function InsumosPage() {
                   <tbody className="divide-y divide-gray-200">
                     {sortedAsignacionesFunc.length === 0 ? (
                       <tr>
-                        <td colSpan="6" className="px-6 py-8 text-center text-gray-500">
+                        <td colSpan="7" className="px-6 py-8 text-center text-gray-500">
                           No hay insumos entregados a este funcionario.
                         </td>
                       </tr>
                     ) : (
                       sortedAsignacionesFunc.map((asig) => (
                         <tr key={asig.id} className="hover:bg-gray-50 transition-colors">
+                          <td className="px-3 py-2.5 w-[52px]">
+                            <div className="w-[52px] h-[52px] rounded shadow-sm border border-gray-100 overflow-hidden bg-white flex items-center justify-center relative group">
+                              {asig.insumos?.imagen_url ? (
+                                <img src={asig.insumos?.imagen_url} alt={asig.insumos?.nombre} className="w-full h-full object-contain" />
+                              ) : (
+                                <span className="text-[9px] text-gray-400 font-bold uppercase text-center leading-tight">Sin<br/>Img</span>
+                              )}
+                            </div>
+                          </td>
                           <td className="px-3 py-2.5 font-bold text-[#112A46] text-[15px]">
                             {asig.insumos?.nombre}
                           </td>
@@ -1168,6 +1226,46 @@ export default function InsumosPage() {
                 <div className="col-span-2">
                   <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">Descripción (Opcional)</label>
                   <textarea value={formData.descripcion} onChange={e => setFormData({...formData, descripcion: e.target.value})} className="w-full rounded-lg border-gray-300 shadow-sm border p-2.5 text-sm focus:border-blue-500 focus:ring-blue-500" rows="2"></textarea>
+                </div>
+                <div className="col-span-2 mt-2 border-t border-gray-100 pt-3">
+                  <label className="block text-[11px] font-bold text-[#25306B] uppercase tracking-wide mb-2">
+                    Imagen del Insumo
+                  </label>
+                  <div className="flex items-start gap-3">
+                    <div className="w-14 h-14 rounded-md bg-gray-50 border border-gray-200 overflow-hidden shrink-0 flex items-center justify-center shadow-sm relative">
+                      {formData.imagen_url ? (
+                        <img src={formData.imagen_url} alt="Preview" className="w-full h-full object-contain p-1" />
+                      ) : (
+                        <span className="text-[9px] text-gray-400 font-bold uppercase text-center leading-tight">Sin<br/>Img</span>
+                      )}
+                    </div>
+                    <div className="flex-1 space-y-2">
+                      <div className="flex gap-2">
+                        <button 
+                          type="button" 
+                          onClick={() => {
+                            if (!formData.marca && !formData.modelo) {
+                              alert("Por favor ingresa la Marca y el Modelo primero para buscar la imagen.");
+                              return;
+                            }
+                            const query = encodeURIComponent(`${formData.marca} ${formData.modelo} png transparent`).replace(/%20/g, '+');
+                            window.open(`https://www.google.com/search?q=${query}&tbm=isch`, '_blank');
+                          }}
+                          className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 bg-[#25306B] hover:bg-[#112A46] text-white text-[11px] font-bold rounded-lg transition-colors shadow-sm"
+                          title="Buscar imagen transparente en Google"
+                        >
+                          <Search size={14} /> Buscar en Google
+                        </button>
+                      </div>
+                      <input 
+                        type="text" 
+                        value={formData.imagen_url || ''}
+                        onChange={(e) => setFormData({...formData, imagen_url: e.target.value})}
+                        className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs focus:ring-1.5 focus:ring-blue-500 focus:outline-none shadow-sm bg-gray-50 placeholder-gray-400"
+                        placeholder="Pega la URL de la imagen aquí..."
+                      />
+                    </div>
+                  </div>
                 </div>
                 <div className="col-span-2 mt-2">
                   <label className="flex items-start gap-3 cursor-pointer bg-blue-50 border border-blue-200 p-3 rounded-lg hover:bg-blue-100 transition-colors">

@@ -37,6 +37,7 @@ const IconShowcasePage = lazy(() => import('./pages/IconShowcasePage'));
 const BajasPage = lazy(() => import('./pages/BajasPage'));
 const ResponsiveTableShowcasePage = lazy(() => import('./pages/ResponsiveTableShowcasePage'));
 const TableFontSizeShowcasePage = lazy(() => import('./pages/TableFontSizeShowcasePage'));
+const AllIconsShowcasePage = lazy(() => import('./pages/AllIconsShowcasePage'));
 
 function ProtectedRoute({ children }) {
   const { session, loading } = useAuth();
@@ -129,6 +130,7 @@ export default function App() {
                   <Route path="icon-showcase" element={<IconShowcasePage />} />
                   <Route path="responsive-table-showcase" element={<ResponsiveTableShowcasePage />} />
                   <Route path="table-font-size-showcase" element={<TableFontSizeShowcasePage />} />
+                  <Route path="all-icons" element={<AllIconsShowcasePage />} />
                   
                 </Route>
                 <Route path="*" element={<Navigate to="/" replace />} />
