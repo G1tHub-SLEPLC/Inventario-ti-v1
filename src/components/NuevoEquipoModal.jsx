@@ -1017,7 +1017,6 @@ export default function NuevoEquipoModal({ isOpen, onClose }) {
           Asegúrate de que el nombre del archivo contenga la numeración de la <span className="font-bold uppercase">{fileTooltip.type}</span>.
         </div>
       )}
-      )}
         </div>
       </div>
     </div>
