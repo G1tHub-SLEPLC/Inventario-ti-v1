@@ -1108,20 +1108,18 @@ export default function EditarEquipoModal({ equipo, onClose }) {
               )}
 
               {/* Observación de Asignación */}
-              {(formData.estado === 'ASIGNADO' || formData.estado === 'EN PRESTAMO' || formData.usuario_asignado_id || (formData['Usuario'] && !['disponible', 'bodega', '—', '-', 'sin asignar'].includes(formData['Usuario'].toLowerCase().trim()))) && (
-                <div className="space-y-0.5 mt-2">
-                  <label className="block text-[10px] font-bold text-[#25306B] uppercase tracking-wide">
-                    Observación Asignación
-                  </label>
-                  <textarea
-                    name="observacion_asignacion"
-                    value={formData.observacion_asignacion || ''}
-                    onChange={handleChange}
-                    placeholder="Ej: Entrega sin cargador, pantalla con rayón, etc."
-                    className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs focus:ring-1.5 focus:ring-[#006BB9] focus:outline-none shadow-xs bg-white font-medium min-h-[60px] resize-y"
-                  />
-                </div>
-              )}
+              <div className="space-y-0.5 mt-2">
+                <label className="block text-[10px] font-bold text-[#25306B] uppercase tracking-wide">
+                  Observación Asignación
+                </label>
+                <textarea
+                  name="observacion_asignacion"
+                  value={formData.observacion_asignacion || ''}
+                  onChange={handleChange}
+                  placeholder="Ej: Entrega sin cargador, pantalla con rayón, etc."
+                  className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs focus:ring-1.5 focus:ring-[#006BB9] focus:outline-none shadow-xs bg-white font-medium min-h-[60px] resize-y"
+                />
+              </div>
 
               {/* Estado */}
               <div className="grid grid-cols-1 gap-2">

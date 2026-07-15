@@ -154,6 +154,7 @@ export default function DashboardPage() {
   const [assignModalData, setAssignModalData] = useState(null);
   const [assignUserName, setAssignUserName] = useState('');
   const [assignDate, setAssignDate] = useState('');
+  const [assignObservation, setAssignObservation] = useState('');
   const [qrModalData, setQrModalData] = useState(null);
   const [perfilesOptions, setPerfilesOptions] = useState([]);
   const [perfilesData, setPerfilesData] = useState([]);
@@ -1556,8 +1557,9 @@ export default function DashboardPage() {
                             <button
                               onClick={() => { 
                                 setAssignModalData(row); 
-                                setAssignUserName(row['Usuario'] || ''); 
-                                setAssignDate(row.fecha_asignacion || new Date().toISOString().split('T')[0]);
+                                setAssignUserName(row['Usuario'] && row['Usuario'] !== '—' ? row['Usuario'] : '');
+                                setAssignDate(row.fecha_asignacion ? row.fecha_asignacion.split('T')[0] : new Date().toISOString().split('T')[0]);
+                                setAssignObservation(row.observacion_asignacion || '');
                               }}
                               className="p-2 text-emerald-600 hover:text-white hover:bg-emerald-600 border border-emerald-200 hover:border-emerald-600 rounded-lg transition-all shadow-xs flex items-center justify-center cursor-pointer"
                               title="Asignar Equipo a un Funcionario"
@@ -1633,6 +1635,13 @@ export default function DashboardPage() {
                 onClick={(e) => e.target.showPicker && e.target.showPicker()}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#006BB9] focus:outline-none bg-white cursor-pointer"
               />
+              <label className="block text-sm font-semibold text-[#25306B] mb-2 mt-4">Observación Asignación</label>
+              <textarea
+                value={assignObservation}
+                onChange={(e) => setAssignObservation(e.target.value)}
+                placeholder="Ej: Entrega sin cargador, pantalla con rayón, etc."
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#006BB9] focus:outline-none bg-white min-h-[60px] resize-y mb-4"
+              />
             </div>
             <div className="flex justify-end gap-3 mt-auto relative z-0">
               <button
@@ -1703,7 +1712,7 @@ export default function DashboardPage() {
                     }
                   }
 
-                  const updated = { ...assignModalData, 'Usuario': assignUserName, fecha_asignacion: assignDate };
+                  const updated = { ...assignModalData, 'Usuario': assignUserName, fecha_asignacion: assignDate, observacion_asignacion: assignObservation };
                   updated.estado = isDisp ? 'DISPONIBLE' : 'ASIGNADO';
                   if (obsData) {
                     updated.Observaciones = updated.Observaciones 

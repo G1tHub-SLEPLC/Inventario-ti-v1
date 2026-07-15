@@ -930,20 +930,18 @@ export default function NuevoEquipoModal({ isOpen, onClose }) {
             )}
 
             {/* Observación de Asignación */}
-            {(formData.estado === 'ASIGNADO' || formData.estado === 'EN PRESTAMO' || formData.usuario_asignado_id) && (
-              <div className="space-y-1 animate-fade-in mt-3">
-                <label className="block text-[11px] font-bold text-[#25306B] uppercase tracking-wide">
-                  Observación Asignación
-                </label>
-                <textarea
-                  name="observacion_asignacion"
-                  value={formData.observacion_asignacion || ''}
-                  onChange={handleChange}
-                  placeholder="Ej: Entrega sin cargador, pantalla con rayón, etc."
-                  className="w-full px-2.5 py-2 border border-gray-300 rounded-lg text-xs focus:ring-2 focus:ring-[#006BB9] focus:outline-none shadow-sm bg-white font-medium min-h-[60px] resize-y"
-                />
-              </div>
-            )}
+            <div className="space-y-0.5 mt-2">
+              <label className="block text-[10px] font-bold text-[#25306B] uppercase tracking-wide">
+                Observación Asignación
+              </label>
+              <textarea
+                name="observacion_asignacion"
+                value={formData.observacion_asignacion || ''}
+                onChange={handleChange}
+                placeholder="Ej: Entrega sin cargador, pantalla con rayón, etc."
+                className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs focus:ring-1.5 focus:ring-[#006BB9] focus:outline-none shadow-xs bg-white font-medium min-h-[60px] resize-y"
+              />
+            </div>
 
             {/* Estado */}
             <div className="grid grid-cols-1 gap-2">
