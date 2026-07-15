@@ -5,11 +5,12 @@ import { useAuth } from '../context/AuthContext';
 import { useAlert } from '../context/AlertContext';
 import * as XLSX from 'xlsx';
 import Papa from 'papaparse';
-import { Download, Search, Package, UserCircle, MonitorSmartphone, Printer, Eye, Upload, Pencil, CheckCircle, UploadCloud, AlertCircle, FileWarning, AlertTriangle, PlusCircle, UserPlus, QrCode, FileText } from 'lucide-react';
+import { Download, Search, Package, UserCircle, MonitorSmartphone, Printer, Eye, Upload, Pencil, CheckCircle, UploadCloud, AlertCircle, FileWarning, AlertTriangle, PlusCircle, UserPlus, QrCode, FileText, Info } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { saveDocument, getDocument } from '../utils/db';
 import EditarEquipoModal from '../components/EditarEquipoModal';
+import NuevoEquipoModal from '../components/NuevoEquipoModal';
 import { isSameUser } from '../utils/userUtils';
 import AutocompleteInput from '../components/AutocompleteInput';
 import { supabase } from '../lib/supabaseClient';
@@ -141,6 +142,7 @@ export default function DashboardPage() {
   const [sortConfig, setSortConfig] = useState({ col: 'Descripción del Bien', dir: 1 });
 
   const [isMasivaModalOpen, setIsMasivaModalOpen] = useState(false);
+  const [isNuevoEquipoModalOpen, setIsNuevoEquipoModalOpen] = useState(false);
   const [editingEquipo, setEditingEquipo] = useState(null);
   const [status, setStatus] = useState({ type: 'idle', message: '' });
   const [localToast, setLocalToast] = useState(null);
@@ -1169,12 +1171,12 @@ export default function DashboardPage() {
           >
             <UploadCloud size={16} /> Carga Masiva
           </button>
-          <Link
-            to="/nuevo-equipo"
+          <button
+            onClick={() => setIsNuevoEquipoModalOpen(true)}
             className="flex items-center gap-2 bg-[#112A46] text-white px-4 py-2 rounded-lg hover:bg-[#1A3A5F] transition-colors text-sm font-medium shadow-sm cursor-pointer"
           >
             <PlusCircle size={16} /> Nuevo Equipo
-          </Link>
+          </button>
         </div>
       </div>
 
@@ -1470,15 +1472,29 @@ export default function DashboardPage() {
 
                           if (c === 'Usuario') {
                             const valSubdir = row['SubDirección'];
+                            const obsAsig = row.observacion_asignacion || row['observacion_asignacion'];
                             return (
                               <td key={c} className="px-3 py-2 whitespace-nowrap">
-                                <div>
-                                  <div className="font-[800] text-[#111827] text-[14px]">
-                                    {isAvailable(value) ? '—' : value}
+                                <div className="flex items-center gap-2">
+                                  <div>
+                                    <div className="font-[800] text-[#111827] text-[14px]">
+                                      {isAvailable(value) ? '—' : value}
+                                    </div>
+                                    <div className="font-[500] text-[12px] text-[#6b7280]">
+                                      {isAvailable(value) ? '' : (valSubdir || '—')}
+                                    </div>
                                   </div>
-                                  <div className="font-[500] text-[12px] text-[#6b7280]">
-                                    {isAvailable(value) ? '' : (valSubdir || '—')}
-                                  </div>
+                                  {obsAsig && !isAvailable(value) && (
+                                    <div className="group relative flex items-center justify-center cursor-help">
+                                      <Info size={16} className="text-red-500 hover:text-red-600 transition-colors" />
+                                      <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-max max-w-xs opacity-0 transition-opacity group-hover:opacity-100 z-50">
+                                        <div className="bg-gray-800 text-white text-xs rounded-lg py-2 px-3 shadow-xl whitespace-normal break-words text-center border border-gray-700">
+                                          {obsAsig}
+                                        </div>
+                                        <div className="w-0 h-0 border-l-[6px] border-l-transparent border-t-[6px] border-t-gray-800 border-r-[6px] border-r-transparent absolute left-1/2 -translate-x-1/2 top-full" />
+                                      </div>
+                                    </div>
+                                  )}
                                 </div>
                               </td>
                             );
@@ -1572,6 +1588,12 @@ export default function DashboardPage() {
         onChange={handleDirectUpload}
         accept="application/pdf,image/*"
         className="hidden"
+      />
+
+      {/* Modales */}
+      <NuevoEquipoModal 
+        isOpen={isNuevoEquipoModalOpen}
+        onClose={() => setIsNuevoEquipoModalOpen(false)}
       />
 
       {/* Modal Asignar Equipo */}

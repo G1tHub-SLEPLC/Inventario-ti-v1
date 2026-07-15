@@ -1,8 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { useInventario } from '../context/InventarioContext';
 import { useAlert } from '../context/AlertContext';
-import { Save, AlertCircle, UserCheck, Laptop, Trash2, Search } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Save, AlertCircle, UserCheck, Laptop, Trash2, Search, X } from 'lucide-react';
 import { saveDocument } from '../utils/db';
 import { supabase } from '../lib/supabaseClient';
 import { uploadEquipoImage } from '../utils/storageUtils';
@@ -15,10 +14,9 @@ const COLUMNS = [
   'Orden de Compra', 'Factura', 'Proveedor'
 ];
 
-export default function NuevoEquipoPage() {
+export default function NuevoEquipoModal({ isOpen, onClose }) {
   const { equipos, addEquipo, addMasivo, showToast, updateEquiposMasivo } = useInventario();
   const { showAlertConfirm } = useAlert();
-  const navigate = useNavigate();
   const [formData, setFormData] = useState({ estado: 'DISPONIBLE', usuario_asignado_id: '' });
   const [selectDescVal, setSelectDescVal] = useState('');
   const [selectMarcaVal, setSelectMarcaVal] = useState('');
@@ -348,7 +346,7 @@ export default function NuevoEquipoPage() {
        
        if (success) {
          showToast('Registro Múltiple Exitoso', `Se guardaron correctamente ${uniqueSerials.length} equipos nuevos en bloque.`, 'success');
-         navigate('/');
+         onClose();
        } else {
          showToast('Error al guardar', `Hubo un error al registrar los equipos en bloque. Detalle: ${errorMessage}`, 'error');
        }
@@ -454,7 +452,7 @@ export default function NuevoEquipoPage() {
         `El equipo "${newEquipo['Descripción del Bien'] || 'Nuevo equipo'}" se ha guardado correctamente.`, 
         'success'
       );
-      navigate('/');
+      onClose();
     } else {
       showToast(
         'Error al guardar',
@@ -464,8 +462,19 @@ export default function NuevoEquipoPage() {
     }
   };
 
+  if (!isOpen) return null;
+
   return (
-    <div className="p-6 max-w-4xl mx-auto space-y-6">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-hidden">
+      <div className="bg-slate-50 p-5 rounded-xl shadow-2xl w-full max-w-4xl animate-fade-in relative max-h-[95vh] flex flex-col overflow-hidden">
+        <button 
+          onClick={onClose} 
+          className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 bg-gray-200 hover:bg-gray-300 rounded-full p-1 transition-colors cursor-pointer z-10"
+          title="Cerrar ventana"
+        >
+          <X size={18} />
+        </button>
+        <div className="overflow-y-auto pr-2 custom-scrollbar flex-1 space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Nuevo Equipo</h1>
@@ -920,6 +929,22 @@ export default function NuevoEquipoPage() {
               </div>
             )}
 
+            {/* Observación de Asignación */}
+            {(formData.estado === 'ASIGNADO' || formData.estado === 'EN PRESTAMO' || formData.usuario_asignado_id) && (
+              <div className="space-y-1 animate-fade-in mt-3">
+                <label className="block text-[11px] font-bold text-[#25306B] uppercase tracking-wide">
+                  Observación Asignación
+                </label>
+                <textarea
+                  name="observacion_asignacion"
+                  value={formData.observacion_asignacion || ''}
+                  onChange={handleChange}
+                  placeholder="Ej: Entrega sin cargador, pantalla con rayón, etc."
+                  className="w-full px-2.5 py-2 border border-gray-300 rounded-lg text-xs focus:ring-2 focus:ring-[#006BB9] focus:outline-none shadow-sm bg-white font-medium min-h-[60px] resize-y"
+                />
+              </div>
+            )}
+
             {/* Estado */}
             <div className="grid grid-cols-1 gap-2">
               <div className="space-y-1 relative">
@@ -969,7 +994,7 @@ export default function NuevoEquipoPage() {
         <div className="lg:col-span-2 pt-5 border-t border-gray-200 flex justify-end items-center gap-3">
           <button
             type="button"
-            onClick={() => navigate('/')}
+            onClick={onClose}
             className="px-5 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 font-bold rounded-lg text-sm transition-colors cursor-pointer border border-gray-200 shadow-sm"
           >
             Cancelar
@@ -992,7 +1017,9 @@ export default function NuevoEquipoPage() {
           Asegúrate de que el nombre del archivo contenga la numeración de la <span className="font-bold uppercase">{fileTooltip.type}</span>.
         </div>
       )}
+      )}
+        </div>
+      </div>
     </div>
   );
-
 }

@@ -9,7 +9,6 @@ import { AlertProvider } from './context/AlertContext';
 // Lazy imports
 const AppShell        = lazy(() => import('./layouts/AppShell'));
 const DashboardPage   = lazy(() => import('./pages/DashboardPage'));
-const NuevoEquipoPage = lazy(() => import('./pages/NuevoEquipoPage'));
 const LoginPage = lazy(() => import('./pages/LoginPage'));
 const InsumosPage = lazy(() => import('./pages/InsumosPage'));
 const SolicitudesAdminPage = lazy(() => import('./pages/SolicitudesAdminPage'));
@@ -98,7 +97,6 @@ export default function App() {
                   {/* Admin Routes */}
                   <Route path="equipos" element={<AdminRoute><DashboardPage /></AdminRoute>} />
                   <Route path="dashboard" element={<AdminRoute><GlobalDashboardPage /></AdminRoute>} />
-                  <Route path="nuevo-equipo" element={<AdminRoute><NuevoEquipoPage /></AdminRoute>} />
                   <Route path="editar-equipo" element={<Navigate to="/equipos" replace />} />
                   <Route path="insumos" element={<AdminRoute><InsumosPage /></AdminRoute>} />
                   <Route path="solicitudes" element={<AdminRoute><SolicitudesAdminPage /></AdminRoute>} />
