@@ -1668,12 +1668,20 @@ export default function LicenciasAdminPage() {
                           const file = e.target.files[0];
                           if (file) {
                             setFacturaFile(file);
-                            const match = file.name.match(/factura\s*n[°º]?\s*(\d+)/i);
-                            if (match) {
-                              setFormData(prev => ({ ...prev, factura: match[1] }));
+                            const cleanName = file.name.replace(/\.[^/.]+$/, "");
+                            let extractedCode = null;
+                            const matchFactura = cleanName.match(/(?:n[°º]|nro\.?|numero|número)\s*(\d+)/i);
+                            if (matchFactura && matchFactura[1]) {
+                              extractedCode = matchFactura[1];
                             } else {
-                              setFormData(prev => ({ ...prev, factura: file.name.split('.').slice(0, -1).join('.') }));
+                              const matchOld = cleanName.match(/(?:factura|fact|f)[\s_.-]*([a-z0-9-]+)/i);
+                              if (matchOld && matchOld[1]) extractedCode = matchOld[1].toUpperCase();
                             }
+                            if (!extractedCode) {
+                               const numMatch = cleanName.match(/\d{4,}/);
+                               if (numMatch) extractedCode = numMatch[0];
+                            }
+                            setFormData(prev => ({ ...prev, factura: extractedCode || cleanName }));
                           }
                         }}
                       />
@@ -1721,12 +1729,20 @@ export default function LicenciasAdminPage() {
                           const file = e.target.files[0];
                           if (file) {
                             setOcFile(file);
-                            const match = file.name.match(/(\d+-\d+-[a-zA-Z0-9]+)/i);
-                            if (match) {
-                              setFormData(prev => ({ ...prev, orden_compra: match[1].toUpperCase() }));
+                            const cleanName = file.name.replace(/\.[^/.]+$/, "");
+                            let extractedCode = null;
+                            const matchOC = cleanName.match(/(1456839-\d+-[a-z]{2}\d{2})/i);
+                            if (matchOC && matchOC[1]) {
+                              extractedCode = matchOC[1].toUpperCase();
                             } else {
-                              setFormData(prev => ({ ...prev, orden_compra: file.name.split('.').slice(0, -1).join('.') }));
+                              const matchOld = cleanName.match(/(?:oc|orden|compra)[\s_.-]*([a-z0-9-]+)/i);
+                              if (matchOld && matchOld[1]) extractedCode = matchOld[1].toUpperCase();
                             }
+                            if (!extractedCode) {
+                               const numMatch = cleanName.match(/\d{4,}/);
+                               if (numMatch) extractedCode = numMatch[0];
+                            }
+                            setFormData(prev => ({ ...prev, orden_compra: extractedCode || cleanName }));
                           }
                         }}
                       />

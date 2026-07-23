@@ -35,11 +35,12 @@ const HEADER_ALIASES = {
   'Modelo': ['modelo'],
   'Nº de serie': ['nº de serie', 'n° de serie', 'no de serie', 'numero de serie', 'número de serie', 'serie'],
   'ID Publicación': ['id publicación', 'id publicacion', 'codigo compra agil / licitación / codigo convenio marco', 'codigo compra agil / licitacion / codigo convenio marco', 'código compra ágil', 'codigo compra', 'licitacion', 'licitación', 'convenio marco', 'codigo'],
+  'Tipo Publicación': ['tipo publicación', 'tipo publicacion', 'tipo'],
   'Orden de Compra': ['orden de compra', 'oc', 'orden compra'],
   'Factura': ['factura', 'n° factura', 'nº factura'],
   'Proveedor': ['proveedor', 'empresa', 'vendedor', 'distribuidor'],
-  'SubDirección': ['subcdirección', 'subcdireccion', 'subdirección', 'subdireccion', 'area', 'área'],
-  'Usuario': ['usuario', 'funcionario', 'asignado a']
+  'SubDirección': ['subcdirección', 'subcdireccion', 'subdirección', 'subdireccion', 'departamento', 'area', 'área'],
+  'Usuario': ['usuario', 'funcionario', 'asignado a', 'responsable']
 };
 
 function normalizeRow(rawRow) {
@@ -57,6 +58,18 @@ function normalizeRow(rawRow) {
     if (found === '' && lowerMap[norm(canonical)] !== undefined) found = lowerMap[norm(canonical)];
     out[canonical] = found == null ? '' : String(found).trim();
   });
+  if (lowerMap['_id_interno_'] !== undefined) out['_id_interno_'] = String(lowerMap['_id_interno_']).trim();
+  
+  const tipoAliases = HEADER_ALIASES['Tipo Publicación'];
+  let foundTipo = '';
+  for (const a of tipoAliases) {
+    if (lowerMap[a] !== undefined && lowerMap[a] !== null && String(lowerMap[a]).trim() !== '') {
+      foundTipo = lowerMap[a]; break;
+    }
+  }
+  if (foundTipo === '' && lowerMap[norm('Tipo Publicación')] !== undefined) foundTipo = lowerMap[norm('Tipo Publicación')];
+  out['Tipo Publicación'] = foundTipo == null ? '' : String(foundTipo).trim();
+
   return out;
 }
 
@@ -432,37 +445,36 @@ export default function DashboardPage() {
     }
 
     const isFirstUpload = equipos.length === 0;
-    const noSerial = [];
-    const validWithSerial = [];
+    const noSerialNew = [];
     const importableItems = [];
+    const updatedItems = [];
+    const newItems = [];
 
     normalized.forEach((row, index) => {
-      const serial = row['Nº de serie'] ? String(row['Nº de serie']).trim() : '';
-      if (!serial) {
-        noSerial.push({ rowNumber: index + 2, desc: row['Descripción del Bien'] || 'Sin descripción' });
-        if (isFirstUpload) {
-          importableItems.push(row);
-        }
-      } else {
-        validWithSerial.push(row);
+      let serial = row['Nº de serie'] ? String(row['Nº de serie']).trim().toLowerCase() : '';
+      if (serial === '—') {
+        serial = '';
+        row['Nº de serie'] = '';
       }
-    });
+      
+      const internalId = row['_id_interno_'] ? String(row['_id_interno_']).trim() : null;
 
-    const duplicates = [];
-    const newItems = [];
-    const seenSerials = new Set(
-      equipos
-        .map(e => e['Nº de serie'] ? String(e['Nº de serie']).trim().toLowerCase() : '')
-        .filter(s => s !== '')
-    );
+      // Check if item exists
+      let exists = false;
+      if (internalId && equipos.some(e => String(e.id) === internalId)) {
+        exists = true;
+      } else if (serial && equipos.some(e => (e['Nº de serie'] ? String(e['Nº de serie']).trim().toLowerCase() : '') === serial)) {
+        exists = true;
+      }
 
-    validWithSerial.forEach(row => {
-      const serial = String(row['Nº de serie']).trim().toLowerCase();
-
-      if (seenSerials.has(serial)) {
-        duplicates.push(row);
+      if (exists) {
+        updatedItems.push(row);
+        importableItems.push(row);
       } else {
-        seenSerials.add(serial);
+        if (!serial) {
+          row['Nº de serie'] = `S/N-${Date.now()}-${Math.floor(Math.random() * 10000) + index}`;
+          noSerialNew.push({ rowNumber: index + 2, desc: row['Descripción del Bien'] || 'Sin descripción' });
+        }
         newItems.push(row);
         importableItems.push(row);
       }
@@ -470,100 +482,41 @@ export default function DashboardPage() {
 
     if (importableItems.length > 0) {
       addMasivo(importableItems);
-    }
-
-    if (isFirstUpload) {
-      if (duplicates.length > 0 || noSerial.length > 0) {
-        setStatus({
-          type: 'success',
-          message: `Cargados: ${importableItems.length}. Omitidos: ${duplicates.length} duplicados. ¡Atención! ${noSerial.length} sin serie.`
-        });
-        showLocalToast(
-          'Carga Inicial con Advertencia',
-          '',
-          'warning',
-          {
-            duplicateSerials: duplicates.map(d => String(d['Nº de serie'] || '—').trim()),
-            addedCount: importableItems.length,
-            noSerialCount: noSerial.length,
-            isFirstUpload: true
-          }
-        );
-      } else {
-        setStatus({
-          type: 'success',
-          message: `✓ ${importableItems.length} registros cargados exitosamente.`
-        });
-        showLocalToast(
-          'Carga Exitosa',
-          `Se han cargado correctamente los ${importableItems.length} equipos en el sistema.`,
-          'success'
-        );
-        setTimeout(() => setIsMasivaModalOpen(false), 2000);
-      }
+      const partialMsg = noSerialNew.length > 0 ? `\n• Se auto-generaron ${noSerialNew.length} Nº de Serie temporales.` : '';
+      const message = `Se agregaron ${newItems.length} equipos y se actualizaron ${updatedItems.length}.${partialMsg}`;
+      
+      setStatus({
+        type: 'success',
+        message: message
+      });
+      showLocalToast(
+        noSerialNew.length > 0 ? 'Carga con Auto-generación' : 'Carga Exitosa',
+        message,
+        'success',
+        {
+          duplicateSerials: [],
+          addedCount: newItems.length + updatedItems.length,
+          noSerialCount: noSerialNew.length,
+          isFirstUpload: isFirstUpload
+        }
+      );
+      setTimeout(() => setIsMasivaModalOpen(false), 2000);
     } else {
-      if (newItems.length > 0) {
-        if (noSerial.length > 0 || duplicates.length > 0) {
-          setStatus({
-            type: 'success',
-            message: `Cargados: ${newItems.length} nuevos. Omitidos: ${noSerial.length} sin serie, ${duplicates.length} duplicados.`
-          });
-          showLocalToast(
-            'Carga Parcial Completada',
-            noSerial.length > 0
-              ? 'ATENCIÓN: Solo se permite subir equipos con N° de serie. Los equipos sin serie fueron omitidos.'
-              : '',
-            'warning',
-            {
-              duplicateSerials: duplicates.map(d => String(d['Nº de serie'] || '—').trim()),
-              addedCount: newItems.length,
-              noSerialCount: noSerial.length,
-              isFirstUpload: false
-            }
-          );
-        } else {
-          setStatus({
-            type: 'success',
-            message: `✓ ${newItems.length} registros cargados exitosamente.`
-          });
-          showLocalToast(
-            'Carga Exitosa',
-            `Se han cargado correctamente los ${newItems.length} equipos en el sistema.`,
-            'success'
-          );
-          setTimeout(() => setIsMasivaModalOpen(false), 2000);
+      setStatus({
+        type: 'error',
+        message: 'No se encontraron registros válidos para agregar o actualizar.'
+      });
+      showLocalToast(
+        'Error de Carga',
+        'El archivo no contenía registros válidos.',
+        'error',
+        {
+          duplicateSerials: [],
+          addedCount: 0,
+          noSerialCount: 0,
+          isFirstUpload: false
         }
-      } else {
-        if (noSerial.length > 0 || duplicates.length > 0) {
-          setStatus({
-            type: 'error',
-            message: `No se agregaron registros. Omitidos: ${noSerial.length} sin serie, ${duplicates.length} duplicados.`
-          });
-          showLocalToast(
-            'Carga Omitida',
-            noSerial.length > 0
-              ? 'ATENCIÓN: Solo se permite subir equipos con N° de serie. Todos los registros fueron omitidos por duplicidad o falta de serie.'
-              : 'Todos los equipos del archivo ya estaban registrados (duplicados).',
-            'error',
-            {
-              duplicateSerials: duplicates.map(d => String(d['Nº de serie'] || '—').trim()),
-              addedCount: 0,
-              noSerialCount: noSerial.length,
-              isFirstUpload: false
-            }
-          );
-        } else {
-          setStatus({
-            type: 'error',
-            message: 'No se encontraron equipos para agregar.'
-          });
-          showLocalToast(
-            'Carga Omitida',
-            'El archivo no contenía equipos válidos.',
-            'error'
-          );
-        }
-      }
+      );
     }
   };
 
@@ -623,21 +576,38 @@ export default function DashboardPage() {
   const fileInputRef = useRef(null);
 
   const handlePreview = async (id, type) => {
+    // Abrir la pestaña inmediatamente para evitar el bloqueo de popups por el navegador
+    const newTab = window.open('', '_blank');
+    if (newTab) newTab.document.write('Cargando documento...');
+
     try {
       const eq = equipos.find(e => e.id === id);
-      const code = eq ? (type === 'factura' ? eq['Factura'] : eq['Orden de Compra']) : '';
-      const storageKey = (code && code.trim() !== '—' && code.trim() !== '')
+      const rawCode = eq ? (type === 'factura' ? eq['Factura'] : eq['Orden de Compra']) : '';
+      const code = rawCode != null ? String(rawCode) : '';
+      const defaultStorageKey = (code && code.trim() !== '—' && code.trim() !== '')
         ? `${type}_${code.trim().toLowerCase()}`
-        : id;
+        : `${type}_${id}`;
 
-      const doc = await getDocument(storageKey, type);
+      let doc = await getDocument(defaultStorageKey, type);
+      
+      // Fallback para documentos antiguos que sufrieron el bug de colisión y se guardaron sin prefijo
+      if (!doc && (!code || code.trim() === '—' || code.trim() === '')) {
+        doc = await getDocument(id, type);
+      }
+
       if (!doc) {
+        if (newTab) newTab.close();
         alert('No se encontró el documento asociado.');
         return;
       }
       const fileURL = URL.createObjectURL(doc.blob);
-      window.open(fileURL, '_blank');
+      if (newTab) {
+        newTab.location.href = fileURL;
+      } else {
+        window.open(fileURL, '_blank');
+      }
     } catch (err) {
+      if (newTab) newTab.close();
       console.error('Error al abrir el documento:', err);
       alert('Error al abrir el documento.');
     }
@@ -662,13 +632,27 @@ export default function DashboardPage() {
       // Extract from filename if code is empty
       if (!code || code.trim() === '—' || code.trim() === '') {
         const cleanName = file.name.replace(/\.[^/.]+$/, "");
-        const prefix = uploadTarget.type === 'factura' ? /(?:factura|fact|f)[\s_.-]*([a-z0-9-]+)/i : /(?:oc|orden|compra)[\s_.-]*([a-z0-9-]+)/i;
-        const match = cleanName.match(prefix);
-        
         let extractedCode = null;
-        if (match && match[1]) {
-           extractedCode = match[1].toUpperCase();
+        
+        if (uploadTarget.type === 'factura') {
+          const matchFactura = cleanName.match(/(?:n[°º]|nro\.?|numero|número)\s*(\d+)/i);
+          if (matchFactura && matchFactura[1]) {
+            extractedCode = matchFactura[1];
+          } else {
+            const matchOld = cleanName.match(/(?:factura|fact|f)[\s_.-]*([a-z0-9-]+)/i);
+            if (matchOld && matchOld[1]) extractedCode = matchOld[1].toUpperCase();
+          }
         } else {
+          const matchOC = cleanName.match(/(1456839-\d+-[a-z]{2}\d{2})/i);
+          if (matchOC && matchOC[1]) {
+            extractedCode = matchOC[1].toUpperCase();
+          } else {
+            const matchOld = cleanName.match(/(?:oc|orden|compra)[\s_.-]*([a-z0-9-]+)/i);
+            if (matchOld && matchOld[1]) extractedCode = matchOld[1].toUpperCase();
+          }
+        }
+
+        if (!extractedCode) {
            const numMatch = cleanName.match(/\d{4,}/);
            if (numMatch) extractedCode = numMatch[0];
         }
@@ -687,7 +671,7 @@ export default function DashboardPage() {
 
       const storageKey = (code && code.trim() !== '—' && code.trim() !== '')
         ? `${uploadTarget.type}_${code.trim().toLowerCase()}`
-        : uploadTarget.id;
+        : `${uploadTarget.type}_${uploadTarget.id}`;
 
       await saveDocument(storageKey, uploadTarget.type, file);
       setFileStatus(uploadTarget.id, uploadTarget.type, true);
@@ -858,7 +842,16 @@ export default function DashboardPage() {
       const wb = new Workbook();
       const ws = wb.addWorksheet('Inventario');
 
-      ws.columns = activeCols.map(c => ({
+      const exportCols = COLUMNS.filter(c => c !== 'Imagen');
+      const idx = exportCols.indexOf('ID Publicación');
+      const allExportCols = [
+        ...exportCols.slice(0, idx + 1),
+        'Tipo Publicación',
+        ...exportCols.slice(idx + 1),
+        '_id_interno_'
+      ];
+
+      ws.columns = allExportCols.map(c => ({
         header: c.toUpperCase(),
         key: c,
         width: Math.max(c.length + 5, 20)
@@ -874,16 +867,15 @@ export default function DashboardPage() {
 
       baseData.forEach((r, i) => {
         const rowData = {};
-        activeCols.forEach(c => {
-          const estadoFinal = getEstadoFinal(r);
+        allExportCols.forEach(c => {
           if (c === 'Estado') {
-            rowData[c] = estadoFinal;
-          } else if (c === 'Respaldo') {
-            const fac = safe(r['Factura']);
-            const oc = safe(r['Orden de Compra']);
-            rowData[c] = [fac ? `Factura: ${fac}` : '', oc ? `OC: ${oc}` : ''].filter(Boolean).join(' / ');
+            rowData[c] = getEstadoFinal(r) || '';
+          } else if (c === '_id_interno_') {
+            rowData[c] = r.id || '';
+          } else if (c === 'Tipo Publicación') {
+            rowData[c] = r['Tipo Publicación'] || '';
           } else {
-            rowData[c] = safe(r[c]);
+            rowData[c] = r[c] == null ? '' : String(r[c]);
           }
         });
         const row = ws.addRow(rowData);
@@ -961,18 +953,26 @@ export default function DashboardPage() {
       doc.save(baseName + '.pdf');
 
     } else {
+      const exportCols = COLUMNS.filter(c => c !== 'Imagen');
+      const idx = exportCols.indexOf('ID Publicación');
+      const allExportCols = [
+        ...exportCols.slice(0, idx + 1),
+        'Tipo Publicación',
+        ...exportCols.slice(idx + 1),
+        '_id_interno_'
+      ];
+
       const exportRows = baseData.map(r => {
         const o = {};
-        activeCols.forEach(c => {
-          const estadoFinal = getEstadoFinal(r);
+        allExportCols.forEach(c => {
           if (c === 'Estado') {
-            o[c] = estadoFinal;
-          } else if (c === 'Respaldo') {
-            const fac = safe(r['Factura']);
-            const oc = safe(r['Orden de Compra']);
-            o[c] = [fac ? `Factura: ${fac}` : '', oc ? `OC: ${oc}` : ''].filter(Boolean).join(' / ');
+            o[c] = getEstadoFinal(r) || '';
+          } else if (c === '_id_interno_') {
+            o[c] = r.id || '';
+          } else if (c === 'Tipo Publicación') {
+            o[c] = r['Tipo Publicación'] || '';
           } else {
-            o[c] = safe(r[c]);
+            o[c] = r[c] == null ? '' : String(r[c]);
           }
         });
         return o;
@@ -1593,10 +1593,12 @@ export default function DashboardPage() {
       />
 
       {/* Modales */}
-      <NuevoEquipoModal 
-        isOpen={isNuevoEquipoModalOpen}
-        onClose={() => setIsNuevoEquipoModalOpen(false)}
-      />
+      {isNuevoEquipoModalOpen && (
+        <NuevoEquipoModal 
+          isOpen={isNuevoEquipoModalOpen}
+          onClose={() => setIsNuevoEquipoModalOpen(false)}
+        />
+      )}
 
       {/* Modal Asignar Equipo */}
       {assignModalData && (

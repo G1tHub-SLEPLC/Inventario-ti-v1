@@ -190,9 +190,15 @@ export function InventarioProvider({ children }) {
       const serial = nuevo['Nº de serie'] ? String(nuevo['Nº de serie']).trim() : '';
       const nuevoId = serial || `item_${Date.now()}_${idx}_${Math.random().toString(36).substr(2, 9)}`;
       
-      const index = serial 
-        ? merged.findIndex(e => e['Nº de serie'] && String(e['Nº de serie']).trim() === serial) 
-        : -1;
+      const internalId = nuevo['_id_interno_'] ? String(nuevo['_id_interno_']).trim() : null;
+      
+      let index = -1;
+      if (internalId) {
+        index = merged.findIndex(e => e.id === internalId);
+      }
+      if (index === -1 && serial) {
+        index = merged.findIndex(e => e['Nº de serie'] && String(e['Nº de serie']).trim() === serial);
+      }
         
       let newObj;
       if (index >= 0) {
@@ -355,6 +361,28 @@ export function InventarioProvider({ children }) {
       }
     }
   };
+  const deleteEquipo = async (id, motivo) => {
+    try {
+      const eqToDelete = equipos.find(e => e.id === id);
+      if (!eqToDelete) return { success: false, error: 'Equipo no encontrado' };
+
+      const { error } = await supabase.from('equipos').delete().eq('id', id);
+      if (error) throw error;
+
+      setEquipos(prev => prev.filter(e => e.id !== id));
+      await logAuditoria(
+        'equipos', 
+        'Borrado', 
+        `Se eliminó el equipo: ${eqToDelete['Descripción del Bien']} - ${eqToDelete['Marca']} (ID: ${id}). Motivo: ${motivo}`
+      );
+      
+      return { success: true };
+    } catch (err) {
+      console.error('Error al eliminar equipo:', err);
+      return { success: false, error: err.message };
+    }
+  };
+
 
   return (
     <InventarioContext.Provider value={{ 
@@ -368,6 +396,7 @@ export function InventarioProvider({ children }) {
       updateEquipo, 
       updateEquipoBySerial, 
       updateEquiposMasivo,
+      deleteEquipo,
       setFileStatus, 
       clearInventario,
       refetchInventario: loadData,

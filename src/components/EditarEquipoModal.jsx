@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useInventario } from '../context/InventarioContext';
 import { useAlert } from '../context/AlertContext';
-import { Save, AlertCircle, Eye, Clock, UserCheck, X, QrCode, Download, Printer, FilePlus, RefreshCw, Search } from 'lucide-react';
+import { Save, AlertCircle, Eye, Clock, UserCheck, X, QrCode, Download, Printer, FilePlus, RefreshCw, Search, Trash2, CircleX } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { saveDocument, getDocument } from '../utils/db';
 import { supabase } from '../lib/supabaseClient';
@@ -11,15 +11,17 @@ import { isSameUser } from '../utils/userUtils';
 import { logAuditoria } from '../utils/auditoria';
 import { encodeQRData } from '../utils/cryptoUtils';
 import { useAuth } from '../context/AuthContext';
+import { parseOrdenCompra } from '../utils/pdfParser';
 
 export default function EditarEquipoModal({ equipo, onClose }) {
-  const { equipos, updateEquipo, updateEquiposMasivo, showToast } = useInventario();
+  const { equipos, updateEquipo, updateEquiposMasivo, showToast, deleteEquipo } = useInventario();
   const { showAlertConfirm } = useAlert();
   const { session, perfil } = useAuth();
   const originalEquipo = equipo;
   const equipIndex = equipos.findIndex(eq => eq.id === originalEquipo?.id);
 
   const [formData, setFormData] = useState({});
+  const [observacionCambioSerial, setObservacionCambioSerial] = useState('');
   const [selectDescVal, setSelectDescVal] = useState('');
   const [selectMarcaVal, setSelectMarcaVal] = useState('');
 
@@ -39,6 +41,11 @@ export default function EditarEquipoModal({ equipo, onClose }) {
   const [usuarios, setUsuarios] = useState([]);
   const [userSearchTerm, setUserSearchTerm] = useState('');
   const [subdireccionSearchTerm, setSubdireccionSearchTerm] = useState('');
+  
+  // States for Batch OC Linking
+  const [showLinkModal, setShowLinkModal] = useState(false);
+  const [linkableEquipos, setLinkableEquipos] = useState([]);
+  const [selectedLinkableEquipos, setSelectedLinkableEquipos] = useState([]);
 
   const handleSearchImage = () => {
     const marca = formData['Marca'] || '';
@@ -154,7 +161,7 @@ export default function EditarEquipoModal({ equipo, onClose }) {
     });
   };
 
-  const handleFileChange = (type, file) => {
+  const handleFileChange = async (type, file) => {
     if (!file) {
       if (type === 'factura') setFacturaFile(null);
       else setOcFile(null);
@@ -169,38 +176,142 @@ export default function EditarEquipoModal({ equipo, onClose }) {
     const fileNameLower = file.name.toLowerCase();
     const matchedCode = existingCodes.find(code => fileNameLower.includes(code.toLowerCase()));
 
+    // File Link Logic
     if (matchedCode && (!formData[fieldName] || formData[fieldName].trim() === '')) {
       setFormData(prev => ({ ...prev, [fieldName]: matchedCode }));
-      
       if (type === 'factura') setFacturaFile(null);
       else setOcFile(null);
-      
-      showToast(
-        'Archivo Enlazado', 
-        `Se detectó el número "${matchedCode}" en el nombre del archivo. Como ya está en el sistema, se ha enlazado automáticamente sin necesidad de resubirlo.`, 
-        'success'
-      );
-    } else {
-      if (type === 'factura') setFacturaFile(file);
-      else setOcFile(file);
+      showToast('Archivo Enlazado', `Se detectó el número "${matchedCode}" en el nombre del archivo. Como ya está en el sistema, se ha enlazado automáticamente sin necesidad de resubirlo.`, 'success');
+      return;
+    } 
+    
+    if (type === 'factura') setFacturaFile(file);
+    else setOcFile(file);
 
-      // Extracción automática del nombre del archivo si el campo está vacío
-      if (!formData[fieldName] || formData[fieldName].trim() === '' || formData[fieldName].trim() === '—') {
-        const cleanName = fileNameLower.replace(/\.[^/.]+$/, "");
-        const prefix = type === 'factura' ? /(?:factura|fact|f)[\s_.-]*([a-z0-9-]+)/i : /(?:oc|orden|compra)[\s_.-]*([a-z0-9-]+)/i;
-        const match = cleanName.match(prefix);
-        
-        let extractedCode = null;
-        if (match && match[1]) {
-           extractedCode = match[1].toUpperCase();
+    // If it's an OC, we do the full PDF parsing (if it's a PDF)
+    if (type === 'oc' && file.type === 'application/pdf') {
+      try {
+        const pdfData = await parseOrdenCompra(file, {
+          marca: formData['Marca'],
+          modelo: formData['Modelo'],
+          descripcion: formData['Descripción del Bien']
+        });
+        if (pdfData && pdfData.nombreOC) {
+          
+          let newData = { ...formData };
+          
+          // Function to conditionally overwrite
+          const checkOverwrite = async (field, newVal) => {
+            if (!newVal) return;
+            const currentVal = formData[field] ? String(formData[field]).trim() : '';
+            if (currentVal && currentVal !== '—' && currentVal.toLowerCase() !== String(newVal).toLowerCase()) {
+              const confirm = await showAlertConfirm(
+                'Sobreescribir Información', 
+                `Se extrajo "${newVal}" para ${field}, pero el equipo ya tiene "${currentVal}". ¿Deseas sobreescribir el valor actual por el extraído?`,
+                'warning',
+                'Sí, Sobreescribir',
+                'Mantener el Actual'
+              );
+              if (confirm) {
+                newData[field] = newVal;
+              }
+            } else {
+              newData[field] = newVal;
+            }
+          };
+
+          await checkOverwrite('Orden de Compra', pdfData.nombreOC);
+          await checkOverwrite('Proveedor', pdfData.proveedor);
+          
+          if (pdfData.tipoPublicacion) {
+             await checkOverwrite('Tipo Publicación', pdfData.tipoPublicacion);
+             
+             if (pdfData.isConvenioMarco && pdfData.convenioMarco && pdfData.tipoPublicacion === 'Convenio Marco') {
+                await checkOverwrite('ID Publicación', pdfData.convenioMarco);
+             } else if (pdfData.tipoPublicacion === 'Compra Ágil') {
+                 await showAlertConfirm(
+                   'ID de Publicación Faltante',
+                   'Se ha detectado que esta orden corresponde a una <b>Compra Ágil</b>.<br/><br/>Por favor, busca el ID de la cotización e ingrésalo manualmente en el campo <b>ID Publicación</b>.'
+                 );
+             } else if (pdfData.tipoPublicacion === 'Licitación') {
+                 await showAlertConfirm(
+                   'ID de Publicación Faltante',
+                   'Se ha detectado que esta orden corresponde a una <b>Licitación</b>.<br/><br/>Por favor, busca el ID de licitación e ingrésalo manualmente en el campo <b>ID Publicación</b>.'
+                 );
+             } else if (pdfData.tipoPublicacion === 'Trato Directo') {
+                 await showAlertConfirm(
+                   'ID de Publicación Faltante',
+                   'Se ha detectado que esta orden corresponde a un <b>Trato Directo</b>.<br/><br/>Por favor, ingresa el ID correspondiente manualmente en el campo <b>ID Publicación</b>.'
+                 );
+             }
+          } else {
+            await showAlertConfirm(
+              'Información Adicional Requerida',
+              'No se detectó el Tipo de Publicación en esta Orden de Compra.<br/><br/>Si esta compra corresponde a una <b>Compra Ágil</b> o <b>Licitación</b>, por favor asegúrate de seleccionar el Tipo de Publicación e <b>ingresar el ID manualmente</b>.'
+            );
+          }
+
+          setFormData(newData);
+          showToast('Archivo y Datos', 'Se extrajo correctamente la información de la Orden de Compra.');
+
+          // Multi-link logic
+          if (pdfData.cantidad > 1) {
+            const currentMarca = (newData['Marca'] || '').trim().toLowerCase();
+            const currentModelo = (newData['Modelo'] || '').trim().toLowerCase();
+            
+            if (currentMarca && currentModelo) {
+              const matchingEquipos = equipos.filter(eq => 
+                eq.id !== originalEquipo.id &&
+                (eq['Marca'] || '').trim().toLowerCase() === currentMarca &&
+                (eq['Modelo'] || '').trim().toLowerCase() === currentModelo &&
+                (!eq['Orden de Compra'] || eq['Orden de Compra'].trim() === '' || eq['Orden de Compra'].trim() === '—' || eq['Orden de Compra'].trim().toLowerCase() === pdfData.nombreOC.toLowerCase())
+              );
+              
+              if (matchingEquipos.length > 0) {
+                 // We limit to cantidad - 1 because the current equipment being edited is 1 of them
+                 setLinkableEquipos(matchingEquipos.slice(0, pdfData.cantidad - 1));
+                 setSelectedLinkableEquipos([]); // Start with none selected, let user choose
+                 setShowLinkModal(true);
+              }
+            }
+          }
+          return;
+        }
+      } catch (e) {
+        console.error("Error parsing OC in Edit:", e);
+      }
+    }
+
+    // Fallback automatic extraction if not PDF or PDF parsing failed/didn't return
+    if (!formData[fieldName] || formData[fieldName].trim() === '' || formData[fieldName].trim() === '—') {
+      const cleanName = fileNameLower.replace(/\.[^/.]+$/, "");
+      let extractedCode = null;
+      
+      if (type === 'factura') {
+        const matchFactura = cleanName.match(/(?:n[°º]|nro\.?|numero|número)\s*(\d+)/);
+        if (matchFactura && matchFactura[1]) {
+          extractedCode = matchFactura[1];
         } else {
-           const numMatch = cleanName.match(/\d{4,}/);
-           if (numMatch) extractedCode = numMatch[0];
+          const matchOld = cleanName.match(/(?:factura|fact|f)[\s_.-]*([a-z0-9-]+)/);
+          if (matchOld && matchOld[1]) extractedCode = matchOld[1].toUpperCase();
         }
-        
-        if (extractedCode && !['PDF', 'JPG', 'PNG', 'DOC', 'DOCK'].includes(extractedCode)) {
-           setFormData(prev => ({ ...prev, [fieldName]: extractedCode }));
+      } else {
+        const matchOC = cleanName.match(/(1456839-\d+-[a-z]{2}\d{2})/);
+        if (matchOC && matchOC[1]) {
+          extractedCode = matchOC[1].toUpperCase();
+        } else {
+          const matchOld = cleanName.match(/(?:oc|orden|compra)[\s_.-]*([a-z0-9-]+)/);
+          if (matchOld && matchOld[1]) extractedCode = matchOld[1].toUpperCase();
         }
+      }
+
+      if (!extractedCode) {
+         const numMatch = cleanName.match(/\d{4,}/);
+         if (numMatch) extractedCode = numMatch[0];
+      }
+      
+      if (extractedCode && !['PDF', 'JPG', 'PNG', 'DOC', 'DOCK'].includes(extractedCode)) {
+         setFormData(prev => ({ ...prev, [fieldName]: extractedCode }));
       }
     }
   };
@@ -228,11 +339,17 @@ export default function EditarEquipoModal({ equipo, onClose }) {
   const handlePreview = async (type) => {
     try {
       const code = type === 'factura' ? formData['Factura'] : formData['Orden de Compra'];
-      const storageKey = (code && code.trim() !== '—' && code.trim() !== '') 
+      const defaultStorageKey = (code && code.trim() !== '—' && code.trim() !== '') 
         ? `${type}_${code.trim().toLowerCase()}` 
-        : originalEquipo.id;
+        : `${type}_${originalEquipo.id}`;
 
-      const doc = await getDocument(storageKey, type);
+      let doc = await getDocument(defaultStorageKey, type);
+      
+      // Fallback para documentos antiguos que sufrieron el bug de colisión y se guardaron sin prefijo
+      if (!doc && (!code || code.trim() === '—' || code.trim() === '')) {
+        doc = await getDocument(originalEquipo.id, type);
+      }
+
       if (!doc) {
         alert('No se encontró el archivo del documento.');
         return;
@@ -449,9 +566,38 @@ export default function EditarEquipoModal({ equipo, onClose }) {
     }
 
     const currentSerial = updatedEquipo['Nº de serie']?.trim() || '';
+    const oldSerial = originalEquipo['Nº de serie']?.trim() || '';
+
+    // Si el usuario modificó el serial, exigir observación y registrar
+    if (currentSerial.toLowerCase() !== oldSerial.toLowerCase()) {
+      if (!observacionCambioSerial || observacionCambioSerial.trim() === '') {
+        showToast('Observación Requerida', 'Debe ingresar el motivo por el cual modificó el Número de Serie.', 'error');
+        return;
+      }
+      
+      const newSerialHistoryEntry = {
+        serialAnterior: oldSerial,
+        serialNuevo: currentSerial,
+        observacion: observacionCambioSerial.trim(),
+        usuarioModificador: session?.user?.user_metadata?.nombre || perfil?.nombre || session?.user?.email || 'Usuario',
+        fechaCambio: new Date().toISOString()
+      };
+
+      updatedEquipo.historialSeries = [
+        ...(originalEquipo.historialSeries || []),
+        newSerialHistoryEntry
+      ];
+
+      await logAuditoria(
+        'equipos',
+        'Cambio de N° de Serie',
+        `Se modificó el N° de serie del equipo ${originalEquipo['Descripción del Bien']}. Anterior: "${oldSerial}" -> Nuevo: "${currentSerial}". Motivo: ${observacionCambioSerial.trim()}`,
+        session?.user?.user_metadata?.nombre || perfil?.nombre || session?.user?.email || 'Usuario'
+      );
+    }
 
     // Check if user is assigning a serial number that already exists on ANOTHER equipment
-    if (currentSerial && currentSerial.toLowerCase() !== originalEquipo['Nº de serie']?.trim().toLowerCase()) {
+    if (currentSerial && currentSerial.toLowerCase() !== oldSerial.toLowerCase()) {
       const isDuplicate = equipos.some(
         (eq) => eq.id !== originalEquipo.id && eq['Nº de serie'] && String(eq['Nº de serie']).trim().toLowerCase() === currentSerial.toLowerCase()
       );
@@ -505,7 +651,7 @@ export default function EditarEquipoModal({ equipo, onClose }) {
         const code = formData['Factura'];
         const storageKey = (code && code.trim() !== '—' && code.trim() !== '') 
           ? `factura_${code.trim().toLowerCase()}` 
-          : itemId;
+          : `factura_${itemId}`;
         await saveDocument(storageKey, 'factura', facturaFile);
         updatedEquipo.hasFacturaFile = true;
       } catch (err) {
@@ -517,7 +663,7 @@ export default function EditarEquipoModal({ equipo, onClose }) {
         const code = formData['Orden de Compra'];
         const storageKey = (code && code.trim() !== '—' && code.trim() !== '') 
           ? `oc_${code.trim().toLowerCase()}` 
-          : itemId;
+          : `oc_${itemId}`;
         await saveDocument(storageKey, 'oc', ocFile);
         updatedEquipo.hasOcFile = true;
       } catch (err) {
@@ -596,6 +742,60 @@ export default function EditarEquipoModal({ equipo, onClose }) {
       }
     }
 
+    // Cascade Factura a equipos con la misma Orden de Compra
+    const facturaAdded = (originalEquipo['Factura'] || '').trim() === '' && (updatedEquipo['Factura'] || '').trim() !== '';
+    if (facturaAdded) {
+      const upOC = norm(updatedEquipo['Orden de Compra']);
+      if (upOC) {
+        equipos.forEach(eq => {
+          if (eq.id === originalEquipo.id) return;
+          if (norm(eq['Orden de Compra']) === upOC && (eq['Factura'] || '').trim() === '') {
+            const existingUpdate = cascadeUpdatesMap.get(eq.id) || { ...eq };
+            existingUpdate['Factura'] = updatedEquipo['Factura'];
+            existingUpdate.hasFacturaFile = existingUpdate.hasFacturaFile || updatedEquipo.hasFacturaFile;
+            cascadeUpdatesMap.set(eq.id, existingUpdate);
+          }
+        });
+      }
+    }
+
+    // Cascade Orden de Compra a equipos con la misma Factura
+    const ocAdded = (originalEquipo['Orden de Compra'] || '').trim() === '' && (updatedEquipo['Orden de Compra'] || '').trim() !== '';
+    if (ocAdded) {
+      const upFac = norm(updatedEquipo['Factura']);
+      if (upFac) {
+        equipos.forEach(eq => {
+          if (eq.id === originalEquipo.id) return;
+          if (norm(eq['Factura']) === upFac && (eq['Orden de Compra'] || '').trim() === '') {
+            const existingUpdate = cascadeUpdatesMap.get(eq.id) || { ...eq };
+            existingUpdate['Orden de Compra'] = updatedEquipo['Orden de Compra'];
+            existingUpdate.hasOcFile = existingUpdate.hasOcFile || updatedEquipo.hasOcFile;
+            cascadeUpdatesMap.set(eq.id, existingUpdate);
+          }
+        });
+      }
+    }
+
+    // Incorporate explicitly linked equipments from the OC batch modal
+    if (selectedLinkableEquipos.length > 0) {
+      selectedLinkableEquipos.forEach(eq => {
+         const existingUpdate = cascadeUpdatesMap.get(eq.id) || { ...eq };
+         existingUpdate['Orden de Compra'] = updatedEquipo['Orden de Compra'];
+         existingUpdate.hasOcFile = existingUpdate.hasOcFile || updatedEquipo.hasOcFile;
+         if (updatedEquipo['Proveedor']) existingUpdate['Proveedor'] = updatedEquipo['Proveedor'];
+         if (updatedEquipo['ID Publicación']) existingUpdate['ID Publicación'] = updatedEquipo['ID Publicación'];
+         if (updatedEquipo['Tipo Publicación']) existingUpdate['Tipo Publicación'] = updatedEquipo['Tipo Publicación'];
+         
+         // Also cascade Factura if the current one has it
+         if (updatedEquipo['Factura'] && updatedEquipo['Factura'].trim() !== '') {
+            existingUpdate['Factura'] = updatedEquipo['Factura'];
+            existingUpdate.hasFacturaFile = existingUpdate.hasFacturaFile || updatedEquipo.hasFacturaFile;
+         }
+
+         cascadeUpdatesMap.set(eq.id, existingUpdate);
+      });
+    }
+
     const cascadeUpdatesList = Array.from(cascadeUpdatesMap.values());
 
     if (cascadeUpdatesList.length > 0) {
@@ -609,12 +809,31 @@ export default function EditarEquipoModal({ equipo, onClose }) {
        updateEquipo(equipIndex, updatedEquipo);
        showToast(
          'Edición Exitosa', 
-         `El equipo "${updatedEquipo['Descripción del Bien'] || 'Equipo'}" ha sido actualizado correctamente.`, 
+         'Los datos del equipo han sido actualizados en la base de datos de manera correcta.', 
          'success'
        );
     }
 
     onClose();
+  };
+
+  const handleDelete = async () => {
+    if (window.confirm('¿Está MUY seguro de que desea eliminar este equipo del inventario? Esta acción NO se puede deshacer y borrará permanentemente la ficha.')) {
+      const motivo = window.prompt('Por favor, ingrese el MOTIVO OBLIGATORIO por el cual está eliminando este equipo:');
+      
+      if (!motivo || motivo.trim() === '') {
+        showToast('Eliminación Cancelada', 'Es obligatorio ingresar un motivo para poder eliminar el equipo.', 'error');
+        return;
+      }
+
+      const res = await deleteEquipo(originalEquipo.id, motivo.trim());
+      if (res.success) {
+        showToast('Equipo Eliminado', 'El equipo fue removido exitosamente del inventario.', 'success');
+        onClose();
+      } else {
+        showToast('Error', 'No se pudo eliminar el equipo: ' + res.error, 'error');
+      }
+    }
   };
 
   const formatFecha = (isoString) => {
@@ -748,17 +967,33 @@ export default function EditarEquipoModal({ equipo, onClose }) {
               {/* Nº de serie */}
               <div className="space-y-0.5">
                 <label className="block text-[10px] font-bold text-[#25306B] uppercase tracking-wide">
-                  Nº de serie <span className="text-gray-400 font-normal text-[9px]">(Fijo)</span>
+                  Nº de serie
                 </label>
                 <input
                   type="text"
                   name="Nº de serie"
                   value={formData['Nº de serie'] || ''}
                   onChange={handleChange}
-                  disabled
-                  className="w-full px-2 py-1 border border-gray-200 rounded-lg text-xs bg-gray-100 text-gray-500 cursor-not-allowed font-medium border-gray-200"
+                  className="w-full px-2 py-1 border border-gray-300 rounded-lg text-xs focus:ring-1.5 focus:ring-[#006BB9] focus:outline-none shadow-xs bg-white font-medium"
                 />
               </div>
+
+              {/* Observación Cambio Serial (Sólo visible si cambia) */}
+              {(formData['Nº de serie']?.trim() || '').toLowerCase() !== (originalEquipo['Nº de serie']?.trim() || '').toLowerCase() && (
+                <div className="space-y-0.5 bg-amber-50 p-2 border border-amber-200 rounded-lg animate-fade-in mt-2">
+                  <label className="block text-[10px] font-bold text-amber-900 uppercase tracking-wide">
+                    Motivo Cambio N° Serie <span className="text-red-500 font-bold">*</span>
+                  </label>
+                  <textarea
+                    value={observacionCambioSerial}
+                    onChange={(e) => setObservacionCambioSerial(e.target.value)}
+                    className="w-full mt-1 px-2 py-1 border border-amber-300 rounded-lg text-xs focus:ring-1.5 focus:ring-amber-500 focus:outline-none shadow-xs bg-white font-medium"
+                    placeholder="Indique brevemente por qué se modificó el serial..."
+                    rows="2"
+                    required
+                  />
+                </div>
+              )}
 
               {/* ID Publicación */}
               <div className="space-y-0.5">
@@ -916,9 +1151,9 @@ export default function EditarEquipoModal({ equipo, onClose }) {
                           </button>
                         </div>
                       ) : (
-                        <div 
-                          onMouseMove={(e) => handleMouseMoveTooltip(e, 'factura')}
-                          onMouseLeave={() => setFileTooltip({ visible: false, x: 0, y: 0, type: '' })}
+                        <label 
+                          className="block w-full cursor-pointer"
+                          title="Asegúrate de que el nombre del archivo contenga la numeración de la FACTURA."
                         >
                           <input
                             type="file"
@@ -926,7 +1161,7 @@ export default function EditarEquipoModal({ equipo, onClose }) {
                             onChange={e => handleFileChange('factura', e.target.files[0] || null)}
                             className="w-full text-[8.5px] text-slate-500 file:mr-1 file:py-0.5 file:px-1 file:rounded file:border-0 file:text-[8px] file:font-semibold file:bg-blue-50 file:text-[#006BB9] hover:file:bg-blue-100"
                           />
-                        </div>
+                        </label>
                       )}
                     </div>
                   </div>
@@ -981,9 +1216,9 @@ export default function EditarEquipoModal({ equipo, onClose }) {
                           </button>
                         </div>
                       ) : (
-                        <div 
-                          onMouseMove={(e) => handleMouseMoveTooltip(e, 'orden de compra')}
-                          onMouseLeave={() => setFileTooltip({ visible: false, x: 0, y: 0, type: '' })}
+                        <label 
+                          className="block w-full cursor-pointer"
+                          title="Asegúrate de que el nombre del archivo contenga la numeración de la ORDEN DE COMPRA."
                         >
                           <input
                             type="file"
@@ -991,7 +1226,7 @@ export default function EditarEquipoModal({ equipo, onClose }) {
                             onChange={e => handleFileChange('oc', e.target.files[0] || null)}
                             className="w-full text-[8.5px] text-slate-500 file:mr-1 file:py-0.5 file:px-1 file:rounded file:border-0 file:text-[8px] file:font-semibold file:bg-blue-50 file:text-[#006BB9] hover:file:bg-blue-100"
                           />
-                        </div>
+                        </label>
                       )}
                     </div>
                   </div>
@@ -1226,16 +1461,38 @@ export default function EditarEquipoModal({ equipo, onClose }) {
                 <Clock className="w-3.5 h-3.5 text-[#25306B]" /> Historial de Asignaciones
               </h2>
 
-              {history.length === 0 ? (
+              {history.length === 0 && (!originalEquipo.historialSeries || originalEquipo.historialSeries.length === 0) ? (
                 <div className="flex flex-col items-center justify-center p-3 text-center text-gray-400 space-y-1 border border-dashed border-gray-200 rounded-xl min-h-[160px]">
                   <UserCheck className="w-6 h-6 text-gray-300" />
-                  <p className="text-[10.5px] font-bold text-gray-500">Asignación Original</p>
-                  <p className="text-[9.5px] text-gray-400">Este equipo no registra cambios de usuario históricos.</p>
+                  <p className="text-[10.5px] font-bold text-gray-500">Sin Modificaciones</p>
+                  <p className="text-[9.5px] text-gray-400">Este equipo no registra cambios históricos.</p>
                 </div>
               ) : (
                 <div className="relative pl-4 border-l border-gray-200 space-y-3.5 py-1 max-h-[180px] overflow-y-auto custom-scrollbar">
+                  {originalEquipo.historialSeries && originalEquipo.historialSeries.map((entry, index) => (
+                    <div key={`serial-${index}`} className="relative">
+                      <span className="absolute -left-[22px] top-0.5 flex h-2.5 w-2.5 items-center justify-center rounded-full bg-amber-50 border border-amber-500">
+                        <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                      </span>
+                      <div className="space-y-0.5 leading-tight mb-3">
+                        <div className="text-[10px] font-bold text-amber-700">
+                          Cambio de Serial
+                        </div>
+                        <div className="text-[9px] text-gray-600 font-medium break-words">
+                          {entry.serialAnterior || 'N/A'} → {entry.serialNuevo || 'N/A'}
+                        </div>
+                        <div className="text-[9px] text-gray-500 italic border-l-2 border-amber-200 pl-1 my-0.5">
+                          "{entry.observacion}"
+                        </div>
+                        <div className="text-[8px] text-gray-400">
+                          Por: {entry.usuarioModificador} - {formatFecha(entry.fechaCambio)}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+
                   {history.map((entry, index) => (
-                    <div key={index} className="relative">
+                    <div key={`user-${index}`} className="relative">
                       {/* Timeline Dot */}
                       <span className="absolute -left-[22px] top-0.5 flex h-2.5 w-2.5 items-center justify-center rounded-full bg-blue-50 border border-[#006BB9]">
                         <span className="h-1.5 w-1.5 rounded-full bg-[#006BB9]" />
@@ -1293,30 +1550,82 @@ export default function EditarEquipoModal({ equipo, onClose }) {
               <button
                 type="button"
                 onClick={onClose}
-                className="px-3.5 py-1.5 text-gray-650 bg-gray-150 hover:bg-gray-205 font-bold rounded-lg text-xs transition-colors border border-gray-200 cursor-pointer"
+                className="p-2 text-gray-500 bg-gray-150 hover:bg-gray-205 font-bold rounded-lg transition-colors border border-gray-200 cursor-pointer flex items-center justify-center"
+                title="Cancelar"
               >
-                Cancelar
+                <CircleX size={16} />
+              </button>
+              <button
+                type="button"
+                onClick={handleDelete}
+                className="p-2 text-red-600 hover:text-white hover:bg-red-600 bg-red-50 border border-red-200 hover:border-red-600 font-bold rounded-lg transition-colors cursor-pointer flex items-center justify-center"
+                title="Eliminar Equipo"
+              >
+                <Trash2 size={16} />
               </button>
               <button
                 type="submit"
-                className="px-3.5 py-1.5 bg-[#006BB9] hover:bg-[#25306B] text-white font-bold rounded-lg text-xs flex items-center gap-1.5 transition-colors shadow-xs cursor-pointer"
+                className="p-2 bg-[#006BB9] hover:bg-[#25306B] text-white font-bold rounded-lg flex items-center justify-center transition-colors shadow-xs cursor-pointer"
+                title="Guardar Cambios"
               >
-                <Save size={12} /> Guardar Cambios
+                <Save size={16} />
               </button>
             </div>
           </div>
         </form>
       </div>
 
-      {fileTooltip.visible && (
-        <div 
-          className="fixed z-50 p-2.5 bg-amber-50 border border-amber-200 text-amber-800 text-[10px] rounded-lg shadow-xl pointer-events-none w-64 leading-tight"
-          style={{ top: fileTooltip.y, left: fileTooltip.x }}
-        >
-          <strong className="block mb-0.5 font-bold text-amber-900">Sugerencia de Archivo</strong>
-          Asegúrate de que el nombre del archivo contenga la numeración de la <span className="font-semibold uppercase">{fileTooltip.type}</span>.
+      {showLinkModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-slate-900 rounded-xl w-full max-w-2xl max-h-[90vh] flex flex-col border border-slate-700/50 shadow-2xl overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b border-slate-800 bg-slate-900/50">
+              <h3 className="font-semibold text-lg text-white">Vincular Equipos a Orden de Compra</h3>
+              <button onClick={() => setShowLinkModal(false)} className="text-slate-400 hover:text-white p-1 rounded-lg transition-colors"><X size={20}/></button>
+            </div>
+            <div className="p-6 overflow-y-auto custom-scrollbar flex-1">
+              <p className="text-sm text-slate-300 mb-4">
+                Se detectaron otros equipos en el sistema (misma Marca y Modelo) que aún no tienen una Orden de Compra asignada. 
+                ¿Deseas vincularlos a esta misma orden de compra? (Máximo permitido por la OC: {linkableEquipos.length})
+              </p>
+              
+              <div className="space-y-2">
+                {linkableEquipos.map(eq => (
+                  <label key={eq.id} className={`flex items-center gap-3 p-3 rounded-lg border ${selectedLinkableEquipos.some(s => s.id === eq.id) ? 'bg-blue-500/10 border-blue-500/30' : 'bg-slate-800/50 border-slate-700'} cursor-pointer hover:bg-slate-800 transition-colors`}>
+                    <input 
+                      type="checkbox" 
+                      className="rounded border-slate-600 bg-slate-700 text-blue-500 focus:ring-blue-500/50"
+                      checked={selectedLinkableEquipos.some(s => s.id === eq.id)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedLinkableEquipos([...selectedLinkableEquipos, eq]);
+                        } else {
+                          setSelectedLinkableEquipos(selectedLinkableEquipos.filter(s => s.id !== eq.id));
+                        }
+                      }}
+                    />
+                    <div className="flex-1">
+                       <p className="text-sm font-medium text-slate-200">{eq['Marca']} {eq['Modelo']}</p>
+                       <p className="text-xs text-slate-400">Asignado a: {eq['Usuario'] || 'Disponible'}</p>
+                    </div>
+                    <div className="text-xs font-mono text-slate-500">
+                      SN: {eq['Nº de serie'] || 'S/N'}
+                    </div>
+                  </label>
+                ))}
+              </div>
+            </div>
+            <div className="p-4 border-t border-slate-800 bg-slate-900/50 flex justify-end gap-3">
+              <button onClick={() => setShowLinkModal(false)} className="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition-colors">
+                Omitir
+              </button>
+              <button onClick={() => setShowLinkModal(false)} className="px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-colors shadow-lg shadow-blue-500/20">
+                Confirmar Selección ({selectedLinkableEquipos.length})
+              </button>
+            </div>
+          </div>
         </div>
       )}
+
     </div>
   );
 }
