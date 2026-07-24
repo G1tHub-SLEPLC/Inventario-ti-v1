@@ -144,7 +144,7 @@ const isQRSupported = (tipo) => {
 export default function DashboardPage() {
   const { equipos, loading, setFileStatus, addMasivo, updateEquipo } = useInventario();
   const { solicitudes } = useSolicitudes();
-  const { user, session, perfil } = useAuth();
+  const { user, session, perfil, canEdit } = useAuth();
   const { showAlertConfirm, showAlertPrompt } = useAlert();
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = searchParams.get('tab') || 'disp';
@@ -1166,18 +1166,22 @@ export default function DashboardPage() {
           <p className="text-sm text-gray-500 mt-1">Gestión general, asignaciones y métricas de equipos informáticos.</p>
         </div>
         <div className="flex gap-2 flex-wrap">
-          <button
-            onClick={() => { setStatus({ type: 'idle', message: '' }); setIsMasivaModalOpen(true); }}
-            className="flex items-center gap-2 bg-blue-100 text-[#006BB9] px-4 py-2 rounded-lg hover:bg-blue-200 transition-colors text-sm font-medium border border-blue-200"
-          >
-            <UploadCloud size={16} /> Carga Masiva
-          </button>
-          <button
-            onClick={() => setIsNuevoEquipoModalOpen(true)}
-            className="flex items-center gap-2 bg-[#112A46] text-white px-4 py-2 rounded-lg hover:bg-[#1A3A5F] transition-colors text-sm font-medium shadow-sm cursor-pointer"
-          >
-            <PlusCircle size={16} /> Nuevo Equipo
-          </button>
+          {canEdit && (
+            <>
+              <button
+                onClick={() => { setStatus({ type: 'idle', message: '' }); setIsMasivaModalOpen(true); }}
+                className="flex items-center gap-2 bg-blue-100 text-[#006BB9] px-4 py-2 rounded-lg hover:bg-blue-200 transition-colors text-sm font-medium border border-blue-200"
+              >
+                <UploadCloud size={16} /> Carga Masiva
+              </button>
+              <button
+                onClick={() => setIsNuevoEquipoModalOpen(true)}
+                className="flex items-center gap-2 bg-[#112A46] text-white px-4 py-2 rounded-lg hover:bg-[#1A3A5F] transition-colors text-sm font-medium shadow-sm cursor-pointer"
+              >
+                <PlusCircle size={16} /> Nuevo Equipo
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -1554,25 +1558,29 @@ export default function DashboardPage() {
                             >
                               <QrCode size={14} className="stroke-[2.5]" />
                             </button>
-                            <button
-                              onClick={() => { 
-                                setAssignModalData(row); 
-                                setAssignUserName(row['Usuario'] && row['Usuario'] !== '—' ? row['Usuario'] : '');
-                                setAssignDate(row.fecha_asignacion ? row.fecha_asignacion.split('T')[0] : new Date().toISOString().split('T')[0]);
-                                setAssignObservation(row.observacion_asignacion || '');
-                              }}
-                              className="p-2 text-emerald-600 hover:text-white hover:bg-emerald-600 border border-emerald-200 hover:border-emerald-600 rounded-lg transition-all shadow-xs flex items-center justify-center cursor-pointer"
-                              title="Asignar Equipo a un Funcionario"
-                            >
-                              <UserPlus size={14} className="stroke-[2.5]" />
-                            </button>
-                            <button
-                              onClick={() => setEditingEquipo(row)}
-                              className="p-2 text-[#006BB9] hover:text-white hover:bg-[#006BB9] border border-blue-200 hover:border-[#006BB9] rounded-lg transition-all shadow-xs flex items-center justify-center cursor-pointer"
-                              title="Editar Ficha del Equipo"
-                            >
-                              <Pencil size={14} className="stroke-[2.5]" />
-                            </button>
+                            {canEdit && (
+                              <>
+                                <button
+                                  onClick={() => { 
+                                    setAssignModalData(row); 
+                                    setAssignUserName(row['Usuario'] && row['Usuario'] !== '—' ? row['Usuario'] : '');
+                                    setAssignDate(row.fecha_asignacion ? row.fecha_asignacion.split('T')[0] : new Date().toISOString().split('T')[0]);
+                                    setAssignObservation(row.observacion_asignacion || '');
+                                  }}
+                                  className="p-2 text-emerald-600 hover:text-white hover:bg-emerald-600 border border-emerald-200 hover:border-emerald-600 rounded-lg transition-all shadow-xs flex items-center justify-center cursor-pointer"
+                                  title="Asignar Equipo a un Funcionario"
+                                >
+                                  <UserPlus size={14} className="stroke-[2.5]" />
+                                </button>
+                                <button
+                                  onClick={() => setEditingEquipo(row)}
+                                  className="p-2 text-[#006BB9] hover:text-white hover:bg-[#006BB9] border border-blue-200 hover:border-[#006BB9] rounded-lg transition-all shadow-xs flex items-center justify-center cursor-pointer"
+                                  title="Editar Ficha del Equipo"
+                                >
+                                  <Pencil size={14} className="stroke-[2.5]" />
+                                </button>
+                              </>
+                            )}
                           </div>
                         </td>
                       </tr>

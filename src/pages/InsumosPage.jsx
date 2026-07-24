@@ -23,7 +23,7 @@ function getInitials(name) {
 export default function InsumosPage() {
   const { insumos, refetch, broadcast } = useSolicitudes();
   const { showToast, equipos, updateEquiposMasivo } = useInventario();
-  const { session } = useAuth();
+  const { session, canEdit } = useAuth();
   const { showAlertConfirm, showAlertPrompt } = useAlert();
   const { sorted: sortedInsumos, sortKey: insSortKey, sortDir: insSortDir, handleSort: handleInsSort } = useSort(insumos, 'nombre', 'asc');
   
@@ -749,16 +749,17 @@ export default function InsumosPage() {
           </div>
         </div>
         
-        {activeTab === 'insumos' ? (
-          <div className="flex gap-2">
-            <button
-              onClick={() => { setStatus({ type: 'idle', message: '' }); setIsMasivaModalOpen(true); }}
-              className="flex items-center gap-2 bg-blue-100 text-[#006BB9] px-4 py-2 rounded-lg hover:bg-blue-200 transition-colors text-sm font-medium border border-blue-200"
-            >
-              <UploadCloud size={16} />
-              Carga Masiva
-            </button>
-            <div className="flex gap-2">
+        <div className="flex gap-2">
+            {canEdit && (
+              <button
+                onClick={() => { setStatus({ type: 'idle', message: '' }); setIsMasivaModalOpen(true); }}
+                className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition-colors shadow-sm font-medium text-sm"
+              >
+                <UploadCloud size={16} />
+                Carga Masiva
+              </button>
+            )}
+            <div className="hidden sm:flex gap-2">
               <button onClick={() => exportInsumos('xlsx')} className="flex items-center gap-2 bg-green-200 text-green-800 px-3 py-1.5 rounded-lg hover:bg-green-300 shadow-sm font-medium transition-colors text-sm">
                 <Download size={14} /> Excel
               </button>
@@ -766,26 +767,16 @@ export default function InsumosPage() {
                 <Printer size={14} /> PDF
               </button>
             </div>
-            <button
-              onClick={() => handleOpenModal()}
-              className="flex items-center gap-2 bg-[#112A46] text-white px-4 py-2 rounded-lg hover:bg-[#1A3A5F] shadow-sm font-medium transition-colors text-sm"
-            >
-              <PlusCircle size={16} />
-              Nuevo Insumo
-            </button>
-          </div>
-        ) : (
-          <div className="flex gap-4 items-center">
-            <div className="flex gap-2">
-              <button onClick={() => exportHistorial('xlsx')} className="flex items-center gap-2 bg-green-200 text-green-800 px-3 py-1.5 rounded-lg hover:bg-green-300 shadow-sm font-medium transition-colors text-sm">
-                <Download size={14} /> Excel
+            {canEdit && (
+              <button
+                onClick={() => handleOpenModal()}
+                className="flex items-center gap-2 bg-[#112A46] text-white px-4 py-2 rounded-lg hover:bg-[#1A3A5F] transition-colors shadow-sm font-medium text-sm"
+              >
+                <PlusCircle size={16} />
+                Nuevo Insumo
               </button>
-              <button onClick={() => exportHistorial('pdf')} className="flex items-center gap-2 bg-rose-200 text-rose-800 px-3 py-1.5 rounded-lg hover:bg-rose-300 shadow-sm font-medium transition-colors text-sm">
-                <Printer size={14} /> PDF
-              </button>
-            </div>
+            )}
           </div>
-        )}
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-200">
@@ -861,19 +852,23 @@ export default function InsumosPage() {
                         </div>
                       </td>
                       <td className="px-6 py-3">
-                        <div className="flex items-center justify-center gap-2">
+                        <div className="flex gap-2 justify-center">
                           <button onClick={() => handleOpenViewModal(insumo)} title="Ver Asignaciones" className="p-1.5 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded transition-colors">
-                            <Eye size={16} />
+                            <Eye size={18} />
                           </button>
-                          <button onClick={() => openAssignModal(insumo)} title="Asignar a funcionario" className="p-1.5 text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded transition-colors">
-                            <UserPlus size={16} />
-                          </button>
-                          <button onClick={() => handleOpenModal(insumo)} title="Editar" className="p-1.5 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded transition-colors">
-                            <Edit2 size={16} />
-                          </button>
-                          <button onClick={() => handleDelete(insumo.id)} title="Eliminar" className="p-1.5 text-red-600 bg-red-50 hover:bg-red-100 rounded transition-colors">
-                            <Trash2 size={16} />
-                          </button>
+                          {canEdit && (
+                            <>
+                              <button onClick={() => openAssignModal(insumo)} title="Asignar a funcionario" className="p-1.5 text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded transition-colors">
+                                <UserPlus size={18} />
+                              </button>
+                              <button onClick={() => handleOpenModal(insumo)} title="Editar" className="p-1.5 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded transition-colors">
+                                <Edit2 size={18} />
+                              </button>
+                              <button onClick={() => handleDelete(insumo.id)} title="Eliminar" className="p-1.5 text-red-600 bg-red-50 hover:bg-red-100 rounded transition-colors">
+                                <Trash2 size={18} />
+                              </button>
+                            </>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -975,7 +970,7 @@ export default function InsumosPage() {
                   <tbody className="divide-y divide-gray-200">
                     {sortedAsignacionesFunc.length === 0 ? (
                       <tr>
-                        <td colSpan="7" className="px-6 py-8 text-center text-gray-500">
+                        <td colSpan="8" className="px-6 py-8 text-center text-gray-500">
                           No hay insumos entregados a este funcionario.
                         </td>
                       </tr>
@@ -1009,42 +1004,44 @@ export default function InsumosPage() {
                           <td className="px-3 py-2.5 text-gray-600 max-w-[200px] truncate" title={asig.observaciones_admin || ''}>
                             {asig.observaciones_admin || '—'}
                           </td>
-                          <td className="px-3 py-2.5 text-center">
-                            <div className="flex items-center justify-center gap-1.5">
-                              <button 
-                                onClick={() => handleOpenEditDateModal(asig)}
-                                className="text-blue-500 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 p-1.5 rounded-lg transition-colors border border-blue-100 inline-flex items-center justify-center shrink-0 cursor-pointer"
-                                title="Editar fecha de entrega"
-                              >
-                                <Edit2 size={14} />
-                              </button>
-                              {asig.insumos?.retornable ? (
-                                <>
-                                  <button 
-                                    onClick={() => handleDejarDisponible(asig)}
-                                    className="text-emerald-600 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 p-1.5 rounded-lg transition-colors border border-emerald-100 inline-flex items-center justify-center shrink-0 cursor-pointer"
-                                    title="Devolver al stock disponible"
-                                  >
-                                    <RotateCcw size={14} />
-                                  </button>
-                                  <button 
-                                    onClick={() => handleDarDeBaja(asig)}
-                                    className="text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100 p-1.5 rounded-lg transition-colors border border-red-100 inline-flex items-center justify-center shrink-0 cursor-pointer"
-                                    title="Dar de baja (Pérdida/Daño) sin devolver stock"
-                                  >
-                                    <Trash2 size={14} />
-                                  </button>
-                                </>
-                              ) : (
+                          <td className="px-4 py-3 whitespace-nowrap text-right">
+                            {canEdit && (
+                              <div className="flex justify-end gap-2">
                                 <button 
-                                  onClick={() => handleDeleteEntrega(asig)}
-                                  className="text-orange-500 hover:text-orange-700 bg-orange-50 hover:bg-orange-100 p-1.5 rounded-lg transition-colors border border-orange-100 inline-flex items-center justify-center shrink-0 cursor-pointer"
-                                  title="Revocar Entrega (Devolver Stock)"
+                                  onClick={() => handleOpenEditDateModal(asig)}
+                                  title="Editar Fecha Asignación" 
+                                  className="p-1 text-blue-600 hover:text-blue-800 transition-colors"
                                 >
-                                  <Undo2 size={14} />
+                                  <Edit2 size={16} />
                                 </button>
-                              )}
-                            </div>
+                                {asig.insumos?.retornable ? (
+                                  <>
+                                    <button 
+                                      onClick={() => handleDejarDisponible(asig)}
+                                      title="Devolver al stock disponible" 
+                                      className="p-1 text-emerald-600 hover:text-emerald-800 transition-colors"
+                                    >
+                                      <RotateCcw size={16} />
+                                    </button>
+                                    <button 
+                                      onClick={() => handleDarDeBaja(asig)}
+                                      title="Dar de baja" 
+                                      className="p-1 text-red-600 hover:text-red-800 transition-colors"
+                                    >
+                                      <Trash2 size={16} />
+                                    </button>
+                                  </>
+                                ) : (
+                                  <button 
+                                    onClick={() => handleDeleteEntrega(asig)}
+                                    title="Revocar Entrega" 
+                                    className="p-1 text-orange-500 hover:text-orange-700 transition-colors"
+                                  >
+                                    <Undo2 size={16} />
+                                  </button>
+                                )}
+                              </div>
+                            )}
                           </td>
                         </tr>
                       ))
@@ -1116,7 +1113,7 @@ export default function InsumosPage() {
                     <tbody className="divide-y divide-gray-200">
                       {sortedAsignacionesInsumo.length === 0 ? (
                         <tr>
-                          <td colSpan="5" className="px-6 py-8 text-center text-gray-500">
+                          <td colSpan="6" className="px-6 py-8 text-center text-gray-500">
                             Nadie tiene asignado este insumo aún.
                           </td>
                         </tr>
@@ -1139,22 +1136,24 @@ export default function InsumosPage() {
                               {asig.observaciones_admin || '—'}
                             </td>
                             <td className="px-3 py-2.5 text-center">
-                              <div className="flex items-center justify-center gap-1.5">
-                                <button 
-                                  onClick={() => handleOpenEditDateModal(asig)}
-                                  className="text-blue-500 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 p-1.5 rounded-lg transition-colors border border-blue-100 inline-flex items-center justify-center shrink-0 cursor-pointer"
-                                  title="Editar fecha de entrega"
-                                >
-                                  <Edit2 size={14} />
-                                </button>
-                                <button 
-                                  onClick={() => handleDeleteEntrega(asig)}
-                                  className="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 p-1.5 rounded-lg transition-colors border border-red-100 inline-flex items-center justify-center shrink-0 cursor-pointer"
-                                  title="Revocar Entrega (Devolver Stock)"
-                                >
-                                  <Trash2 size={14} />
-                                </button>
-                              </div>
+                              {canEdit && (
+                                <div className="flex items-center justify-center gap-1.5">
+                                  <button 
+                                    onClick={() => handleOpenEditDateModal(asig)}
+                                    className="text-blue-500 hover:text-blue-700 p-1 rounded-lg"
+                                    title="Editar fecha de entrega"
+                                  >
+                                    <Edit2 size={16} />
+                                  </button>
+                                  <button 
+                                    onClick={() => handleDeleteEntrega(asig)}
+                                    className="text-red-500 hover:text-red-700 p-1 rounded-lg"
+                                    title="Revocar Entrega (Devolver Stock)"
+                                  >
+                                    <Trash2 size={16} />
+                                  </button>
+                                </div>
+                              )}
                             </td>
                           </tr>
                         ))
@@ -1600,7 +1599,7 @@ export default function InsumosPage() {
                         <SortableHeader label="Correo Electrónico" sortKey="email" currentKey={vAsigSortKey} currentDir={vAsigSortDir} onSort={handleVAsigSort} className="text-white text-left px-4 py-2 hover:bg-slate-800" />
                         <SortableHeader label="Fecha Entrega" sortKey="created_at" currentKey={vAsigSortKey} currentDir={vAsigSortDir} onSort={handleVAsigSort} className="text-white text-left px-4 py-2 hover:bg-slate-800 whitespace-nowrap" />
                         <SortableHeader label="Cantidad" sortKey="cantidad" currentKey={vAsigSortKey} currentDir={vAsigSortDir} onSort={handleVAsigSort} className="text-white text-center px-4 py-2 hover:bg-slate-800 whitespace-nowrap" />
-                        <th className="px-4 py-2 text-center w-24 border-l border-slate-800/50 whitespace-nowrap">Acciones</th>
+                        {canEdit && <th className="px-4 py-2 text-center w-24 border-l border-slate-800/50 whitespace-nowrap">Acciones</th>}
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-150">
@@ -1643,43 +1642,44 @@ export default function InsumosPage() {
                                 )}
                               </div>
                             </td>
-                            <td className="px-4 py-2 text-center whitespace-nowrap">
-                              <div className="flex items-center justify-center gap-1.5">
-                                <button
-                                  onClick={() => handleOpenEditDateModal(a)}
-                                  className="text-blue-500 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 p-1.5 rounded-lg transition-colors border border-blue-100 inline-flex items-center justify-center shrink-0 cursor-pointer"
-                                  title="Editar fecha de entrega"
-                                >
-                                  <Edit2 size={14} />
-                                </button>
-                                {viewInsumo?.retornable ? (
-                                  <>
-                                    <button
-                                      onClick={() => handleDejarDisponible(a)}
-                                      className="text-emerald-600 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 p-1.5 rounded-lg transition-colors border border-emerald-100 inline-flex items-center justify-center shrink-0 cursor-pointer"
-                                      title="Devolver al stock disponible"
-                                    >
-                                      <RotateCcw size={14} />
-                                    </button>
-                                    <button
-                                      onClick={() => handleDarDeBaja(a)}
-                                      className="text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100 p-1.5 rounded-lg transition-colors border border-red-100 inline-flex items-center justify-center shrink-0 cursor-pointer"
-                                      title="Dar de baja (Pérdida/Daño) sin devolver stock"
-                                    >
-                                      <Trash2 size={14} />
-                                    </button>
-                                  </>
-                                ) : (
-                                  <button
-                                    onClick={() => handleRevocarDesdeModal(a)}
-                                    className="text-orange-500 hover:text-orange-700 bg-orange-50 hover:bg-orange-100 p-1.5 rounded-lg transition-colors border border-orange-100 inline-flex items-center justify-center shrink-0 cursor-pointer"
-                                    title="Revocar Entrega (Devolver Stock)"
+                            {canEdit && (
+                              <td className="px-4 py-3 whitespace-nowrap text-right">
+                                <div className="flex justify-end gap-2">
+                                  <button 
+                                    onClick={() => handleOpenEditDateModal(a)}
+                                    title="Editar Fecha Asignación" 
+                                    className="p-1 text-blue-600 hover:text-blue-800 transition-colors"
                                   >
-                                    <Undo2 size={14} />
+                                    <Calendar size={16} />
                                   </button>
-                                )}
-                              </div>
-                            </td>
+                                  {a.estado === 'Entregado' && (
+                                    <>
+                                      <button 
+                                        onClick={() => handleDejarDisponible(a)}
+                                        title="Dejar Disponible (Devuelto)" 
+                                        className="p-1 text-emerald-600 hover:text-emerald-800 transition-colors"
+                                      >
+                                        <CheckCircle size={16} />
+                                      </button>
+                                      <button 
+                                        onClick={() => handleDarDeBaja(a)}
+                                        title="Dar de Baja (Dañado)" 
+                                        className="p-1 text-amber-600 hover:text-amber-800 transition-colors"
+                                      >
+                                        <AlertTriangle size={16} />
+                                      </button>
+                                    </>
+                                  )}
+                                  <button 
+                                    onClick={() => handleRevocarDesdeModal(a)}
+                                    title="Eliminar Registro Histórico" 
+                                    className="p-1 text-red-600 hover:text-red-800 transition-colors"
+                                  >
+                                    <Trash2 size={16} />
+                                  </button>
+                                </div>
+                              </td>
+                            )}
                           </tr>
                         );
                       })}

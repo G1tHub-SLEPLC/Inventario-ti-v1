@@ -16,7 +16,7 @@ function getInitials(name) {
 }
 
 export default function AuditoriaPage() {
-  const { session } = useAuth();
+  const { session, canEdit } = useAuth();
   const { clearInventario, equipos, showToast } = useInventario();
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -296,12 +296,14 @@ export default function AuditoriaPage() {
           <button onClick={() => exportData('pdf')} className="flex items-center gap-2 bg-rose-200 text-rose-800 px-3 py-1.5 rounded-lg hover:bg-rose-300 shadow-sm font-medium transition-colors text-sm cursor-pointer">
             <Printer size={14} /> PDF
           </button>
-          <button 
-            onClick={() => setIsClearModalOpen(true)}
-            className="flex items-center gap-2 bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 px-3 py-1.5 rounded-lg shadow-sm font-medium transition-colors text-sm cursor-pointer"
-          >
-            <Trash2 size={14} /> Limpiar Base de Datos
-          </button>
+          {canEdit && (
+            <button 
+              onClick={() => setIsClearModalOpen(true)}
+              className="flex items-center gap-2 bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 px-3 py-1.5 rounded-lg shadow-sm font-medium transition-colors text-sm cursor-pointer"
+            >
+              <Trash2 size={14} /> Limpiar Base de Datos
+            </button>
+          )}
         </div>
       </div>
 

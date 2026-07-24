@@ -34,7 +34,7 @@ const getInitials = (name) => {
 };
 
 export default function LicenciasAdminPage() {
-  const { session } = useAuth();
+  const { session, canEdit } = useAuth();
   const { licencias, asignaciones, loading, addLicencia, updateLicencia, deleteLicencia, asignarLicencia, asignarLicenciasMultiples, revocarLicencia, getAsignacionesCount, addLicenciasMasivo, executeMasivoLicencias, saveLicenciaDocument, setLicenciaFileStatus } = useLicencias();
   const { showToast, equipos } = useInventario();
   const { showAlertConfirm } = useAlert();
@@ -766,28 +766,29 @@ export default function LicenciasAdminPage() {
           </h1>
           <p className="text-sm text-gray-500 mt-1">Gestiona el inventario de software y asigna licencias a los funcionarios.</p>
         </div>
-        <div className="flex gap-2 flex-wrap">
-          <button
-            onClick={() => { setStatus({ type: 'idle', message: '' }); setIsMasivaModalOpen(true); }}
-            className="flex items-center gap-2 bg-blue-100 text-[#006BB9] px-4 py-2 rounded-lg hover:bg-blue-200 transition-colors text-sm font-medium border border-blue-200"
-          >
-            <UploadCloud size={16} />
-            Carga Masiva
-          </button>
-          <button
-            onClick={() => handleOpenAssignModal()}
-            className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition-colors text-sm font-medium shadow-sm"
-          >
-            <Users size={16} />
-            Asignar
-          </button>
-          <button
-            onClick={() => handleOpenModal()}
-            className="flex items-center gap-2 bg-[#112A46] text-white px-4 py-2 rounded-lg hover:bg-[#1A3A5F] transition-colors text-sm font-medium shadow-sm"
-          >
-            <PlusCircle size={16} />
-            Nuevo
-          </button>
+        <div className="flex gap-2">
+          {canEdit && (
+            <>
+              <button
+                onClick={() => { setStatus({ type: 'idle', message: '' }); setIsMasivaModalOpen(true); }}
+                className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition-colors shadow-sm font-medium text-sm"
+              >
+                <UploadCloud size={16} /> Carga Masiva
+              </button>
+              <button
+                onClick={() => handleOpenAssignModal()}
+                className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors shadow-sm font-medium text-sm"
+              >
+                <UserPlus size={16} /> Asignar Licencia
+              </button>
+              <button
+                onClick={() => handleOpenModal()}
+                className="flex items-center gap-2 bg-[#112A46] text-white px-4 py-2 rounded-lg hover:bg-[#1A3A5F] transition-colors shadow-sm font-medium text-sm"
+              >
+                <PlusCircle size={16} /> Nueva Licencia
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -1052,18 +1053,26 @@ export default function LicenciasAdminPage() {
                             </div>
                           </td>
                           <td className="px-3 py-2.5 text-center font-semibold">
-                            <button onClick={() => handleOpenAssignModal(lic.id)} className="text-emerald-600 hover:text-emerald-800 mr-3 bg-emerald-50 hover:bg-emerald-100 p-1.5 rounded-lg transition-colors border border-emerald-100 inline-flex items-center justify-center shrink-0" title="Asignar a Funcionario">
-                              <UserPlus size={16} />
-                            </button>
-                            <button onClick={() => handleOpenViewModal(lic)} className="text-[#006BB9] hover:text-[#25306B] mr-3 bg-blue-50 hover:bg-blue-100 p-1.5 rounded-lg transition-colors border border-blue-100 inline-flex items-center justify-center shrink-0" title="Ver Asignaciones">
-                              <Users size={16} />
-                            </button>
-                            <button onClick={() => handleOpenModal(lic)} className="text-amber-600 hover:text-amber-800 mr-3 bg-amber-50 hover:bg-amber-100 p-1.5 rounded-lg transition-colors border border-amber-100 inline-flex items-center justify-center shrink-0" title="Editar Licencia">
-                              <Edit2 size={16} />
-                            </button>
-                            <button onClick={() => openDeleteModal(lic)} className="text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100 p-1.5 rounded-lg transition-colors border border-red-100 inline-flex items-center justify-center shrink-0" title="Eliminar Licencia">
-                              <Trash2 size={16} />
-                            </button>
+                            <div className="flex justify-end gap-1">
+                              {canEdit && (
+                                <button onClick={() => handleOpenAssignModal(lic.id)} className="text-emerald-600 hover:text-emerald-800 mr-3 bg-emerald-50 hover:bg-emerald-100 p-1.5 rounded-lg transition-colors border border-emerald-100 inline-flex items-center justify-center shrink-0" title="Asignar a Funcionario">
+                                  <UserPlus size={16} />
+                                </button>
+                              )}
+                              <button onClick={() => handleOpenViewModal(lic)} className="text-[#006BB9] hover:text-[#25306B] mr-3 bg-blue-50 hover:bg-blue-100 p-1.5 rounded-lg transition-colors border border-blue-100 inline-flex items-center justify-center shrink-0" title="Ver Asignaciones">
+                                <Eye size={16} />
+                              </button>
+                              {canEdit && (
+                                <>
+                                  <button onClick={() => handleOpenModal(lic)} className="text-amber-600 hover:text-amber-800 mr-3 bg-amber-50 hover:bg-amber-100 p-1.5 rounded-lg transition-colors border border-amber-100 inline-flex items-center justify-center shrink-0" title="Editar Licencia">
+                                    <Edit2 size={16} />
+                                  </button>
+                                  <button onClick={() => openDeleteModal(lic)} className="text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100 p-1.5 rounded-lg transition-colors border border-red-100 inline-flex items-center justify-center shrink-0" title="Eliminar Licencia">
+                                    <Trash2 size={16} />
+                                  </button>
+                                </>
+                              )}
+                            </div>
                           </td>
                         </tr>
                       );
@@ -1320,20 +1329,24 @@ export default function LicenciasAdminPage() {
                               </td>
                               <td className="px-3 py-2.5 text-center">
                                 <div className="flex items-center justify-center gap-2">
-                                  <button 
-                                    onClick={() => handleEditAsignacionClick(asig)}
-                                    className="text-amber-600 hover:text-amber-800 bg-amber-50 hover:bg-amber-100 p-1.5 rounded-lg transition-colors border border-amber-100 inline-flex items-center justify-center shrink-0 cursor-pointer"
-                                    title="Editar Asignación"
-                                  >
-                                    <Edit2 size={16} />
-                                  </button>
-                                  <button 
-                                    onClick={handleRevocarClick}
-                                    className="text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100 p-1.5 rounded-lg transition-colors border border-red-100 inline-flex items-center justify-center shrink-0 cursor-pointer"
-                                    title="Revocar Asignación"
-                                  >
-                                    <Undo2 size={16} />
-                                  </button>
+                                  {canEdit && (
+                                    <>
+                                      <button 
+                                        onClick={() => handleEditAsignacionClick(asig)}
+                                        className="text-amber-600 hover:text-amber-800 bg-amber-50 hover:bg-amber-100 p-1.5 rounded-lg transition-colors border border-amber-100 inline-flex items-center justify-center shrink-0 cursor-pointer"
+                                        title="Editar Asignación"
+                                      >
+                                        <Edit2 size={16} />
+                                      </button>
+                                      <button 
+                                        onClick={handleRevocarClick}
+                                        className="text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100 p-1.5 rounded-lg transition-colors border border-red-100 inline-flex items-center justify-center shrink-0 cursor-pointer"
+                                        title="Revocar Asignación"
+                                      >
+                                        <Undo2 size={16} />
+                                      </button>
+                                    </>
+                                  )}
                                 </div>
                               </td>
                             </tr>
@@ -1507,20 +1520,26 @@ export default function LicenciasAdminPage() {
                                 </td>
                                 <td className="px-3 py-2.5 text-center">
                                   <div className="flex items-center justify-center gap-2">
-                                    <button 
-                                      onClick={() => handleEditAsignacionClick(asig)}
-                                      className="text-amber-500 hover:text-amber-700 bg-amber-50 hover:bg-amber-100 p-1.5 rounded-lg transition-colors border border-amber-100 inline-flex items-center justify-center shrink-0 cursor-pointer"
-                                      title="Editar Asignación"
-                                    >
-                                      <Edit2 size={14} />
-                                    </button>
-                                    <button 
-                                      onClick={handleRevocarClick}
-                                      className="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 p-1.5 rounded-lg transition-colors border border-red-100 inline-flex items-center justify-center shrink-0 cursor-pointer"
-                                      title="Revocar Asignación"
-                                    >
-                                      <Trash2 size={14} />
-                                    </button>
+                                    {canEdit && (
+                                      <>
+                                        <button 
+                                          onClick={() => handleEditAsignacionClick(asig)}
+                                          className="text-amber-500 hover:text-amber-700 bg-amber-50 hover:bg-amber-100 p-1.5 rounded-lg transition-colors border border-amber-100 inline-flex items-center justify-center shrink-0 cursor-pointer"
+                                          title="Editar Asignación"
+                                        >
+                                          <Edit2 size={14} />
+                                        </button>
+                                        {canEdit && (
+                                          <button 
+                                            onClick={handleRevocarClick}
+                                            className="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 p-1.5 rounded-lg transition-colors border border-red-100 inline-flex items-center justify-center shrink-0 cursor-pointer"
+                                            title="Revocar Asignación"
+                                          >
+                                            <Trash2 size={14} />
+                                          </button>
+                                        )}
+                                      </>
+                                    )}
                                   </div>
                                 </td>
                               </tr>

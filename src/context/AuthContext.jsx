@@ -83,11 +83,13 @@ export function AuthProvider({ children }) {
     }
   }
 
-  const isAdmin = perfil?.rol === 'admin_ti'
+  const isVisor = perfil?.rol === 'visor_ti'
+  const isAdmin = perfil?.rol === 'admin_ti' || isVisor
+  const canEdit = perfil?.rol === 'admin_ti'
   const isSlep = perfil?.rol === 'slep'
 
   return (
-    <AuthContext.Provider value={{ session, perfil, isAdmin, isSlep, loading, authError, refetchPerfil }}>
+    <AuthContext.Provider value={{ session, perfil, isAdmin, isSlep, isVisor, canEdit, loading, authError, refetchPerfil }}>
       {children}
     </AuthContext.Provider>
   )

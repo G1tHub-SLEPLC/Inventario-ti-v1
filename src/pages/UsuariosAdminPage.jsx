@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { useInventario } from '../context/InventarioContext';
 import { useSolicitudes } from '../context/SolicitudesContext';
+import { useAuth } from '../context/AuthContext';
 import { PlusCircle, Edit2, Trash2, Users, UploadCloud, XCircle, CheckCircle, QrCode, Download, Printer, AlertTriangle, FileText } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import * as XLSX from 'xlsx';
@@ -28,6 +29,7 @@ function getInitials(name) {
 }
 
 export default function UsuariosAdminPage() {
+  const { canEdit, isVisor } = useAuth();
   const { showToast, equipos } = useInventario();
   const { solicitudes } = useSolicitudes();
   const [usuarios, setUsuarios] = useState([]);
@@ -471,20 +473,24 @@ export default function UsuariosAdminPage() {
           <p className="text-sm text-gray-500 mt-1">Crea, edita o elimina cuentas de acceso al portal.</p>
         </div>
         <div className="flex gap-2">
-          <button
-            onClick={() => setIsMasivaModalOpen(true)}
-            className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition-colors shadow-sm font-medium"
-          >
-            <UploadCloud size={18} />
-            Carga Masiva
-          </button>
-          <button
-            onClick={() => handleOpenModal()}
-            className="flex items-center gap-2 bg-[#112A46] text-white px-4 py-2 rounded-lg hover:bg-[#1A3A5F] transition-colors shadow-sm font-medium"
-          >
-            <PlusCircle size={18} />
-            Nuevo Usuario
-          </button>
+          {canEdit && (
+            <>
+              <button
+                onClick={() => setIsMasivaModalOpen(true)}
+                className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition-colors shadow-sm font-medium"
+              >
+                <UploadCloud size={18} />
+                Carga Masiva
+              </button>
+              <button
+                onClick={() => handleOpenModal()}
+                className="flex items-center gap-2 bg-[#112A46] text-white px-4 py-2 rounded-lg hover:bg-[#1A3A5F] transition-colors shadow-sm font-medium"
+              >
+                <PlusCircle size={18} />
+                Nuevo Usuario
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -514,7 +520,7 @@ export default function UsuariosAdminPage() {
                   <td className="px-6 py-4 whitespace-nowrap text-gray-600">{user.email}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-gray-700 font-medium">{user.subdireccion || '—'}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-gray-500">
-                    <Badge categoria="usuarios" estado={user.rol === 'admin_ti' ? 'Admin TI' : 'Usuario'} />
+                    <Badge categoria="usuarios" estado={user.rol === 'admin_ti' ? 'Admin TI' : user.rol === 'visor_ti' ? 'Visor TI' : 'Usuario'} />
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-center">
                     {atrasosPorUsuario[user.id] > 0 ? (
@@ -532,12 +538,16 @@ export default function UsuariosAdminPage() {
                     <button onClick={() => setQrModalUser(user)} className="text-emerald-600 hover:text-emerald-800 mr-4" title="Generar QR de Funcionario">
                       <QrCode size={18} />
                     </button>
-                    <button onClick={() => handleOpenModal(user)} className="text-blue-600 hover:text-blue-800 mr-4" title="Editar Usuario">
-                      <Edit2 size={18} />
-                    </button>
-                    <button onClick={() => handleDelete(user)} className="text-red-600 hover:text-red-800" title="Eliminar Usuario">
-                      <Trash2 size={18} />
-                    </button>
+                    {canEdit && (
+                      <>
+                        <button onClick={() => handleOpenModal(user)} className="text-blue-600 hover:text-blue-800 mr-4" title="Editar Usuario">
+                          <Edit2 size={18} />
+                        </button>
+                        <button onClick={() => handleDelete(user)} className="text-red-600 hover:text-red-800" title="Eliminar Usuario">
+                          <Trash2 size={18} />
+                        </button>
+                      </>
+                    )}
                   </td>
                 </tr>
               ))
@@ -634,6 +644,7 @@ export default function UsuariosAdminPage() {
                   >
                     <option value="slep">Funcionario (SLEP)</option>
                     <option value="admin_ti">Administrador (TI)</option>
+                    {canEdit && <option value="visor_ti">Visor (TI)</option>}
                   </select>
                 </div>
                 <div className="col-span-2 sm:col-span-1">
