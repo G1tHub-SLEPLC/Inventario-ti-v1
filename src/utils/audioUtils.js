@@ -126,15 +126,19 @@ const SOUND_GENERATORS = {
   'gentle_bell': playGentleBell
 };
 
+let sharedAudioCtx = null;
+
 export const playSpecificSound = (soundId) => {
   try {
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    if (audioCtx.state === 'suspended') {
-      audioCtx.resume();
+    if (!sharedAudioCtx) {
+      sharedAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
     }
-    const t = audioCtx.currentTime;
+    if (sharedAudioCtx.state === 'suspended') {
+      sharedAudioCtx.resume();
+    }
+    const t = sharedAudioCtx.currentTime;
     const generator = SOUND_GENERATORS[soundId] || SOUND_GENERATORS['classic_ding'];
-    generator(audioCtx, t);
+    generator(sharedAudioCtx, t);
   } catch (err) {
     console.error('Audio playback failed or is not supported', err);
   }

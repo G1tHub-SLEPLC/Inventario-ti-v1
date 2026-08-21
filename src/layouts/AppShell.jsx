@@ -4,7 +4,7 @@ import { LayoutDashboard, Database, PlusCircle, Monitor, CheckCircle, AlertCircl
 import { useInventario } from '../context/InventarioContext';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabaseClient';
-import { stopNotificationSound } from '../utils/audioUtils';
+
 
 const ADMIN_NAV_ITEMS = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Inicio', desc: 'Resumen global del sistema' },
@@ -36,7 +36,6 @@ export default function AppShell() {
 
   const handleCloseToast = useCallback(() => {
     setIsExiting(true);
-    stopNotificationSound(); // Stop the looping sound
     if (exitTimeoutRef.current) clearTimeout(exitTimeoutRef.current);
     exitTimeoutRef.current = setTimeout(() => {
       setVisibleToast(null);

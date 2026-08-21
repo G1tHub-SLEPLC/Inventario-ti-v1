@@ -77,7 +77,7 @@ export default function LicenciasAdminPage() {
 
   const [formData, setFormData] = useState({
     id: null, software: '', version: '', tipo: 'SAAS', descripcion: '', cantidad_total: 1,
-    fecha_inicio: '', fecha_termino: '', factura: '', orden_compra: '',
+    fecha_inicio: '', fecha_termino: '', factura: '', orden_compra: '', proveedor: '',
     has_factura_file: false,
     has_oc_file: false,
     imagen_url: ''
@@ -125,6 +125,7 @@ export default function LicenciasAdminPage() {
         fecha_inicio: lic.fecha_inicio || '', fecha_termino: lic.fecha_termino || '',
         factura: lic.factura || '',
         orden_compra: lic.orden_compra || '',
+        proveedor: lic.proveedor || '',
         has_factura_file: !!lic.factura_url,
         has_oc_file: !!lic.orden_compra_url,
         imagen_url: lic.imagen_url || ''
@@ -133,7 +134,7 @@ export default function LicenciasAdminPage() {
     } else {
       setFormData({
         id: null, software: '', version: 'Suscripción Anual', tipo: 'SAAS', descripcion: '', cantidad_total: 1,
-        fecha_inicio: '', fecha_termino: '', factura: '', orden_compra: '', has_factura_file: false, has_oc_file: false, imagen_url: ''
+        fecha_inicio: '', fecha_termino: '', factura: '', orden_compra: '', proveedor: '', has_factura_file: false, has_oc_file: false, imagen_url: ''
       });
       setSelectLicTipoVal('SAAS');
     }
@@ -166,8 +167,8 @@ export default function LicenciasAdminPage() {
     let pool = licencias;
     if (licGlobalSearch) {
       const q = licGlobalSearch.toLowerCase().trim();
-      pool = pool.filter(lic => 
-        (lic.software || '').toLowerCase().includes(q) || 
+      pool = pool.filter(lic =>
+        (lic.software || '').toLowerCase().includes(q) ||
         (lic.version || '').toLowerCase().includes(q) ||
         (lic.tipo || '').toLowerCase().includes(q)
       );
@@ -180,8 +181,8 @@ export default function LicenciasAdminPage() {
     let pool = asignaciones.filter(a => a.usuario_id === selectedFunc.id);
     if (licGlobalSearch) {
       const q = licGlobalSearch.toLowerCase().trim();
-      pool = pool.filter(a => 
-        (a.licencias?.software || '').toLowerCase().includes(q) || 
+      pool = pool.filter(a =>
+        (a.licencias?.software || '').toLowerCase().includes(q) ||
         (a.licencias?.version || '').toLowerCase().includes(q) ||
         (a.licencias?.tipo || '').toLowerCase().includes(q)
       );
@@ -210,8 +211,8 @@ export default function LicenciasAdminPage() {
     let pool = asignaciones.filter(a => a.licencia_id === selectedLicId);
     if (licGlobalSearch) {
       const q = licGlobalSearch.toLowerCase().trim();
-      pool = pool.filter(a => 
-        (a.perfiles?.nombre || '').toLowerCase().includes(q) || 
+      pool = pool.filter(a =>
+        (a.perfiles?.nombre || '').toLowerCase().includes(q) ||
         (a.perfiles?.email || '').toLowerCase().includes(q)
       );
     }
@@ -231,8 +232,8 @@ export default function LicenciasAdminPage() {
   const funcSuggestions = useMemo(() => {
     const q = funcSearch.toLowerCase().trim();
     if (!q) return usuarios;
-    return usuarios.filter(u => 
-      (u.nombre || '').toLowerCase().includes(q) || 
+    return usuarios.filter(u =>
+      (u.nombre || '').toLowerCase().includes(q) ||
       (u.email || '').toLowerCase().includes(q)
     );
   }, [usuarios, funcSearch]);
@@ -303,9 +304,9 @@ export default function LicenciasAdminPage() {
       // In case we don't have updateAsignacion yet, we ensure it won't crash if omitted
       if (updateAsignacion) {
         await updateAsignacion(
-          editAsigTarget.id, 
-          editAsigData, 
-          editAsigTarget.licencias?.software, 
+          editAsigTarget.id,
+          editAsigData,
+          editAsigTarget.licencias?.software,
           editAsigTarget.perfiles?.nombre || editAsigTarget.perfiles?.email
         );
       }
@@ -339,6 +340,7 @@ export default function LicenciasAdminPage() {
         fecha_termino: formData.fecha_termino || null,
         factura: formData.factura || '',
         orden_compra: formData.orden_compra || '',
+        proveedor: formData.proveedor || '',
         imagen_url: formData.imagen_url || ''
       };
 
@@ -533,6 +535,7 @@ export default function LicenciasAdminPage() {
       const descripcion = getField(['descripción', 'descripcion', 'detalle']) || '';
       const fecha_inicio = getField(['fecha de inicio', 'fecha inicio', 'desde']) || null;
       const fecha_termino = getField(['fecha de término', 'fecha termino', 'hasta', 'vencimiento']) || null;
+      const proveedor = getField(['proveedor', 'empresa', 'vendedor', 'distribuidor', 'proveedores']) || '';
 
       const rowNum = idx + 2;
 
@@ -552,7 +555,8 @@ export default function LicenciasAdminPage() {
         fecha_inicio: fecha_inicio || null,
         fecha_termino: fecha_termino || null,
         factura: facturaVal,
-        orden_compra: ocVal.toUpperCase()
+        orden_compra: ocVal.toUpperCase(),
+        proveedor
       });
     });
 
@@ -690,7 +694,7 @@ export default function LicenciasAdminPage() {
   };
 
   const exportData = (format) => {
-    const columns = ['Software', 'Versión', 'Tipo', 'Fecha Inicio', 'Fecha Término', 'Factura', 'Orden Compra', 'Total Adquiridas', 'Asignadas', 'Disponibles', 'Usuarios Asignados', 'Descripción'];
+    const columns = ['Software', 'Versión', 'Tipo', 'Proveedor', 'Fecha Inicio', 'Fecha Término', 'Factura', 'Orden Compra', 'Total Adquiridas', 'Asignadas', 'Disponibles', 'Usuarios Asignados', 'Descripción'];
 
     const rowFormatter = (row, cols) => {
       const asignadasInfo = asignaciones.filter(a => a.licencia_id === row.id);
@@ -702,6 +706,7 @@ export default function LicenciasAdminPage() {
         'Software': row.software,
         'Versión': row.version || 'N/A',
         'Tipo': row.tipo || 'N/A',
+        'Proveedor': row.proveedor || 'N/A',
         'Fecha Inicio': row.fecha_inicio || 'N/A',
         'Fecha Término': row.fecha_termino || 'N/A',
         'Factura': row.factura || 'N/A',
@@ -770,6 +775,45 @@ export default function LicenciasAdminPage() {
           {canEdit && (
             <>
               <button
+                onClick={async () => {
+                  if (!window.confirm("¿Seguro que deseas sincronizar proveedores desde las OC? Esto puede tardar unos segundos.")) return;
+                  setStatus({ type: 'info', message: 'Sincronizando proveedores...' });
+                  try {
+                    const { data: licList, error: licErr } = await supabase.from('licencias').select('*').eq('has_oc_file', true);
+                    if (licErr) throw licErr;
+
+                    const targetLics = licList.filter(l => !l.proveedor || l.proveedor.trim() === '');
+                    const { data: files } = await supabase.storage.from('documentos').list();
+
+                    const { parseOrdenCompra } = await import('../utils/pdfParser.js');
+                    let updated = 0;
+
+                    for (const lic of targetLics) {
+                      const filePrefix = `oc_${lic.orden_compra?.toString().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase()}`;
+                      const match = (files || []).find(f => f.name.startsWith(filePrefix));
+
+                      if (match) {
+                        const { data: fileData } = await supabase.storage.from('documentos').download(match.name);
+                        if (fileData) {
+                          const pdfData = await parseOrdenCompra(fileData, { marca: '', modelo: '', descripcion: '' });
+                          if (pdfData.proveedor) {
+                            await supabase.from('licencias').update({ proveedor: pdfData.proveedor }).eq('id', lic.id);
+                            updated++;
+                          }
+                        }
+                      }
+                    }
+                    setStatus({ type: 'success', message: `Sincronización completada. ${updated} proveedores actualizados.` });
+                    fetchLicencias();
+                  } catch (e) {
+                    setStatus({ type: 'error', message: 'Error: ' + e.message });
+                  }
+                }}
+                className="flex items-center gap-2 bg-amber-500 text-white px-4 py-2 rounded-lg hover:bg-amber-600 transition-colors shadow-sm font-medium text-sm"
+              >
+                Sincronizar Proveedores
+              </button>
+              <button
                 onClick={() => { setStatus({ type: 'idle', message: '' }); setIsMasivaModalOpen(true); }}
                 className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition-colors shadow-sm font-medium text-sm"
               >
@@ -798,20 +842,20 @@ export default function LicenciasAdminPage() {
       <section className="bg-white rounded-xl shadow-sm border border-gray-200 no-print-interactive">
         <div className="flex flex-col xl:flex-row justify-between items-stretch xl:items-center border-b border-gray-200">
           <nav className="flex flex-wrap w-full xl:w-auto">
-            <button 
-              onClick={() => { setActiveTab('disp'); setLicGlobalSearch(''); }} 
+            <button
+              onClick={() => { setActiveTab('disp'); setLicGlobalSearch(''); }}
               className={`px-4 py-3 text-sm font-medium border-b-2 flex items-center gap-2 transition-colors whitespace-nowrap ${activeTab === 'disp' ? 'border-[#25306B] bg-[#25306B] text-white font-bold' : 'border-transparent text-gray-600 hover:bg-gray-50'}`}
             >
               <Package size={16} /> Disponibles
             </button>
-            <button 
-              onClick={() => { setActiveTab('func'); setLicGlobalSearch(''); setFuncSearch(''); setSelectedFunc(null); }} 
+            <button
+              onClick={() => { setActiveTab('func'); setLicGlobalSearch(''); setFuncSearch(''); setSelectedFunc(null); }}
               className={`px-4 py-3 text-sm font-medium border-b-2 flex items-center gap-2 transition-colors whitespace-nowrap ${activeTab === 'func' ? 'border-[#25306B] bg-[#25306B] text-white font-bold' : 'border-transparent text-gray-600 hover:bg-gray-50'}`}
             >
               <UserCircle size={16} /> Por funcionario
             </button>
-            <button 
-              onClick={() => { setActiveTab('lic'); setLicGlobalSearch(''); setSelectedLicId(''); }} 
+            <button
+              onClick={() => { setActiveTab('lic'); setLicGlobalSearch(''); setSelectedLicId(''); }}
               className={`px-4 py-3 text-sm font-medium border-b-2 flex items-center gap-2 transition-colors whitespace-nowrap ${activeTab === 'lic' ? 'border-[#25306B] bg-[#25306B] text-white font-bold' : 'border-transparent text-gray-600 hover:bg-gray-50'}`}
             >
               <MonitorSmartphone size={16} /> Por licencia
@@ -824,7 +868,7 @@ export default function LicenciasAdminPage() {
               <>
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <input 
+                  <input
                     type="text"
                     value={licGlobalSearch}
                     onChange={e => setLicGlobalSearch(e.target.value)}
@@ -854,9 +898,9 @@ export default function LicenciasAdminPage() {
                     <th className="px-3 py-3 w-16 font-bold text-white text-left"></th>
                     <SortableHeader label="Nombre" sortKey="software" currentKey={dispSortKey} currentDir={dispSortDir} onSort={handleDispSort} className="text-white text-left" />
                     <SortableHeader label="Respaldo" sortKey="tiene_respaldo" currentKey={dispSortKey} currentDir={dispSortDir} onSort={handleDispSort} className="text-white text-left" />
+                    <SortableHeader label="Proveedores" sortKey="proveedor" currentKey={dispSortKey} currentDir={dispSortDir} onSort={handleDispSort} className="text-white text-left" />
+                    <SortableHeader label="Total" sortKey="cantidad_total" currentKey={dispSortKey} currentDir={dispSortDir} onSort={handleDispSort} className="text-white text-center" />
                     <th className="px-3 py-3 text-center font-bold text-white">Disponibles</th>
-                    <th className="px-3 py-3 text-center font-bold text-white">% Restante</th>
-                    <SortableHeader label="Estado" sortKey="estado" currentKey={dispSortKey} currentDir={dispSortDir} onSort={handleDispSort} className="text-white text-center" />
                     <SortableHeader label="Expiración" sortKey="fecha_expiracion" currentKey={dispSortKey} currentDir={dispSortDir} onSort={handleDispSort} className="text-white text-center" />
                     <th className="px-3 py-3 text-center font-bold text-white">Acciones</th>
                   </tr>
@@ -876,10 +920,10 @@ export default function LicenciasAdminPage() {
                         <tr key={lic.id} className="hover:bg-gray-50 transition-colors">
                           <td className="px-3 py-2.5 w-[52px]">
                             <div className="w-[52px] h-[52px] rounded shadow-sm border border-gray-100 overflow-hidden bg-white flex items-center justify-center shrink-0 relative group">
-                              <img 
-                                src={lic.imagen_url || getLogoUrl(lic.software)} 
-                                alt={lic.software} 
-                                className="w-full h-full object-contain" 
+                              <img
+                                src={lic.imagen_url || getLogoUrl(lic.software)}
+                                alt={lic.software}
+                                className="w-full h-full object-contain"
                                 onError={(e) => {
                                   e.target.onerror = null;
                                   e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(lic.software)}&background=random&color=fff&rounded=true&bold=true`;
@@ -892,11 +936,29 @@ export default function LicenciasAdminPage() {
                             <div className="text-[11px] mt-1 flex gap-2 items-center">
                               <span className="font-[500] text-[14px] text-[#334155]">{lic.tipo || 'SAAS'}</span>
                               <span className="text-gray-400">|</span>
-                              {lic.fecha_termino ? (
-                                <span className="text-gray-500">Expira: {formatLocalDate(lic.fecha_termino)}</span>
-                              ) : (
-                                <span className="text-gray-400 italic">Sin caducidad</span>
-                              )}
+                              {(() => {
+                                if (!lic.fecha_termino) return <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-gray-50 text-gray-500 border border-gray-200 uppercase tracking-wider italic">Sin caducidad</span>;
+                                const today = new Date();
+                                today.setHours(0, 0, 0, 0);
+                                const termDate = new Date(lic.fecha_termino);
+                                const diffTime = termDate - today;
+                                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                                let badgeClass = '';
+                                if (diffDays > 30) {
+                                  badgeClass = 'bg-emerald-200 text-emerald-700 border-emerald-200';
+                                } else if (diffDays > 0) {
+                                  badgeClass = 'bg-amber-200 text-amber-700 border-amber-200';
+                                } else {
+                                  badgeClass = 'bg-rose-200 text-rose-700 border-rose-200';
+                                }
+
+                                return (
+                                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full border uppercase tracking-wider ${badgeClass}`}>
+                                    Expira: {formatLocalDate(lic.fecha_termino)}
+                                  </span>
+                                );
+                              })()}
                             </div>
                           </td>
                           <td className="px-3 py-2.5">
@@ -933,89 +995,26 @@ export default function LicenciasAdminPage() {
                               </div>
                             </div>
                           </td>
-                          <td className="px-3 py-2.5 text-center">
-                            <div className="flex flex-col items-center justify-center gap-1">
-                              <span className="font-[600] text-[14px] text-[#334155] leading-none">{disponibles}</span>
-                              {(() => {
-                                const cant = disponibles;
-                                if (cant === 0) return <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-rose-100 text-rose-700 border border-rose-200 uppercase tracking-wider">Agotado</span>;
-                                if (cant <= 5) return <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-700 border border-orange-200 uppercase tracking-wider">Muy Bajo</span>;
-                                if (cant <= 15) return <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200 uppercase tracking-wider">Medio</span>;
-                                return <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200 uppercase tracking-wider">Normal</span>;
-                              })()}
-                            </div>
+                          <td className="px-3 py-2.5 text-left">
+                            <span className="text-gray-700 font-medium text-sm">
+                              {lic.proveedor || '—'}
+                            </span>
                           </td>
                           <td className="px-3 py-2.5 text-center">
-                            {(() => {
-                              const total = lic.cantidad_total || 0;
-                              const r = total > 0 ? (disponibles / total) : 0;
-                              
-                              let configLabel = '';
-                              if (r < 0.2) configLabel = '% Restante < 20%';
-                              else if (r < 0.4) configLabel = '% Restante 20-40%';
-                              else configLabel = '% Restante > 40%';
-
-                              const normalizeString = (str) => str?.toString().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
-                              const licenciasConfig = BADGE_CONFIG.licencias || [];
-                              const config = licenciasConfig.find(c => normalizeString(c.label) === normalizeString(configLabel)) || {};
-
-                              const color = config.bg || 'bg-emerald-500';
-                              const borderColor = config.border || 'border-emerald-500/20';
-                              const fontClass = config.font || 'font-mono';
-                              const weightClass = config.weight || 'font-black';
-                              const italicClass = config.italic ? 'italic' : '';
-                              const textClass = config.text || 'text-slate-800';
-                              const uppercaseClass = config.uppercase !== false ? 'uppercase' : '';
-
-                              return (
-                                <div className={`w-full max-w-[130px] h-6 bg-slate-100 border ${borderColor} rounded-lg overflow-hidden relative flex items-center justify-center shadow-inner mx-auto ${fontClass} text-[10px]`}>
-                                  
-                                  {/* Fondo de color de la barra (z-0) */}
-                                  <div 
-                                    className={`absolute left-0 top-0 h-full transition-all duration-300 ${color} z-0`}
-                                    style={{ width: `${r * 100}%` }}
-                                  />
-                                  
-                                  {/* Texto base oscuro (z-10) visible en la zona vacía */}
-                                  <div className="absolute inset-0 flex items-center justify-center text-slate-800 z-10">
-                                    <span className={`tracking-wider ${weightClass} ${italicClass} ${uppercaseClass}`}>
-                                      {disponibles} / {total} ({(r * 100).toFixed(0)}%)
-                                    </span>
-                                  </div>
-
-                                  {/* Texto con color personalizado (z-20) visible SÓLO sobre la barra usando clip-path */}
-                                  <div 
-                                    className={`absolute inset-0 flex items-center justify-center ${textClass} z-20`}
-                                    style={{ clipPath: `inset(0 ${100 - (r * 100)}% 0 0)` }}
-                                  >
-                                    <span className={`tracking-wider ${weightClass} ${italicClass} ${uppercaseClass}`}>
-                                      {disponibles} / {total} ({(r * 100).toFixed(0)}%)
-                                    </span>
-                                  </div>
-                                </div>
-                              );
-                            })()}
+                            <span className="font-[600] text-[19px] text-[#334155]">
+                              {lic.cantidad_total || 0}
+                            </span>
                           </td>
                           <td className="px-3 py-2.5 text-center">
-                            {(() => {
-                              let estadoLic = 'ACTIVA';
-                              const today = new Date();
-                              today.setHours(0, 0, 0, 0);
-                              const isExpired = lic.fecha_termino && new Date(lic.fecha_termino) < today;
-                              
-                              if (isExpired) {
-                                estadoLic = 'SUSPENDIDA';
-                              } else if (!hasStock) {
-                                estadoLic = 'Sin Stock';
-                              }
-                              
-                              return <Badge categoria="licencias" estado={estadoLic} className="w-full block text-center" />;
-                            })()}
+                            <span className="font-[600] text-[19px] text-[#334155]">
+                              {disponibles}
+                            </span>
                           </td>
+
                           <td className="px-3 py-2.5 text-center">
                             <div className="flex items-center justify-center">
                               {(() => {
-                                if (!lic.fecha_termino) return <span className="text-gray-400 italic text-[11px]">Sin caducidad</span>;
+                                if (!lic.fecha_termino) return <span className="text-gray-400 italic text-[9px] font-bold uppercase tracking-wider">Sin caducidad</span>;
                                 const today = new Date();
                                 today.setHours(0, 0, 0, 0);
                                 const termDate = new Date(lic.fecha_termino);
@@ -1044,7 +1043,7 @@ export default function LicenciasAdminPage() {
                                 }
 
                                 return (
-                                  <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold border shadow-xs ${badgeColorClass}`}>
+                                  <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border shadow-xs ${badgeColorClass}`}>
                                     {IconComponent && <IconComponent size={10} className="stroke-[2.5]" />}
                                     {text}
                                   </span>
@@ -1089,14 +1088,14 @@ export default function LicenciasAdminPage() {
                 <div className="relative flex-1 sm:max-w-md">
                   <div className="relative flex items-center">
                     <Search className="absolute left-3 w-4 h-4 text-gray-400 animate-none" style={{ top: '50%', transform: 'translateY(-50%)' }} />
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       value={funcSearch}
                       onChange={e => {
                         setFuncSearch(e.target.value);
                         setShowFuncSug(true);
                         setFocusedFuncIndex(-1);
-                        if(!e.target.value) setSelectedFunc(null);
+                        if (!e.target.value) setSelectedFunc(null);
                       }}
                       onKeyDown={e => {
                         if (!showFuncSug) return;
@@ -1129,7 +1128,7 @@ export default function LicenciasAdminPage() {
                         }
                       }}
                       onBlur={() => setTimeout(() => { setShowFuncSug(false); setFocusedFuncIndex(-1); }, 200)}
-                      placeholder="Buscar funcionario..." 
+                      placeholder="Buscar funcionario..."
                       className="w-full pl-9 pr-4 py-1.5 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#006BB9] focus:outline-none shadow-sm transition-all"
                     />
                   </div>
@@ -1137,9 +1136,9 @@ export default function LicenciasAdminPage() {
                     <div className="absolute z-50 w-full bg-white border border-gray-200 rounded-lg mt-1 max-h-60 overflow-y-auto shadow-xl">
                       <div className="py-1">
                         {funcSuggestions.length > 0 ? funcSuggestions.map((u, idx) => (
-                          <div 
-                            key={u.id} 
-                            onMouseDown={() => { setSelectedFunc(u); setFuncSearch(u.nombre || u.email); setShowFuncSug(false); setFocusedFuncIndex(-1); }} 
+                          <div
+                            key={u.id}
+                            onMouseDown={() => { setSelectedFunc(u); setFuncSearch(u.nombre || u.email); setShowFuncSug(false); setFocusedFuncIndex(-1); }}
                             className={`flex items-center gap-3 px-3 py-2 cursor-pointer transition-colors ${focusedFuncIndex === idx ? 'bg-blue-100' : 'hover:bg-slate-50'}`}
                           >
                             <Badge variant="user" categoria="nombres" estado="Funcionario" text={u.nombre || u.email} />
@@ -1184,7 +1183,7 @@ export default function LicenciasAdminPage() {
                       ) : (
                         sortedAsignaciones.map((asig) => {
                           const licDetail = licencias.find(l => l.id === asig.licencia_id) || {};
-                          
+
                           const handleRevocarClick = async () => {
                             const softwareName = asig.licencias?.software || 'Software';
                             const uName = selectedFunc.nombre || selectedFunc.email || 'Funcionario';
@@ -1215,7 +1214,7 @@ export default function LicenciasAdminPage() {
                               </td>
                               <td className="px-3 py-2.5">
                                 <div className="font-[800] text-[#111827] text-[14px]">
-                                  {asig.licencias?.software} 
+                                  {asig.licencias?.software}
                                   <span className="font-[500] text-[12px] text-[#6b7280] ml-1">{asig.licencias?.version}</span>
                                 </div>
                                 <div className="text-[11px] mt-1 flex gap-2 items-center">
@@ -1235,37 +1234,37 @@ export default function LicenciasAdminPage() {
                               <td className="px-3 py-2.5">
                                 {(() => {
                                   if (!equipos) return <span className="text-gray-500 text-xs">—</span>;
-                                  
+
                                   const normalizeText = (str) => String(str || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
-                                  
+
                                   const licUsuarioNombre = normalizeText(asig.perfiles?.nombre);
                                   const licUsuarioId = asig.usuario_id;
-                                  
+
                                   const userEquipos = equipos.filter(eq => {
                                     // Sólo mostrar equipos tipo Notebook, AIO, PC, etc.
                                     const descLower = String(eq['Descripción del Bien'] || eq['Tipo de Equipo'] || '').toLowerCase();
                                     const isPC = descLower.includes('notebook') || descLower.includes('all in one') || descLower.includes('aio') || descLower.includes('pc') || descLower.includes('computador') || descLower.includes('desktop');
                                     if (!isPC) return false;
-                                    
+
                                     if (eq.usuario_asignado_id && eq.usuario_asignado_id === licUsuarioId) return true;
-                                    
+
                                     const eqUsuario = normalizeText(eq['Usuario']);
                                     if (!eqUsuario || eqUsuario === 'disponible' || eqUsuario === '—' || eqUsuario === '-') return false;
-                                    
+
                                     if (eqUsuario === licUsuarioNombre) return true;
                                     if (eqUsuario.includes(licUsuarioNombre) || licUsuarioNombre.includes(eqUsuario)) return true;
-                                    
+
                                     const parts1 = eqUsuario.split(/\s+/);
                                     const parts2 = licUsuarioNombre.split(/\s+/);
                                     if (parts1.length >= 2 && parts2.length >= 2) {
-                                      if (parts1[0] === parts2[0] && parts1[parts1.length-1] === parts2[parts2.length-1]) return true;
+                                      if (parts1[0] === parts2[0] && parts1[parts1.length - 1] === parts2[parts2.length - 1]) return true;
                                     }
-                                    
+
                                     return false;
                                   });
-                                  
+
                                   if (userEquipos.length === 0) return <span className="text-gray-500 text-xs font-semibold">Ninguno</span>;
-                                  
+
                                   return (
                                     <div className="flex flex-col gap-2">
                                       {userEquipos.map(eq => (
@@ -1331,14 +1330,14 @@ export default function LicenciasAdminPage() {
                                 <div className="flex items-center justify-center gap-2">
                                   {canEdit && (
                                     <>
-                                      <button 
+                                      <button
                                         onClick={() => handleEditAsignacionClick(asig)}
                                         className="text-amber-600 hover:text-amber-800 bg-amber-50 hover:bg-amber-100 p-1.5 rounded-lg transition-colors border border-amber-100 inline-flex items-center justify-center shrink-0 cursor-pointer"
                                         title="Editar Asignación"
                                       >
                                         <Edit2 size={16} />
                                       </button>
-                                      <button 
+                                      <button
                                         onClick={handleRevocarClick}
                                         className="text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100 p-1.5 rounded-lg transition-colors border border-red-100 inline-flex items-center justify-center shrink-0 cursor-pointer"
                                         title="Revocar Asignación"
@@ -1364,8 +1363,8 @@ export default function LicenciasAdminPage() {
             <div className="space-y-4">
               <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-center justify-between no-print-interactive">
                 <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-                  <select 
-                    value={selectedLicId} 
+                  <select
+                    value={selectedLicId}
                     onChange={e => setSelectedLicId(e.target.value)}
                     className="w-full sm:w-56 px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#006BB9] focus:outline-none shadow-sm bg-white"
                   >
@@ -1377,7 +1376,7 @@ export default function LicenciasAdminPage() {
 
                   <div className="relative w-full sm:w-48">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                    <input 
+                    <input
                       type="text"
                       value={licGlobalSearch}
                       onChange={e => setLicGlobalSearch(e.target.value)}
@@ -1396,15 +1395,15 @@ export default function LicenciasAdminPage() {
                 <>
                   {selectedLic && (
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
-                      <div className="bg-white rounded-lg p-4 border border-gray-200 border-l-4 shadow-sm" style={{borderColor:'var(--slep-primary)'}}>
+                      <div className="bg-white rounded-lg p-4 border border-gray-200 border-l-4 shadow-sm" style={{ borderColor: 'var(--slep-primary)' }}>
                         <div className="text-xs text-gray-500 uppercase font-semibold">Total del software</div>
                         <div className="text-2xl font-bold text-[#25306B]">{selectedLic.cantidad_total}</div>
                       </div>
-                      <div className="bg-white rounded-lg p-4 border border-gray-200 border-l-4 shadow-sm" style={{borderColor:'var(--slep-secondary)'}}>
+                      <div className="bg-white rounded-lg p-4 border border-gray-200 border-l-4 shadow-sm" style={{ borderColor: 'var(--slep-secondary)' }}>
                         <div className="text-xs text-gray-500 uppercase font-semibold">Asignadas</div>
                         <div className="text-2xl font-bold text-[#006BB9]">{getAsignacionesCount(selectedLicId)}</div>
                       </div>
-                      <div className="bg-white rounded-lg p-4 border border-gray-200 border-l-4 shadow-sm" style={{borderColor:'var(--slep-green)'}}>
+                      <div className="bg-white rounded-lg p-4 border border-gray-200 border-l-4 shadow-sm" style={{ borderColor: 'var(--slep-green)' }}>
                         <div className="text-xs text-gray-500 uppercase font-semibold">Disponibles</div>
                         <div className="text-2xl font-bold text-[#90d039]">{Math.max(0, selectedLic.cantidad_total - getAsignacionesCount(selectedLicId))}</div>
                       </div>
@@ -1463,12 +1462,12 @@ export default function LicenciasAdminPage() {
                                 <td className="px-3 py-2.5">
                                   {(() => {
                                     if (!equipos) return <span className="text-gray-500 text-xs">—</span>;
-                                    
+
                                     const normalizeText = (str) => String(str || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
-                                    
+
                                     const licUsuarioNombre = normalizeText(asig.perfiles?.nombre);
                                     const licUsuarioId = asig.usuario_id;
-                                    
+
                                     const userEquipos = equipos.filter(eq => {
                                       // Sólo mostrar equipos tipo Notebook, AIO, PC, etc.
                                       const descLower = String(eq['Descripción del Bien'] || eq['Tipo de Equipo'] || '').toLowerCase();
@@ -1479,21 +1478,21 @@ export default function LicenciasAdminPage() {
 
                                       const eqUsuario = normalizeText(eq['Usuario']);
                                       if (!eqUsuario || eqUsuario === 'disponible' || eqUsuario === '—' || eqUsuario === '-') return false;
-                                      
+
                                       if (eqUsuario === licUsuarioNombre) return true;
                                       if (eqUsuario.includes(licUsuarioNombre) || licUsuarioNombre.includes(eqUsuario)) return true;
-                                      
+
                                       const parts1 = eqUsuario.split(/\s+/);
                                       const parts2 = licUsuarioNombre.split(/\s+/);
                                       if (parts1.length >= 2 && parts2.length >= 2) {
-                                        if (parts1[0] === parts2[0] && parts1[parts1.length-1] === parts2[parts2.length-1]) return true;
+                                        if (parts1[0] === parts2[0] && parts1[parts1.length - 1] === parts2[parts2.length - 1]) return true;
                                       }
-                                      
+
                                       return false;
                                     });
-                                    
+
                                     if (userEquipos.length === 0) return <span className="text-gray-500 text-xs font-semibold">Ninguno</span>;
-                                    
+
                                     return (
                                       <div className="flex flex-col gap-2">
                                         {userEquipos.map(eq => (
@@ -1522,7 +1521,7 @@ export default function LicenciasAdminPage() {
                                   <div className="flex items-center justify-center gap-2">
                                     {canEdit && (
                                       <>
-                                        <button 
+                                        <button
                                           onClick={() => handleEditAsignacionClick(asig)}
                                           className="text-amber-500 hover:text-amber-700 bg-amber-50 hover:bg-amber-100 p-1.5 rounded-lg transition-colors border border-amber-100 inline-flex items-center justify-center shrink-0 cursor-pointer"
                                           title="Editar Asignación"
@@ -1530,7 +1529,7 @@ export default function LicenciasAdminPage() {
                                           <Edit2 size={14} />
                                         </button>
                                         {canEdit && (
-                                          <button 
+                                          <button
                                             onClick={handleRevocarClick}
                                             className="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 p-1.5 rounded-lg transition-colors border border-red-100 inline-flex items-center justify-center shrink-0 cursor-pointer"
                                             title="Revocar Asignación"
@@ -1697,8 +1696,8 @@ export default function LicenciasAdminPage() {
                               if (matchOld && matchOld[1]) extractedCode = matchOld[1].toUpperCase();
                             }
                             if (!extractedCode) {
-                               const numMatch = cleanName.match(/\d{4,}/);
-                               if (numMatch) extractedCode = numMatch[0];
+                              const numMatch = cleanName.match(/\d{4,}/);
+                              if (numMatch) extractedCode = numMatch[0];
                             }
                             setFormData(prev => ({ ...prev, factura: extractedCode || cleanName }));
                           }
@@ -1744,7 +1743,7 @@ export default function LicenciasAdminPage() {
                         type="file"
                         className="hidden"
                         accept=".pdf,image/*"
-                        onChange={(e) => {
+                        onChange={async (e) => {
                           const file = e.target.files[0];
                           if (file) {
                             setOcFile(file);
@@ -1758,10 +1757,36 @@ export default function LicenciasAdminPage() {
                               if (matchOld && matchOld[1]) extractedCode = matchOld[1].toUpperCase();
                             }
                             if (!extractedCode) {
-                               const numMatch = cleanName.match(/\d{4,}/);
-                               if (numMatch) extractedCode = numMatch[0];
+                              const numMatch = cleanName.match(/\d{4,}/);
+                              if (numMatch) extractedCode = numMatch[0];
                             }
-                            setFormData(prev => ({ ...prev, orden_compra: extractedCode || cleanName }));
+
+                            let finalOC = extractedCode || cleanName;
+                            let finalProveedor = formData.proveedor;
+
+                            if (file.type === 'application/pdf') {
+                              try {
+                                const { parseOrdenCompra } = await import('../utils/pdfParser.js');
+                                const pdfData = await parseOrdenCompra(file, {
+                                  marca: '', modelo: '', descripcion: formData.descripcion || ''
+                                });
+
+                                if (pdfData.nombreOC) {
+                                  finalOC = pdfData.nombreOC;
+                                }
+                                if (pdfData.proveedor && (!finalProveedor || finalProveedor.trim() === '')) {
+                                  finalProveedor = pdfData.proveedor;
+                                }
+                              } catch (err) {
+                                console.error('Error al parsear el PDF de OC:', err);
+                              }
+                            }
+
+                            setFormData(prev => ({
+                              ...prev,
+                              orden_compra: finalOC,
+                              proveedor: finalProveedor
+                            }));
                           }
                         }}
                       />
@@ -1782,6 +1807,17 @@ export default function LicenciasAdminPage() {
               </div>
 
               <div>
+                <label className="block text-[10px] font-bold text-gray-700 uppercase mb-0.5">Proveedor</label>
+                <input
+                  type="text"
+                  value={formData.proveedor}
+                  onChange={e => setFormData({ ...formData, proveedor: e.target.value })}
+                  className="w-full rounded-lg border-gray-300 shadow-sm border p-2 text-sm focus:border-[#006BB9] focus:ring-[#006BB9]"
+                  placeholder="Nombre de la empresa que vendió la licencia"
+                />
+              </div>
+
+              <div>
                 <label className="block text-[10px] font-bold text-gray-700 uppercase mb-0.5">Descripción</label>
                 <textarea
                   value={formData.descripcion}
@@ -1799,9 +1835,9 @@ export default function LicenciasAdminPage() {
                 </label>
                 <div className="flex items-start gap-3">
                   <div className="w-14 h-14 rounded-md bg-gray-50 border border-gray-200 overflow-hidden shrink-0 flex items-center justify-center shadow-sm relative">
-                    <img 
-                      src={formData.imagen_url || getLogoUrl(formData.software)} 
-                      alt="Logo" 
+                    <img
+                      src={formData.imagen_url || getLogoUrl(formData.software)}
+                      alt="Logo"
                       className="w-full h-full object-contain p-1"
                       onError={(e) => {
                         e.target.onerror = null;
@@ -1811,8 +1847,8 @@ export default function LicenciasAdminPage() {
                   </div>
                   <div className="flex-1 space-y-2">
                     <div className="flex gap-2">
-                      <button 
-                        type="button" 
+                      <button
+                        type="button"
                         onClick={() => {
                           if (!formData.software) {
                             alert("Por favor ingresa el nombre del Software primero.");
@@ -1827,10 +1863,10 @@ export default function LicenciasAdminPage() {
                         <Search size={14} /> Buscar Logo en Google
                       </button>
                     </div>
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       value={formData.imagen_url || ''}
-                      onChange={(e) => setFormData({...formData, imagen_url: e.target.value})}
+                      onChange={(e) => setFormData({ ...formData, imagen_url: e.target.value })}
                       className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs focus:ring-1.5 focus:ring-[#006BB9] focus:outline-none shadow-sm bg-gray-50 placeholder-gray-400"
                       placeholder="Deja vacío para usar logo automático, o pega una URL..."
                     />
@@ -2296,7 +2332,7 @@ export default function LicenciasAdminPage() {
                 <X size={20} />
               </button>
             </div>
-            
+
             <div className="p-6 space-y-4 overflow-y-auto">
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1">Funcionario</label>
@@ -2314,19 +2350,19 @@ export default function LicenciasAdminPage() {
 
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1">Fecha de Asignación</label>
-                <input 
+                <input
                   type="date"
                   value={editAsigData.fecha_asignacion}
-                  onChange={(e) => setEditAsigData({...editAsigData, fecha_asignacion: e.target.value})}
+                  onChange={(e) => setEditAsigData({ ...editAsigData, fecha_asignacion: e.target.value })}
                   className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#006BB9] focus:border-[#006BB9] outline-none transition-all text-sm"
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1">Observaciones</label>
-                <textarea 
+                <textarea
                   value={editAsigData.observaciones}
-                  onChange={(e) => setEditAsigData({...editAsigData, observaciones: e.target.value})}
+                  onChange={(e) => setEditAsigData({ ...editAsigData, observaciones: e.target.value })}
                   className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#006BB9] focus:border-[#006BB9] outline-none transition-all text-sm min-h-[100px] resize-none"
                   placeholder="Detalles sobre esta asignación..."
                 />
@@ -2334,13 +2370,13 @@ export default function LicenciasAdminPage() {
             </div>
 
             <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3 bg-gray-50">
-              <button 
+              <button
                 onClick={() => setIsEditAsigModalOpen(false)}
                 className="px-4 py-2 text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 rounded-lg text-sm font-bold transition-colors cursor-pointer"
               >
                 Cancelar
               </button>
-              <button 
+              <button
                 onClick={handleSaveEditAsig}
                 className="px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 text-sm font-bold transition-colors shadow-sm cursor-pointer"
               >

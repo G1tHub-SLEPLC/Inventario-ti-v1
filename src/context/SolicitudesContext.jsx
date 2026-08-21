@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabaseClient';
 import { useAuth } from './AuthContext';
 import { useInventario } from './InventarioContext';
 import { sendPrestamoEmail } from '../utils/emailUtils';
-import { playNotificationSound } from '../utils/audioUtils';
+import { playNotificationSound, stopNotificationSound } from '../utils/audioUtils';
 
 const SolicitudesContext = createContext(null);
 
@@ -93,9 +93,13 @@ export function SolicitudesProvider({ children }) {
       })
       .on('broadcast', { event: 'solicitudes_changed' }, (payload) => {
         loadData();
-        if (isAdmin && payload.payload?.isNew) {
-          playNotificationSound();
-          showToast('Nueva Solicitud', `Un funcionario ha solicitado un requerimiento de ${payload.payload.tipo}.`, 'info', { requireClose: true });
+        if (isAdmin) {
+          if (payload.payload?.isNew) {
+            playNotificationSound();
+            showToast('Nueva Solicitud', `Un funcionario ha solicitado un requerimiento de ${payload.payload?.tipo || ''}.`, 'info', { requireClose: true });
+          } else if (payload.payload?.isUpdate) {
+            stopNotificationSound();
+          }
         }
       })
       .subscribe();
@@ -190,6 +194,7 @@ export function SolicitudesProvider({ children }) {
   };
 
   const updateEstadoSolicitud = async (id, estado, observaciones_admin) => {
+    stopNotificationSound();
     const { error } = await supabase.from('solicitudes').update({
       estado,
       observaciones_admin
@@ -207,7 +212,7 @@ export function SolicitudesProvider({ children }) {
     
     showToast('Éxito', `Solicitud ${estado} correctamente.`, 'success');
     await loadData();
-    broadcastSolicitudesChanges();
+    broadcastSolicitudesChanges({ isUpdate: true });
   };
 
   return (
