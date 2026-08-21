@@ -35,7 +35,7 @@ const getInitials = (name) => {
 
 export default function LicenciasAdminPage() {
   const { session, canEdit } = useAuth();
-  const { licencias, asignaciones, loading, addLicencia, updateLicencia, deleteLicencia, asignarLicencia, asignarLicenciasMultiples, revocarLicencia, getAsignacionesCount, addLicenciasMasivo, executeMasivoLicencias, saveLicenciaDocument, setLicenciaFileStatus } = useLicencias();
+  const { licencias, asignaciones, loading, fetchLicencias, addLicencia, updateLicencia, deleteLicencia, asignarLicencia, asignarLicenciasMultiples, revocarLicencia, updateAsignacion, getAsignacionesCount, addLicenciasMasivo, executeMasivoLicencias, saveLicenciaDocument, setLicenciaFileStatus } = useLicencias();
   const { showToast, equipos } = useInventario();
   const { showAlertConfirm } = useAlert();
 
@@ -2074,7 +2074,17 @@ export default function LicenciasAdminPage() {
                             </td>
                             <td className="px-3 py-1 text-center">
                               <button
-                                onClick={() => handleRevocar(a)}
+                                onClick={async () => {
+                                  const softwareName = viewLicencia?.software || 'Software';
+                                  const confirmed = await showAlertConfirm('Revocar Licencia', `¿Está seguro que desea revocar la licencia de "<strong>${softwareName}</strong>" para <strong>${uName}</strong>?`);
+                                  if (confirmed) {
+                                    try {
+                                      await revocarLicencia(a.id, softwareName, uName);
+                                    } catch (err) {
+                                      console.error(err);
+                                    }
+                                  }
+                                }}
                                 className="text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 p-1.5 rounded-lg transition-colors border border-red-100 inline-flex items-center justify-center shrink-0 cursor-pointer"
                                 title="Revocar Asignación"
                               >
