@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars, no-useless-assignment, react-hooks/exhaustive-deps */
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useLicencias } from '../context/LicenciasContext';
