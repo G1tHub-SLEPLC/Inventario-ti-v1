@@ -955,7 +955,7 @@ export default function LicenciasAdminPage() {
                                 }
 
                                 return (
-                                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full border uppercase tracking-wider ${badgeClass}`}>
+                                  <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded-full border uppercase tracking-wider ${badgeClass}`}>
                                     Expira: {formatLocalDate(lic.fecha_termino)}
                                   </span>
                                 );
@@ -968,10 +968,10 @@ export default function LicenciasAdminPage() {
                                 {lic.factura ? (
                                   <button
                                     onClick={() => lic.has_factura_file ? handlePreview(lic.id, 'factura') : null}
-                                    className={`flex items-center gap-1.5 transition-colors ${lic.has_factura_file ? 'text-[#006BB9] hover:text-blue-800 text-[11px] font-bold cursor-pointer' : 'text-gray-500 text-[11px] font-bold cursor-default'}`}
+                                    className={`flex items-center gap-1.5 transition-colors ${lic.has_factura_file ? 'text-[#006BB9] hover:text-blue-800 text-[13px] font-bold cursor-pointer' : 'text-gray-500 text-[13px] font-bold cursor-default'}`}
                                     title={lic.has_factura_file ? `Ver Factura ${lic.factura}` : `Factura: ${lic.factura} (Sin archivo)`}
                                   >
-                                    <FileText size={12} /> FACTURA N° {lic.factura}
+                                    <FileText size={14} /> FACTURA N° {lic.factura}
                                   </button>
                                 ) : (
                                   <span className="flex items-center gap-1 text-amber-700 text-[10px] font-bold uppercase" title="Falta Factura">
@@ -983,10 +983,10 @@ export default function LicenciasAdminPage() {
                                 {lic.orden_compra ? (
                                   <button
                                     onClick={() => lic.has_oc_file ? handlePreview(lic.id, 'orden_compra') : null}
-                                    className={`flex items-center gap-1.5 transition-colors ${lic.has_oc_file ? 'text-emerald-700 hover:text-emerald-900 text-[11px] font-bold cursor-pointer' : 'text-gray-500 text-[11px] font-bold cursor-default'}`}
+                                    className={`flex items-center gap-1.5 transition-colors ${lic.has_oc_file ? 'text-emerald-700 hover:text-emerald-900 text-[13px] font-bold cursor-pointer' : 'text-gray-500 text-[13px] font-bold cursor-default'}`}
                                     title={lic.has_oc_file ? `Ver OC ${lic.orden_compra}` : `OC: ${lic.orden_compra} (Sin archivo)`}
                                   >
-                                    <FileText size={12} /> OC N° {lic.orden_compra}
+                                    <FileText size={14} /> OC N° {lic.orden_compra}
                                   </button>
                                 ) : (
                                   <span className="flex items-center gap-1 text-amber-700 text-[10px] font-bold uppercase" title="Falta Orden de Compra">
@@ -1044,7 +1044,7 @@ export default function LicenciasAdminPage() {
                                 }
 
                                 return (
-                                  <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border shadow-xs ${badgeColorClass}`}>
+                                  <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider border shadow-xs ${badgeColorClass}`}>
                                     {IconComponent && <IconComponent size={10} className="stroke-[2.5]" />}
                                     {text}
                                   </span>
